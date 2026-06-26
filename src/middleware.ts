@@ -42,13 +42,21 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    "/dashboard",
     "/dashboard/:path*",
+    "/agenda",
     "/agenda/:path*",
+    "/clientes",
     "/clientes/:path*",
+    "/clube",
     "/clube/:path*",
+    "/whatsapp",
     "/whatsapp/:path*",
+    "/servicos",
     "/servicos/:path*",
+    "/equipe",
     "/equipe/:path*",
+    "/admin",
     "/admin/:path*",
   ],
 };

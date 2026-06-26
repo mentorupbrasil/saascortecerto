@@ -13,6 +13,10 @@ import {
   PlansList,
   MembershipsList,
 } from "@/components/clube/clube-panel";
+import {
+  serializeMembershipForClient,
+  serializePlanForClient,
+} from "@/lib/serialize";
 
 export default async function ClubePage() {
   const user = await getSessionUser();
@@ -28,6 +32,9 @@ export default async function ClubePage() {
     getClientsForSubscribe(),
   ]);
 
+  const serializedPlans = plans.map(serializePlanForClient);
+  const serializedMemberships = memberships.map(serializeMembershipForClient);
+
   return (
     <AppShell>
       <div className="animate-fade-in space-y-8">
@@ -39,14 +46,14 @@ export default async function ClubePage() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <SubscribeClientForm plans={plans} clients={clients} />
+            <SubscribeClientForm plans={serializedPlans} clients={clients} />
             <MembershipPlanForm />
           </div>
         </div>
 
         <section>
           <h2 className="text-lg font-semibold text-white mb-4">Planos disponíveis</h2>
-          <PlansList plans={plans} />
+          <PlansList plans={serializedPlans} />
           {plans.length === 0 && (
             <p className="text-zinc-500 text-sm">
               Crie seu primeiro plano: mensal com X cortes, ilimitado, pacote ou fidelidade.
@@ -58,7 +65,7 @@ export default async function ClubePage() {
           <h2 className="text-lg font-semibold text-white mb-4">
             Clientes inscritos ({memberships.length})
           </h2>
-          <MembershipsList memberships={memberships} />
+          <MembershipsList memberships={serializedMemberships} />
         </section>
       </div>
     </AppShell>

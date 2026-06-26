@@ -14,7 +14,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { PLAN_TYPE_LABELS, WEEKDAY_LABELS } from "@/lib/whatsapp";
 import { getMembershipRemaining, getMembershipStatusLabel } from "@/lib/membership";
-import type { MembershipPlanType, MembershipPlan } from "@prisma/client";
+import type { MembershipPlanType } from "@prisma/client";
 import { Plus, X, Crown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,9 +23,9 @@ type Plan = {
   id: string;
   name: string;
   description: string | null;
-  price: { toString(): string };
+  price: number | { toString(): string };
   billingCycle: string;
-  planType: MembershipPlanType;
+  planType: MembershipPlanType | string;
   maxVisitsPerMonth: number | null;
   totalVisits: number | null;
   allowedWeekdays: string;
@@ -38,27 +38,13 @@ type Plan = {
 type Membership = {
   id: string;
   status: string;
-  startedAt: Date;
-  expiresAt: Date | null;
+  startedAt: string;
+  expiresAt: string | null;
   visitsUsedThisPeriod: number;
   totalVisitsUsed: number;
   bonusEarned: number;
   client: { id: string; name: string; phone: string; photoUrl: string | null };
-  plan: Pick<
-    MembershipPlan,
-    | "planType"
-    | "maxVisitsPerMonth"
-    | "totalVisits"
-    | "bonusAfterVisits"
-    | "name"
-    | "description"
-    | "price"
-    | "billingCycle"
-    | "allowedWeekdays"
-    | "bonusDescription"
-    | "active"
-    | "id"
-  > & { _count?: { memberships: number } };
+  plan: Plan;
 };
 
 type ClientOption = { id: string; name: string; phone: string };
@@ -361,12 +347,24 @@ export function MembershipsList({ memberships }: { memberships: Membership[] }) 
                 <p className="font-semibold text-white">{m.client.name}</p>
                 <p className="text-sm text-amber-400">{m.plan.name}</p>
                 <p className="text-xs text-zinc-500 mt-1">
-                  {getMembershipRemaining(m, m.plan)} ·{" "}
-                  {getMembershipStatusLabel(m.status)}
+                  {getMembershipRemaining(
+                    {
+                      visitsUsedThisPeriod: m.visitsUsedThisPeriod,
+                      totalVisitsUsed: m.totalVisitsUsed,
+                      bonusEarned: m.bonusEarned,
+                    },
+                    {
+                      planType: m.plan.planType as MembershipPlanType,
+                      maxVisitsPerMonth: m.plan.maxVisitsPerMonth,
+                      totalVisits: m.plan.totalVisits,
+                      bonusAfterVisits: m.plan.bonusAfterVisits,
+                    }
+                  )}{" "}
+                  · {getMembershipStatusLabel(m.status)}
                 </p>
                 {m.expiresAt && (
                   <p className="text-xs text-zinc-600">
-                    Vence: {format(m.expiresAt, "dd/MM/yyyy", { locale: ptBR })}
+                    Vence: {format(new Date(m.expiresAt), "dd/MM/yyyy", { locale: ptBR })}
                   </p>
                 )}
                 {m.bonusEarned > 0 && (

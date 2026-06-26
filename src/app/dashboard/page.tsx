@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
-import { getTodayStats, getClientsAtRisk } from "@/lib/actions";
+import { fetchTodayStats, fetchClientsAtRisk } from "@/lib/queries";
 import { AppShell } from "@/components/layout/sidebar";
 import { StatCard, Card } from "@/components/ui/card";
 import {
@@ -12,6 +12,7 @@ import {
   formatTime,
   formatDateLong,
 } from "@/components/appointments/appointment-components";
+import { serializeServices } from "@/lib/serialize";
 import { formatCurrency } from "@/lib/utils";
 import { DollarSign, Users, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -23,8 +24,8 @@ export default async function DashboardPage() {
   if (isSuperAdmin(user) && !user.tenantId) redirect("/admin");
 
   const tenantId = requireTenantId(user);
-  const { appointments, revenue, clientsServed } = await getTodayStats();
-  const atRisk = await getClientsAtRisk();
+  const { appointments, revenue, clientsServed } = await fetchTodayStats(user);
+  const atRisk = await fetchClientsAtRisk(tenantId);
 
   const [services, barbers] = await Promise.all([
     prisma.service.findMany({
@@ -63,7 +64,10 @@ export default async function DashboardPage() {
               {formatDateLong(new Date())}
             </h1>
           </div>
-          <NewAppointmentModal services={services} barbers={barbers} />
+          <NewAppointmentModal
+            services={serializeServices(services)}
+            barbers={barbers}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/sidebar";
 import { Card } from "@/components/ui/card";
 import { ClientFormModal, ClientAvatar } from "@/components/clients/client-form";
+import { serializeClientForForm } from "@/lib/serialize";
 import { formatPhone } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -67,7 +68,7 @@ export default async function ClientesPage() {
                   <p className="text-sm text-zinc-400">
                     {client._count.appointments} visitas
                   </p>
-                  <ClientFormModal client={client} edit />
+                  <ClientFormModal client={serializeClientForForm(client)} edit />
                 </div>
               </div>
               {client.notes && (

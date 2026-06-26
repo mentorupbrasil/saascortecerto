@@ -13,7 +13,7 @@ type Client = {
   id: string;
   name: string;
   phone: string;
-  birthday: Date | null;
+  birthday: string | null;
   notes: string | null;
   returnDays: number;
   photoUrl?: string | null;

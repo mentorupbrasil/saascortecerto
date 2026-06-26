@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, requireTenantId } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
+import { serializeServices } from "@/lib/serialize";
 import { AppShell } from "@/components/layout/sidebar";
 import { Card } from "@/components/ui/card";
 import {
@@ -74,7 +75,10 @@ export default async function AgendaPage({
             <h1 className="text-2xl font-bold text-white">Agenda</h1>
             <p className="text-sm text-zinc-400">Visão semanal estilo Google Agenda</p>
           </div>
-          <NewAppointmentModal services={services} barbers={barbers} />
+          <NewAppointmentModal
+            services={serializeServices(services)}
+            barbers={barbers}
+          />
         </div>
 
         <AgendaWeekNav currentDate={currentDate.toISOString()} />
