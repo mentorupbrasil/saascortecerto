@@ -14,7 +14,6 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { PLAN_TYPE_LABELS, WEEKDAY_LABELS } from "@/lib/whatsapp";
 import { getMembershipRemaining, getMembershipStatusLabel } from "@/lib/membership";
-import type { MembershipPlanType } from "@prisma/client";
 import { Plus, X, Crown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,7 +24,7 @@ type Plan = {
   description: string | null;
   price: number | { toString(): string };
   billingCycle: string;
-  planType: MembershipPlanType | string;
+  planType: string;
   maxVisitsPerMonth: number | null;
   totalVisits: number | null;
   allowedWeekdays: string;
@@ -354,7 +353,7 @@ export function MembershipsList({ memberships }: { memberships: Membership[] }) 
                       bonusEarned: m.bonusEarned,
                     },
                     {
-                      planType: m.plan.planType as MembershipPlanType,
+                      planType: m.plan.planType,
                       maxVisitsPerMonth: m.plan.maxVisitsPerMonth,
                       totalVisits: m.plan.totalVisits,
                       bonusAfterVisits: m.plan.bonusAfterVisits,

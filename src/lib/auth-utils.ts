@@ -1,15 +1,20 @@
-import { Role } from "@prisma/client";
+export type UserRole =
+  | "SUPER_ADMIN"
+  | "OWNER"
+  | "MANAGER"
+  | "BARBER"
+  | "RECEPTIONIST";
 
 export type SessionUser = {
   id: string;
   email: string;
   name: string;
-  role: Role;
+  role: UserRole;
   tenantId: string | null;
   tenantName?: string | null;
 };
 
-export const ROLE_LABELS: Record<Role, string> = {
+export const ROLE_LABELS: Record<UserRole, string> = {
   SUPER_ADMIN: "Admin Plataforma",
   OWNER: "Dono",
   MANAGER: "Gerente",

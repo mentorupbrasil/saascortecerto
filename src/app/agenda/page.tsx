@@ -8,9 +8,9 @@ import { Card } from "@/components/ui/card";
 import {
   NewAppointmentModal,
   AppointmentActions,
-  StatusBadge,
-  formatTime,
 } from "@/components/appointments/appointment-components";
+import { StatusBadge } from "@/components/appointments/status-badge";
+import { formatTime } from "@/lib/date-format";
 import { AgendaWeekNav } from "@/components/agenda/agenda-week-nav";
 import {
   startOfWeek,

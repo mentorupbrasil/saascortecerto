@@ -73,7 +73,12 @@ export function getMembershipRemaining(
   plan: Pick<
     MembershipPlan,
     "planType" | "maxVisitsPerMonth" | "totalVisits" | "bonusAfterVisits"
-  >
+  > | {
+    planType: string;
+    maxVisitsPerMonth: number | null;
+    totalVisits: number | null;
+    bonusAfterVisits: number | null;
+  }
 ): string {
   if (plan.planType === "MONTHLY_UNLIMITED") return "Ilimitado";
   if (plan.planType === "MONTHLY_LIMITED" && plan.maxVisitsPerMonth != null) {

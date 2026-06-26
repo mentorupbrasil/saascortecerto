@@ -8,10 +8,9 @@ import { StatCard, Card } from "@/components/ui/card";
 import {
   NewAppointmentModal,
   AppointmentActions,
-  StatusBadge,
-  formatTime,
-  formatDateLong,
 } from "@/components/appointments/appointment-components";
+import { StatusBadge } from "@/components/appointments/status-badge";
+import { formatTime, formatDateLong } from "@/lib/date-format";
 import { serializeServices } from "@/lib/serialize";
 import { formatCurrency } from "@/lib/utils";
 import { DollarSign, Users, AlertTriangle } from "lucide-react";

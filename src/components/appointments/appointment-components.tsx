@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { createAppointment } from "@/lib/actions";
 import { X, Plus } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 type Service = { id: string; name: string; price: string | number | { toString(): string }; duration: number };
 type Barber = { id: string; name: string };
@@ -186,34 +185,4 @@ export function AppointmentActions({
       </button>
     </div>
   );
-}
-
-export function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; className: string }> = {
-    SCHEDULED: { label: "Agendado", className: "bg-zinc-700 text-zinc-300" },
-    CONFIRMED: { label: "Confirmado", className: "bg-blue-500/20 text-blue-400" },
-    COMPLETED: { label: "Concluído", className: "bg-green-500/20 text-green-400" },
-    CANCELLED: { label: "Cancelado", className: "bg-red-500/20 text-red-400" },
-    NO_SHOW: { label: "Faltou", className: "bg-orange-500/20 text-orange-400" },
-  };
-
-  const c = config[status] ?? config.SCHEDULED;
-
-  return (
-    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", c.className)}>
-      {c.label}
-    </span>
-  );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
-export function formatTime(date: Date | string) {
-  return format(new Date(date), "HH:mm", { locale: ptBR });
-}
-
-export function formatDateLong(date: Date | string) {
-  return format(new Date(date), "EEEE, d 'de' MMMM", { locale: ptBR });
 }

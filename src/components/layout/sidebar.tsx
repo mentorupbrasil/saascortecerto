@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { isSuperAdmin, isTenantAdmin } from "@/lib/auth-utils";
-import type { Role } from "@prisma/client";
+import type { UserRole } from "@/lib/auth-utils";
 
 const navItems = [
   { href: "/dashboard", label: "Hoje", icon: LayoutDashboard },
@@ -40,7 +40,7 @@ export function Sidebar() {
   if (!session?.user) return null;
 
   const user = {
-    role: session.user.role as Role,
+    role: session.user.role as UserRole,
     tenantId: session.user.tenantId,
     tenantName: session.user.tenantName,
     name: session.user.name,

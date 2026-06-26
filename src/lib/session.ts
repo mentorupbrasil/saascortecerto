@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
-import type { SessionUser } from "./auth-utils";
-import type { Role } from "@prisma/client";
+import type { SessionUser, UserRole } from "./auth-utils";
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await getServerSession(authOptions);
@@ -11,7 +10,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     id: session.user.id,
     email: session.user.email ?? "",
     name: session.user.name ?? "",
-    role: session.user.role as Role,
+    role: session.user.role as UserRole,
     tenantId: session.user.tenantId ?? null,
     tenantName: session.user.tenantName ?? null,
   };

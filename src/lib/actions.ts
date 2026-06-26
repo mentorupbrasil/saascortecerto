@@ -14,7 +14,8 @@ import {
 import bcrypt from "bcryptjs";
 import { slugify } from "@/lib/utils";
 import { z } from "zod";
-import type { AppointmentStatus, PaymentMethod, Role } from "@prisma/client";
+import type { AppointmentStatus, PaymentMethod } from "@prisma/client";
+import type { UserRole } from "@/lib/auth-utils";
 import {
   addMinutes,
   endOfDay,
@@ -360,7 +361,7 @@ export async function createTenantUser(tenantId: string, formData: FormData) {
       name: parsed.name,
       email: parsed.email.toLowerCase(),
       passwordHash,
-      role: parsed.role as Role,
+      role: parsed.role as UserRole,
     },
   });
 
