@@ -1,9 +1,18 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Cormorant_Garamond } from "next/font/google";
 import { Providers } from "@/components/providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const display = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "CorteCerto — Gestão para Barbearias",
@@ -18,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className={`${inter.className} antialiased`}>
+    <html lang="pt-BR" className={`${inter.variable} ${display.variable}`}>
+      <body className="font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
