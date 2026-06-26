@@ -66,9 +66,13 @@ NEXTAUTH_SECRET="gere-um-secret-aleatorio"
 ## Deploy (Vercel + Neon)
 
 1. Conecte o repo no Vercel
-2. Configure `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`
-3. Rode `npm run db:push` uma vez (local ou CI)
-4. Deploy
+2. **Framework Preset:** Next.js (não "Other")
+3. **Output Directory:** deixe **vazio** (não use `public`)
+4. Configure as variáveis de ambiente (ver abaixo)
+5. Rode `npm run db:setup` uma vez no Neon (local)
+6. Deploy / Redeploy
+
+Se aparecer erro *"No Output Directory named public"*, vá em **Settings → General → Build & Development** e apague o campo **Output Directory**.
 
 ## WhatsApp — cobrança de retorno
 

@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CorteCerto — Gestão para Barbearias",
   description: "Agenda, clientes, faturamento e WhatsApp automático para sua barbearia",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
