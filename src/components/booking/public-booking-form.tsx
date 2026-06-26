@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   createPublicBooking,
@@ -21,12 +21,14 @@ type PublicBookingData = {
   address: string | null;
   openTime: string;
   closeTime: string;
+  requirePixPayment?: boolean;
+  pixPaymentReady?: boolean;
   services: Array<{ id: string; name: string; price: number; duration: number }>;
   barbers: Array<{ id: string; name: string }>;
 };
 
 export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
-  const [serviceId, setServiceId] = useState(tenant.services[0]?.id ?? "");
+  const router = useRouter();  const [serviceId, setServiceId] = useState(tenant.services[0]?.id ?? "");
   const [barberId, setBarberId] = useState("");
   const [dateStr, setDateStr] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [slot, setSlot] = useState("");
@@ -68,16 +70,20 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
     startTransition(async () => {
       try {
         const result = await createPublicBooking(tenant.slug, formData);
+        if ("requiresPayment" in result && result.requiresPayment && result.checkoutId) {
+          router.push(`/agendar/${tenant.slug}/pagamento/${result.checkoutId}`);
+          return;
+        }
+        if (!result.clientWaUrl) return;
         setSuccess({
-          scheduledAt: result.scheduledAt,
-          serviceName: result.serviceName,
+          scheduledAt: result.scheduledAt!,
+          serviceName: result.serviceName!,
           clientWaUrl: result.clientWaUrl,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao agendar");
       }
-    });
-  }
+    });  }
 
   if (success) {
     const when = format(new Date(success.scheduledAt), "EEEE, dd/MM 'às' HH:mm", {
@@ -111,8 +117,17 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
 
   return (
     <Card>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Select
+      {tenant.requirePixPayment && (
+        <p className="text-sm text-amber-400/90 mb-4 rounded-lg bg-amber-500/10 px-3 py-2">
+          Pagamento via PIX é necessário para confirmar o horário.
+        </p>
+      )}
+      {!tenant.pixPaymentReady && tenant.requirePixPayment && (
+        <p className="text-sm text-red-400 mb-4">
+          Agendamento com PIX temporariamente indisponível. Entre em contato com a barbearia.
+        </p>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">        <Select
           name="serviceId"
           label="Serviço"
           required
@@ -164,13 +179,13 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
               Nenhum horário livre nesta data. Tente outro dia.
             </p>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 sm:max-h-40 overflow-y-auto touch-scroll">
               {slots.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setSlot(s)}
-                  className={`rounded-lg px-2 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-2 py-3 sm:py-2 text-sm font-medium transition-colors min-h-[44px] ${
                     slot === s
                       ? "bg-amber-500 text-black"
                       : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
@@ -197,10 +212,18 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
           <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
         )}
 
-        <Button type="submit" className="w-full" size="lg" disabled={pending || !slot}>
-          {pending ? "Agendando..." : "Confirmar agendamento"}
-        </Button>
-      </form>
+        <Button
+          type="submit"
+          className="w-full"
+          size="lg"
+          disabled={pending || !slot || (tenant.requirePixPayment && !tenant.pixPaymentReady)}
+        >
+          {pending
+            ? "Processando..."
+            : tenant.requirePixPayment
+              ? "Continuar para pagamento PIX"
+              : "Confirmar agendamento"}
+        </Button>      </form>
     </Card>
   );
 }

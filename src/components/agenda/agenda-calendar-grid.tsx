@@ -67,8 +67,13 @@ export function AgendaCalendarGrid({
   const gridHeight = slots.length * SLOT_HEIGHT;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900/30">
-      <div className="min-w-[720px]">
+    <div className="relative">
+      <p className="mb-2 text-xs text-zinc-500 lg:hidden flex items-center gap-1.5">
+        <span className="inline-block animate-pulse">←</span>
+        Deslize para ver a semana completa
+      </p>
+      <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900/30 touch-scroll">
+        <div className="min-w-[720px]">
         {/* Header dias */}
         <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-zinc-800 bg-zinc-950 sticky top-0 z-20">
           <div className="p-2" />
@@ -181,6 +186,7 @@ export function AgendaCalendarGrid({
           })}
         </div>
       </div>
+    </div>
     </div>
   );
 }

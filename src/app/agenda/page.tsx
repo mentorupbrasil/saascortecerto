@@ -9,6 +9,7 @@ import { AgendaWeekNav } from "@/components/agenda/agenda-week-nav";
 import { AgendaCalendarGrid } from "@/components/agenda/agenda-calendar-grid";
 import { ShareBookingLink } from "@/components/agenda/share-booking-link";
 import { PublicBookingSettings } from "@/components/agenda/public-booking-settings";
+import { PendingBookingCheckouts } from "@/components/agenda/pending-booking-checkouts";
 import {
   startOfWeek,
   endOfWeek,
@@ -113,10 +114,17 @@ export default async function AgendaPage({
 
         <AgendaCalendarGrid days={days} appointments={calendarAppointments} />
 
+        <PendingBookingCheckouts />
+
         {tenant && (
           <PublicBookingSettings
             enabled={settings?.publicBookingEnabled ?? true}
             notifyPhone={settings?.bookingNotifyPhone ?? tenant.phone}
+            requirePixPayment={settings?.bookingRequirePixPayment ?? false}
+            pixKey={settings?.bookingPixKey ?? null}
+            pixHolderName={settings?.bookingPixHolderName ?? null}
+            pixCity={settings?.bookingPixCity ?? null}
+            mercadoPagoAccessToken={settings?.mercadoPagoAccessToken ?? null}
           />
         )}
       </div>

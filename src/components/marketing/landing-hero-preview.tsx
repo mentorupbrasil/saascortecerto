@@ -1,6 +1,6 @@
 export function LandingHeroPreview() {
   return (
-    <div className="relative mx-auto w-full max-w-[520px] lg:max-w-none">
+    <div className="relative mx-auto w-full max-w-[420px] sm:max-w-[520px] lg:max-w-none">
       <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[var(--gold)]/20 via-transparent to-transparent blur-3xl opacity-60" />
 
       <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0c0c]/90 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.8)] backdrop-blur-sm">
@@ -13,7 +13,7 @@ export function LandingHeroPreview() {
           <span className="ml-2 text-[11px] text-zinc-600 tracking-wide">cortecerto.app/agenda</span>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
           <div className="flex items-end justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--gold)]">Hoje</p>

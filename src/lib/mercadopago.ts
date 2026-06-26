@@ -64,8 +64,8 @@ export async function createMercadoPagoPreference(options: {
   };
 }
 
-export async function fetchMercadoPagoPayment(paymentId: string) {
-  const token = getMercadoPagoAccessToken();
+export async function fetchMercadoPagoPayment(paymentId: string, accessToken?: string) {
+  const token = accessToken ?? getMercadoPagoAccessToken();
   if (!token) return null;
 
   const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -77,5 +77,55 @@ export async function fetchMercadoPagoPayment(paymentId: string) {
     id: number;
     status: string;
     external_reference?: string;
+    point_of_interaction?: {
+      transaction_data?: {
+        qr_code?: string;
+        qr_code_base64?: string;
+      };
+    };
   }>;
+}
+
+export async function createMercadoPagoPixPayment(options: {
+  accessToken: string;
+  amount: number;
+  description: string;
+  externalReference: string;
+  payerEmail: string;
+  notificationUrl: string;
+}) {
+  const res = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${options.accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": options.externalReference,
+    },
+    body: JSON.stringify({
+      transaction_amount: options.amount,
+      description: options.description,
+      payment_method_id: "pix",
+      payer: { email: options.payerEmail },
+      external_reference: options.externalReference,
+      notification_url: options.notificationUrl,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.message ?? "Erro ao gerar PIX no Mercado Pago");
+  }
+
+  const txData = data.point_of_interaction?.transaction_data;
+
+  return {
+    paymentId: String(data.id),
+    status: data.status as string,
+    copiaECola: (txData?.qr_code as string | undefined) ?? null,
+    qrCodeBase64: (txData?.qr_code_base64 as string | undefined) ?? null,
+  };
+}
+
+export function isBookingDemoMode() {
+  return process.env.BOOKING_DEMO_MODE === "true" || process.env.SIGNUP_DEMO_MODE === "true";
 }

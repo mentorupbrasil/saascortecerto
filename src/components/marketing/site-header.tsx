@@ -22,26 +22,33 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-500",
+        "fixed inset-x-0 top-0 z-50 transition-all duration-500 safe-top",
         scrolled
           ? "border-b border-white/[0.06] bg-[#060606]/80 backdrop-blur-xl shadow-[0_1px_0_0_rgba(201,169,98,0.08)]"
           : "bg-transparent"
       )}
     >
-      <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between px-6 lg:px-10">
-        <Link href="/" className="group flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center">
+      <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-10">
+        <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center shrink-0">
             <div className="absolute inset-0 rounded-full bg-[var(--gold-muted)] blur-md opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gold)]/30 bg-[#0c0c0c]">
               <span className="font-display text-lg text-[var(--gold)]">C</span>
             </div>
           </div>
-          <div className="leading-none">
-            <span className="font-display text-xl tracking-wide text-white">CorteCerto</span>
-            <span className="block text-[10px] uppercase tracking-[0.2em] text-zinc-500 mt-0.5">
+          <div className="leading-none min-w-0">
+            <span className="font-display text-lg sm:text-xl tracking-wide text-white">CorteCerto</span>
+            <span className="hidden sm:block text-[10px] uppercase tracking-[0.2em] text-zinc-500 mt-0.5">
               Barbearias
             </span>
           </div>
@@ -75,9 +82,10 @@ export function SiteHeader() {
         </div>
 
         <button
-          className="lg:hidden text-zinc-400 p-2"
+          className="lg:hidden text-zinc-400 p-2 -mr-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
           onClick={() => setOpen(!open)}
-          aria-label="Menu"
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={open}
         >
           <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {open ? (
@@ -90,13 +98,13 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="lg:hidden border-t border-white/[0.06] bg-[#060606]/95 backdrop-blur-xl px-6 py-6 space-y-4">
+        <div className="lg:hidden border-t border-white/[0.06] bg-[#060606]/98 backdrop-blur-xl px-4 py-5 space-y-1 safe-bottom max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="block text-sm uppercase tracking-widest text-zinc-400"
+              className="block py-3.5 text-sm uppercase tracking-widest text-zinc-300 min-h-[44px] flex items-center"
             >
               {link.label}
             </a>

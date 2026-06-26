@@ -19,7 +19,7 @@ import {
   Receipt,
   AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { isSuperAdmin, isTenantAdmin } from "@/lib/auth-utils";
 import type { UserRole } from "@/lib/auth-utils";
 import type { BillingAlertProps } from "@/lib/billing-actions";
@@ -45,6 +45,17 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   if (!session?.user) return null;
 
@@ -93,7 +104,7 @@ export function Sidebar() {
               href={item.href}
               onClick={() => setOpen(false)}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-3 sm:py-2.5 text-sm font-medium transition-colors min-h-[44px]",
                 active
                   ? "bg-amber-500/10 text-amber-400"
                   : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -126,7 +137,8 @@ export function Sidebar() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed left-4 top-4 z-40 rounded-xl bg-zinc-900 p-2 text-white lg:hidden border border-zinc-800"
+        className="fixed left-4 top-4 z-40 rounded-xl bg-zinc-900 p-2.5 text-white lg:hidden border border-zinc-800 safe-top min-h-[44px] min-w-[44px] flex items-center justify-center"
+        aria-label="Abrir menu"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -140,13 +152,14 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-800 bg-zinc-950 p-4 transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(100vw-3rem,16rem)] sm:w-64 flex-col border-r border-zinc-800 bg-zinc-950 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-transform lg:translate-x-0 safe-top",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <button
           onClick={() => setOpen(false)}
-          className="absolute right-3 top-3 text-zinc-400 lg:hidden"
+          className="absolute right-3 top-3 text-zinc-400 lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label="Fechar menu"
         >
           <X className="h-5 w-5" />
         </button>
@@ -166,10 +179,10 @@ export function AppShell({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-zinc-950 overflow-x-hidden">
       <Sidebar />
       <main className="lg:pl-64">
-        <div className="mx-auto max-w-5xl px-4 py-6 pt-16 lg:pt-8 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-5 pt-[4.5rem] sm:pt-16 lg:pt-8 lg:px-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           {billingAlert?.message && pathname !== "/faturamento" && (
             <BillingAlertBanner alert={billingAlert} />
           )}

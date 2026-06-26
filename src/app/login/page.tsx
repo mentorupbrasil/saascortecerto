@@ -38,25 +38,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 px-4">
-      <div className="flex justify-end p-4 gap-3">
-        <Link href="/" className="text-sm text-zinc-400 hover:text-white">
+    <div className="flex min-h-screen flex-col bg-zinc-950 px-4 overflow-x-hidden safe-bottom">
+      <div className="flex flex-wrap justify-end items-center gap-2 sm:gap-3 p-3 sm:p-4 safe-top">
+        <Link href="/" className="text-sm text-zinc-400 hover:text-white py-2">
           ← Voltar ao site
         </Link>
         <Link href="/assinar">
-          <Button size="sm">Assinar</Button>
+          <Button size="sm" className="min-h-[44px]">Assinar</Button>
         </Link>
       </div>
 
-      <div className="flex flex-1 items-center justify-center pb-12">
+      <div className="flex flex-1 items-center justify-center pb-8 sm:pb-12 px-1">
         <div className="w-full max-w-md animate-fade-in">
-          <div className="mb-8 text-center">
+          <div className="mb-6 sm:mb-8 text-center">
             <Link href="/">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500 text-3xl">
+              <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-amber-500 text-2xl sm:text-3xl">
                 ✂️
               </div>
             </Link>
-            <h1 className="text-3xl font-bold text-white">CorteCerto</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">CorteCerto</h1>
             <p className="mt-2 text-zinc-400">Área do cliente</p>
           </div>
 

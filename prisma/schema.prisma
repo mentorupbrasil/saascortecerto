@@ -85,6 +85,14 @@ enum SignupCheckoutStatus {
   CANCELLED
 }
 
+enum PublicBookingCheckoutStatus {
+  PENDING_PAYMENT
+  AWAITING_CONFIRMATION
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -108,6 +116,7 @@ model Tenant {
   whatsappMessages WhatsAppMessage[]
   subscriptionPayments SubscriptionPayment[]
   signupCheckout       SignupCheckout?
+  publicBookingCheckouts PublicBookingCheckout[]
 }
 
 model SignupCheckout {
@@ -210,6 +219,7 @@ model Appointment {
   bookedOnline  Boolean           @default(false)
   membershipId  String?
   membership    ClientMembership? @relation(fields: [membershipId], references: [id])
+  bookingCheckout PublicBookingCheckout?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -234,6 +244,36 @@ model TenantSettings {
   workingDays            String  @default("1,2,3,4,5,6")
   publicBookingEnabled   Boolean @default(true)
   bookingNotifyPhone     String?
+  bookingRequirePixPayment Boolean @default(false)
+  bookingPixKey          String?
+  bookingPixHolderName   String?
+  bookingPixCity         String?  @default("SAO PAULO")
+  mercadoPagoAccessToken String?  @db.Text
+}
+
+model PublicBookingCheckout {
+  id                   String                      @id @default(cuid())
+  tenantId             String
+  tenant               Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status               PublicBookingCheckoutStatus @default(PENDING_PAYMENT)
+  clientName           String
+  clientPhone          String
+  serviceId            String
+  barberId             String?
+  scheduledAt          DateTime
+  amount               Decimal                     @db.Decimal(10, 2)
+  mercadoPagoPaymentId String?
+  appointmentId        String?                     @unique
+  appointment          Appointment?                @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  expiresAt            DateTime
+  paidAt               DateTime?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, scheduledAt])
+  @@index([mercadoPagoPaymentId])
+  @@index([expiresAt])
 }
 
 model WhatsAppMessage {
