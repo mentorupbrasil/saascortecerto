@@ -6,7 +6,7 @@ import {
   getActiveMemberships,
   getClientsForSubscribe,
 } from "@/lib/membership-actions";
-import { AppShell } from "@/components/layout/sidebar";
+import { TenantAppShell } from "@/components/layout/tenant-shell";
 import {
   MembershipPlanForm,
   SubscribeClientForm,
@@ -36,7 +36,7 @@ export default async function ClubePage() {
   const serializedMemberships = memberships.map(serializeMembershipForClient);
 
   return (
-    <AppShell>
+    <TenantAppShell>
       <div className="animate-fade-in space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -68,6 +68,6 @@ export default async function ClubePage() {
           <MembershipsList memberships={serializedMemberships} />
         </section>
       </div>
-    </AppShell>
+    </TenantAppShell>
   );
 }

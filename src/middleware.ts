@@ -14,10 +14,19 @@ export default withAuth(
         path.startsWith("/clube") ||
         path.startsWith("/whatsapp") ||
         path.startsWith("/servicos") ||
-        path.startsWith("/equipe")
+        path.startsWith("/equipe") ||
+        path.startsWith("/faturamento")
       ) {
         return NextResponse.redirect(new URL("/admin", req.url));
       }
+    }
+
+    if (path.startsWith("/faturamento") && token?.role === "BARBER") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    if (path.startsWith("/faturamento") && token?.role === "RECEPTIONIST") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     if (path.startsWith("/admin") && token?.role !== "SUPER_ADMIN") {
@@ -56,6 +65,9 @@ export const config = {
     "/servicos/:path*",
     "/equipe",
     "/equipe/:path*",
+    "/faturamento",
+    "/faturamento/:path*",
+    "/conta-bloqueada",
     "/admin",
     "/admin/:path*",
   ],

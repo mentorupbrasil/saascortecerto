@@ -21,6 +21,12 @@ export function renderMessageTemplate(
   return template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? ""));
 }
 
+export function buildWhatsAppUrl(phone: string, message: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const e164 = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${e164}?text=${encodeURIComponent(message)}`;
+}
+
 export async function sendWhatsAppText(
   settings: Pick<
     TenantSettings,

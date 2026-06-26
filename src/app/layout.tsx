@@ -7,7 +7,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "CorteCerto — Gestão para Barbearias",
-  description: "Agenda, clientes, faturamento e WhatsApp automático para sua barbearia",
+  description:
+    "Agenda, clientes, WhatsApp de retorno e clube de assinatura. A partir de R$ 39,90/mês. Cada barbearia com ambiente isolado.",
   icons: { icon: "/favicon.svg" },
 };
 

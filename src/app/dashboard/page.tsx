@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
-import { fetchTodayStats, fetchClientsAtRisk } from "@/lib/queries";
-import { AppShell } from "@/components/layout/sidebar";
+import { fetchTodayStats } from "@/lib/queries";
+import { getReturnPreview, getWhatsAppSettings } from "@/lib/whatsapp-actions";
+import { canUseAutoWhatsApp } from "@/lib/plan-pricing";
+import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { StatCard, Card } from "@/components/ui/card";
 import {
   NewAppointmentModal,
@@ -11,11 +13,15 @@ import {
 } from "@/components/appointments/appointment-components";
 import { StatusBadge } from "@/components/appointments/status-badge";
 import { formatTime, formatDateLong } from "@/lib/date-format";
+import { startOfDay, endOfDay } from "date-fns";
 import { serializeServices } from "@/lib/serialize";
 import { formatCurrency } from "@/lib/utils";
 import { DollarSign, Users, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { SendSingleButton } from "@/components/whatsapp/whatsapp-panel";
+import {
+  SendSingleButton,
+  ManualWhatsAppLink,
+} from "@/components/whatsapp/whatsapp-panel";
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -24,7 +30,20 @@ export default async function DashboardPage() {
 
   const tenantId = requireTenantId(user);
   const { appointments, revenue, clientsServed } = await fetchTodayStats(user);
-  const atRisk = await fetchClientsAtRisk(tenantId);
+
+  const [{ plan }, dueClients, onlineToday] = await Promise.all([
+    getWhatsAppSettings(),
+    isTenantAdmin(user) ? getReturnPreview() : Promise.resolve([]),
+    prisma.appointment.count({
+      where: {
+        tenantId,
+        bookedOnline: true,
+        scheduledAt: { gte: startOfDay(new Date()), lte: endOfDay(new Date()) },
+        status: { not: "CANCELLED" },
+      },
+    }),
+  ]);
+  const autoWhatsApp = canUseAutoWhatsApp(plan);
 
   const [services, barbers] = await Promise.all([
     prisma.service.findMany({
@@ -54,7 +73,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <AppShell>
+    <TenantAppShell>
       <div className="animate-fade-in space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -68,6 +87,17 @@ export default async function DashboardPage() {
             barbers={barbers}
           />
         </div>
+
+        {onlineToday > 0 && isTenantAdmin(user) && (
+          <Card className="border-green-500/20 bg-green-500/5">
+            <p className="text-sm text-green-300">
+              🌐 <strong>{onlineToday}</strong> agendamento(s) online hoje —{" "}
+              <Link href="/agenda" className="underline hover:text-green-200">
+                ver na agenda
+              </Link>
+            </p>
+          </Card>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <StatCard
@@ -125,39 +155,43 @@ export default async function DashboardPage() {
           </div>
         </Card>
 
-        {atRisk.length > 0 && (
+        {dueClients.length > 0 && (
           <Card className="border-orange-500/20">
             <div className="mb-3 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-400" />
               <h2 className="text-lg font-semibold text-white">
-                Clientes para retorno ({atRisk.length})
+                Clientes para retorno ({dueClients.length})
               </h2>
             </div>
             <p className="mb-4 text-sm text-zinc-400">
-              Passaram do intervalo ideal desde o último corte — envie WhatsApp agora!
+              {autoWhatsApp
+                ? "Passaram do intervalo ideal — envie automaticamente ou veja a fila completa."
+                : "Passaram do intervalo ideal — abra o WhatsApp com a mensagem pronta."}
             </p>
             {isTenantAdmin(user) && (
               <Link
                 href="/whatsapp"
                 className="mb-4 inline-block text-sm text-green-400 hover:underline"
               >
-                → Ir para cobrança em massa
+                → Ver todos na tela WhatsApp
               </Link>
             )}
             <div className="space-y-2">
-              {atRisk.slice(0, 5).map((client) => (
+              {dueClients.slice(0, 5).map((client) => (
                 <div
                   key={client.id}
                   className="flex items-center justify-between rounded-lg bg-zinc-900 px-3 py-2"
                 >
                   <div>
                     <p className="text-sm font-medium text-white">{client.name}</p>
-                    <p className="text-xs text-zinc-500">
-                      {client.daysSince} dias · ideal a cada {client.returnDays}d
-                    </p>
+                    <p className="text-xs text-zinc-500">{client.daysSince} dias sem retorno</p>
                   </div>
                   {isTenantAdmin(user) ? (
-                    <SendSingleButton clientId={client.id} />
+                    autoWhatsApp ? (
+                      <SendSingleButton clientId={client.id} />
+                    ) : (
+                      <ManualWhatsAppLink clientId={client.id} waUrl={client.waUrl} />
+                    )
                   ) : (
                     <span className="text-xs text-orange-400">Aguardando retorno</span>
                   )}
@@ -167,6 +201,6 @@ export default async function DashboardPage() {
           </Card>
         )}
       </div>
-    </AppShell>
+    </TenantAppShell>
   );
 }

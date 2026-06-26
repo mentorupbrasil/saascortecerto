@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { createTenant } from "@/lib/actions";
+import { PLAN_LABELS, formatPlanPrice } from "@/lib/plan-pricing";
 import { Plus, X } from "lucide-react";
 
 export function TenantFormModal() {
@@ -53,8 +54,8 @@ export function TenantFormModal() {
               <Input name="address" label="Endereço" />
               <Select name="plan" label="Plano">
                 <option value="FREE">Grátis</option>
-                <option value="PRO">Pro</option>
-                <option value="CLUBE">Clube</option>
+                <option value="PRO">{PLAN_LABELS.PRO} — {formatPlanPrice("PRO")} (WhatsApp manual)</option>
+                <option value="CLUBE">{PLAN_LABELS.CLUBE} — {formatPlanPrice("CLUBE")} (automático)</option>
               </Select>
 
               <hr className="border-zinc-800" />

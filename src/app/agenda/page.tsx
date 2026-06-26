@@ -3,15 +3,12 @@ import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, requireTenantId } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { serializeServices } from "@/lib/serialize";
-import { AppShell } from "@/components/layout/sidebar";
-import { Card } from "@/components/ui/card";
-import {
-  NewAppointmentModal,
-  AppointmentActions,
-} from "@/components/appointments/appointment-components";
-import { StatusBadge } from "@/components/appointments/status-badge";
-import { formatTime } from "@/lib/date-format";
+import { TenantAppShell } from "@/components/layout/tenant-shell";
+import { NewAppointmentModal } from "@/components/appointments/appointment-components";
 import { AgendaWeekNav } from "@/components/agenda/agenda-week-nav";
+import { AgendaCalendarGrid } from "@/components/agenda/agenda-calendar-grid";
+import { ShareBookingLink } from "@/components/agenda/share-booking-link";
+import { PublicBookingSettings } from "@/components/agenda/public-booking-settings";
 import {
   startOfWeek,
   endOfWeek,
@@ -37,12 +34,11 @@ export default async function AgendaPage({
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const daysRaw = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  const filter =
-    user.role === "BARBER" ? { barberId: user.id } : {};
+  const filter = user.role === "BARBER" ? { barberId: user.id } : {};
 
-  const [appointments, services, barbers] = await Promise.all([
+  const [appointments, services, barbers, settings, tenant] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         tenantId,
@@ -65,15 +61,40 @@ export default async function AgendaPage({
       where: { tenantId, role: "BARBER", active: true },
       select: { id: true, name: true },
     }),
+    prisma.tenantSettings.findUnique({ where: { tenantId } }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { slug: true, phone: true },
+    }),
   ]);
 
+  const days = daysRaw.map((day) => ({
+    date: day.toISOString(),
+    label: format(day, "EEE d", { locale: ptBR }),
+    isToday: isSameDay(day, new Date()),
+  }));
+
+  const calendarAppointments = appointments.map((apt) => ({
+    id: apt.id,
+    scheduledAt: apt.scheduledAt.toISOString(),
+    duration: apt.duration,
+    status: apt.status,
+    clientName: apt.client.name,
+    serviceName: apt.service.name,
+    barberName: apt.barber?.name,
+    bookedOnline: apt.bookedOnline,
+  }));
+
   return (
-    <AppShell>
-      <div className="animate-fade-in space-y-6">
+    <TenantAppShell>
+      <div className="animate-fade-in space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Agenda</h1>
-            <p className="text-sm text-zinc-400">Visão semanal estilo Google Agenda</p>
+            <p className="text-sm text-zinc-400">
+              Grade semanal · {settings?.openTime ?? "08:00"} às{" "}
+              {settings?.closeTime ?? "20:00"}
+            </p>
           </div>
           <NewAppointmentModal
             services={serializeServices(services)}
@@ -83,68 +104,22 @@ export default async function AgendaPage({
 
         <AgendaWeekNav currentDate={currentDate.toISOString()} />
 
-        <div className="grid gap-3">
-          {days.map((day) => {
-            const dayAppointments = appointments.filter((a) =>
-              isSameDay(a.scheduledAt, day)
-            );
-            const isToday = isSameDay(day, new Date());
+        {tenant && (
+          <ShareBookingLink
+            slug={tenant.slug}
+            enabled={settings?.publicBookingEnabled ?? true}
+          />
+        )}
 
-            return (
-              <Card
-                key={day.toISOString()}
-                className={isToday ? "border-amber-500/30" : undefined}
-              >
-                <div className="mb-3 flex items-center gap-2">
-                  <span
-                    className={`text-sm font-semibold capitalize ${
-                      isToday ? "text-amber-400" : "text-white"
-                    }`}
-                  >
-                    {format(day, "EEE, d MMM", { locale: ptBR })}
-                  </span>
-                  {isToday && (
-                    <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
-                      Hoje
-                    </span>
-                  )}
-                </div>
+        <AgendaCalendarGrid days={days} appointments={calendarAppointments} />
 
-                {dayAppointments.length === 0 ? (
-                  <p className="text-sm text-zinc-600 py-2">Sem horários</p>
-                ) : (
-                  <div className="space-y-2">
-                    {dayAppointments.map((apt) => (
-                      <div
-                        key={apt.id}
-                        className="flex items-center justify-between rounded-lg bg-zinc-900 px-3 py-2"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-amber-400 tabular-nums text-sm">
-                            {formatTime(apt.scheduledAt)}
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium text-white">
-                              {apt.client.name}
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              {apt.service.name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={apt.status} />
-                          <AppointmentActions id={apt.id} status={apt.status} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
+        {tenant && (
+          <PublicBookingSettings
+            enabled={settings?.publicBookingEnabled ?? true}
+            notifyPhone={settings?.bookingNotifyPhone ?? tenant.phone}
+          />
+        )}
       </div>
-    </AppShell>
+    </TenantAppShell>
   );
 }

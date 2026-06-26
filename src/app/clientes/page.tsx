@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, requireTenantId } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
-import { AppShell } from "@/components/layout/sidebar";
+import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { Card } from "@/components/ui/card";
 import { ClientFormModal, ClientAvatar } from "@/components/clients/client-form";
 import { serializeClientForForm } from "@/lib/serialize";
@@ -26,7 +26,7 @@ export default async function ClientesPage() {
   });
 
   return (
-    <AppShell>
+    <TenantAppShell>
       <div className="animate-fade-in space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -88,6 +88,6 @@ export default async function ClientesPage() {
           )}
         </div>
       </div>
-    </AppShell>
+    </TenantAppShell>
   );
 }

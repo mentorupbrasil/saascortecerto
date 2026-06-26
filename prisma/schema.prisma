@@ -70,6 +70,21 @@ enum WhatsAppMessageType {
   MANUAL
 }
 
+enum SubscriptionPaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum SignupCheckoutStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -78,6 +93,8 @@ model Tenant {
   address   String?
   plan      Plan     @default(FREE)
   active    Boolean  @default(true)
+  billingEmail String?
+  subscribedAt DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -89,6 +106,33 @@ model Tenant {
   membershipPlans  MembershipPlan[]
   clientMemberships ClientMembership[]
   whatsappMessages WhatsAppMessage[]
+  subscriptionPayments SubscriptionPayment[]
+  signupCheckout       SignupCheckout?
+}
+
+model SignupCheckout {
+  id                      String               @id @default(cuid())
+  status                  SignupCheckoutStatus @default(PENDING)
+  plan                    Plan
+  amount                  Decimal              @db.Decimal(10, 2)
+  barbershopName          String
+  slug                    String
+  ownerName               String
+  ownerEmail              String
+  passwordHash            String
+  phone                   String?
+  mercadoPagoPreferenceId String?
+  mercadoPagoPaymentId    String?
+  tenantId                String?              @unique
+  tenant                  Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  paidAt                  DateTime?
+  expiresAt               DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@index([ownerEmail])
+  @@index([status])
+  @@index([mercadoPagoPreferenceId])
 }
 
 model User {
@@ -163,6 +207,7 @@ model Appointment {
   paymentMethod PaymentMethod?
   status        AppointmentStatus @default(SCHEDULED)
   notes         String?
+  bookedOnline  Boolean           @default(false)
   membershipId  String?
   membership    ClientMembership? @relation(fields: [membershipId], references: [id])
   createdAt     DateTime          @default(now())
@@ -187,6 +232,8 @@ model TenantSettings {
   openTime               String  @default("08:00")
   closeTime              String  @default("20:00")
   workingDays            String  @default("1,2,3,4,5,6")
+  publicBookingEnabled   Boolean @default(true)
+  bookingNotifyPhone     String?
 }
 
 model WhatsAppMessage {
@@ -254,4 +301,21 @@ model ClientMembership {
   @@index([tenantId])
   @@index([clientId])
   @@index([status])
+}
+
+model SubscriptionPayment {
+  id                   String                    @id @default(cuid())
+  tenantId             String
+  tenant               Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                 Plan
+  amount               Decimal                   @db.Decimal(10, 2)
+  status               SubscriptionPaymentStatus @default(PENDING)
+  dueDate              DateTime
+  paidAt               DateTime?
+  tenantReportedPaidAt DateTime?
+  notes                String?
+  createdAt            DateTime                  @default(now())
+
+  @@index([tenantId])
+  @@index([status, dueDate])
 }

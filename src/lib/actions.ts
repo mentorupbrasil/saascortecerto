@@ -274,6 +274,32 @@ export async function createService(formData: FormData) {
   return { success: true };
 }
 
+export async function updateService(id: string, formData: FormData) {
+  const user = await requireAuth();
+  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
+  const tenantId = requireTenantId(user);
+
+  const parsed = serviceSchema.parse({
+    name: formData.get("name"),
+    price: formData.get("price"),
+    duration: formData.get("duration"),
+  });
+
+  await prisma.service.updateMany({
+    where: { id, tenantId },
+    data: {
+      name: parsed.name,
+      price: parsed.price,
+      duration: parsed.duration,
+    },
+  });
+
+  revalidatePath("/servicos");
+  revalidatePath("/dashboard");
+  revalidatePath("/agenda");
+  return { success: true };
+}
+
 export async function toggleService(id: string, active: boolean) {
   const user = await requireAuth();
   if (!isTenantAdmin(user)) throw new Error("Sem permissão");
@@ -334,6 +360,60 @@ export async function createTenant(formData: FormData) {
     },
   });
 
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+const userUpdateSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().optional(),
+  role: z.enum(["OWNER", "MANAGER", "BARBER", "RECEPTIONIST"]),
+});
+
+export async function updateTenantUser(userId: string, formData: FormData) {
+  const user = await requireAuth();
+  if (!canManageUsers(user)) throw new Error("Sem permissão");
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) throw new Error("Usuário não encontrado");
+
+  if (!isSuperAdmin(user) && target.tenantId !== user.tenantId) {
+    throw new Error("Sem permissão");
+  }
+
+  const parsed = userUpdateSchema.parse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password") || undefined,
+    role: formData.get("role"),
+  });
+
+  if (user.id === userId && parsed.role !== target.role) {
+    throw new Error("Não pode alterar sua própria função");
+  }
+
+  const data: {
+    name: string;
+    email: string;
+    role: UserRole;
+    passwordHash?: string;
+  } = {
+    name: parsed.name,
+    email: parsed.email.toLowerCase(),
+    role: parsed.role as UserRole,
+  };
+
+  if (parsed.password && parsed.password.length >= 6) {
+    data.passwordHash = await bcrypt.hash(parsed.password, 12);
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+
+  revalidatePath("/equipe");
   revalidatePath("/admin");
   return { success: true };
 }

@@ -5,8 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { createService, toggleService } from "@/lib/actions";
-import { Plus, X } from "lucide-react";
+import { createService, updateService, toggleService } from "@/lib/actions";
+import { Plus, X, Pencil } from "lucide-react";
+
+type ServiceData = {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+  active: boolean;
+};
 
 export function ServiceFormModal() {
   const [open, setOpen] = useState(false);
@@ -53,6 +61,67 @@ export function ServiceFormModal() {
   );
 }
 
+export function EditServiceModal({ service }: { service: ServiceData }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await updateService(service.id, formData);
+      setOpen(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 text-xs text-amber-400 hover:underline"
+      >
+        <Pencil className="h-3 w-3" /> Editar
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <Card className="w-full max-w-md animate-fade-in">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Editar serviço</h2>
+              <button onClick={() => setOpen(false)} className="text-zinc-400">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input name="name" label="Nome" required defaultValue={service.name} />
+              <Input
+                name="price"
+                label="Valor (R$)"
+                type="number"
+                step="0.01"
+                required
+                defaultValue={service.price}
+              />
+              <Input
+                name="duration"
+                label="Duração (min)"
+                type="number"
+                required
+                defaultValue={service.duration}
+              />
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? "Salvando..." : "Salvar alterações"}
+              </Button>
+            </form>
+          </Card>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function ToggleServiceButton({ id, active }: { id: string; active: boolean }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -67,9 +136,7 @@ export function ToggleServiceButton({ id, active }: { id: string; active: boolea
         })
       }
       className={`rounded-lg px-3 py-1 text-xs font-medium ${
-        active
-          ? "bg-green-500/20 text-green-400"
-          : "bg-zinc-700 text-zinc-400"
+        active ? "bg-green-500/20 text-green-400" : "bg-zinc-700 text-zinc-400"
       }`}
     >
       {active ? "Ativo" : "Inativo"}

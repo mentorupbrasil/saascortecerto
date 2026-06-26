@@ -6,10 +6,11 @@ import {
   requireTenantId,
   ROLE_LABELS,
 } from "@/lib/auth-utils";
+import type { UserRole } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
-import { AppShell } from "@/components/layout/sidebar";
+import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { Card } from "@/components/ui/card";
-import { TeamUserForm } from "@/components/team/team-form";
+import { TeamUserForm, EditUserModal } from "@/components/team/team-form";
 import { ToggleUserButton } from "@/components/team/toggle-user";
 
 export default async function EquipePage() {
@@ -29,12 +30,12 @@ export default async function EquipePage() {
   ]);
 
   return (
-    <AppShell>
+    <TenantAppShell>
       <div className="animate-fade-in space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Equipe</h1>
-            <p className="text-sm text-zinc-400">{tenant?.name}</p>
+            <p className="text-sm text-zinc-400">{tenant?.name} · edite usuários e funções</p>
           </div>
           <TeamUserForm tenantId={tenantId} />
         </div>
@@ -42,13 +43,25 @@ export default async function EquipePage() {
         <div className="space-y-3">
           {team.map((member) => (
             <Card key={member.id}>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-white">{member.name}</p>
                   <p className="text-sm text-zinc-400">{member.email}</p>
                   <span className="mt-1 inline-block rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-amber-400">
-                    {ROLE_LABELS[member.role]}
+                    {ROLE_LABELS[member.role as UserRole]}
                   </span>
+                  <div className="mt-2">
+                    <EditUserModal
+                      member={{
+                        id: member.id,
+                        name: member.name,
+                        email: member.email,
+                        role: member.role as UserRole,
+                        active: member.active,
+                      }}
+                      isSelf={member.id === user.id}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {member.id !== user.id && (
@@ -63,6 +76,6 @@ export default async function EquipePage() {
           ))}
         </div>
       </div>
-    </AppShell>
+    </TenantAppShell>
   );
 }

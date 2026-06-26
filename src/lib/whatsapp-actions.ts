@@ -4,13 +4,32 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
 import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
+import { canUseAutoWhatsApp } from "@/lib/plan-pricing";
 import {
+  buildWhatsAppUrl,
   daysSince,
   renderMessageTemplate,
   sendWhatsAppText,
 } from "@/lib/whatsapp";
 import { z } from "zod";
-import type { WhatsAppMessageStatus, WhatsAppMessageType } from "@prisma/client";
+import type { Plan, WhatsAppMessageStatus, WhatsAppMessageType } from "@prisma/client";
+
+async function getTenantPlan(tenantId: string): Promise<Plan> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { plan: true },
+  });
+  return tenant?.plan ?? "FREE";
+}
+
+async function assertAutoWhatsApp(tenantId: string) {
+  const plan = await getTenantPlan(tenantId);
+  if (!canUseAutoWhatsApp(plan)) {
+    throw new Error(
+      "Disparo automático disponível no plano Completo (R$ 59,90/mês). No plano Pro, use o botão para abrir o WhatsApp manualmente."
+    );
+  }
+}
 
 const settingsSchema = z.object({
   whatsappEnabled: z.coerce.boolean().optional(),
@@ -27,27 +46,33 @@ export async function getWhatsAppSettings() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { name: true },
+    select: { name: true, plan: true },
   });
 
   const settings = await prisma.tenantSettings.findUnique({
     where: { tenantId },
   });
 
-  return { tenant, settings };
+  return { tenant, settings, plan: tenant?.plan ?? "FREE" };
 }
 
 export async function updateWhatsAppSettings(formData: FormData) {
   const user = await requireAuth();
   if (!isTenantAdmin(user)) throw new Error("Sem permissão");
   const tenantId = requireTenantId(user);
+  const plan = await getTenantPlan(tenantId);
+  const autoAllowed = canUseAutoWhatsApp(plan);
 
   const parsed = settingsSchema.parse({
     whatsappEnabled: formData.get("whatsappEnabled") === "on",
-    whatsappPhoneNumberId: formData.get("whatsappPhoneNumberId") || undefined,
-    whatsappAccessToken: formData.get("whatsappAccessToken") || undefined,
+    whatsappPhoneNumberId: autoAllowed
+      ? formData.get("whatsappPhoneNumberId") || undefined
+      : undefined,
+    whatsappAccessToken: autoAllowed
+      ? formData.get("whatsappAccessToken") || undefined
+      : undefined,
     whatsappReturnTemplate: formData.get("whatsappReturnTemplate"),
-    autoReturnEnabled: formData.get("autoReturnEnabled") === "on",
+    autoReturnEnabled: autoAllowed && formData.get("autoReturnEnabled") === "on",
     returnMessageDays: formData.get("returnMessageDays") || 20,
   });
 
@@ -114,9 +139,24 @@ export async function getClientsDueForReturn(tenantId: string) {
     })
     .map((client) => {
       const referenceDate = client.lastReturnMessageAt ?? client.lastVisitAt!;
+      const daysSinceRef = daysSince(referenceDate);
+      const message = renderMessageTemplate(
+        settings?.whatsappReturnTemplate ??
+          "Fala {nome}! Já faz {dias} dias do seu último corte na {barbearia}. Bora marcar? ✂️",
+        {
+          nome: client.name.split(" ")[0],
+          dias: daysSinceRef,
+          barbearia: tenant?.name ?? "nossa barbearia",
+        }
+      );
+
       return {
-        ...client,
-        daysSince: daysSince(referenceDate),
+        id: client.id,
+        name: client.name,
+        phone: client.phone,
+        daysSince: daysSinceRef,
+        message,
+        waUrl: buildWhatsAppUrl(client.phone, message),
         tenantName: tenant?.name ?? "Barbearia",
       };
     });
@@ -132,6 +172,7 @@ export async function sendBulkReturnMessages() {
   const user = await requireAuth();
   if (!isTenantAdmin(user)) throw new Error("Sem permissão");
   const tenantId = requireTenantId(user);
+  await assertAutoWhatsApp(tenantId);
 
   const result = await processBulkReturnForTenant(tenantId);
   revalidatePath("/whatsapp");
@@ -142,6 +183,7 @@ export async function sendBulkReturnMessages() {
 export async function sendSingleReturnMessage(clientId: string) {
   const user = await requireAuth();
   const tenantId = requireTenantId(user);
+  await assertAutoWhatsApp(tenantId);
 
   const client = await prisma.client.findFirst({
     where: { id: clientId, tenantId },
@@ -191,7 +233,58 @@ export async function sendSingleReturnMessage(clientId: string) {
   return sent;
 }
 
+export async function markManualReturnSent(clientId: string) {
+  const user = await requireAuth();
+  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
+  const tenantId = requireTenantId(user);
+
+  const client = await prisma.client.findFirst({
+    where: { id: clientId, tenantId },
+  });
+  if (!client) throw new Error("Cliente não encontrado");
+
+  const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+
+  const days =
+    client.lastVisitAt != null
+      ? daysSince(client.lastVisitAt)
+      : (settings?.returnMessageDays ?? 20);
+
+  const message = renderMessageTemplate(
+    settings?.whatsappReturnTemplate ??
+      "Fala {nome}! Já faz {dias} dias do seu último corte na {barbearia}. Bora marcar? ✂️",
+    {
+      nome: client.name.split(" ")[0],
+      dias: days,
+      barbearia: tenant?.name ?? "nossa barbearia",
+    }
+  );
+
+  await prisma.whatsAppMessage.create({
+    data: {
+      tenantId,
+      clientId: client.id,
+      phone: client.phone,
+      message,
+      type: "RETURN",
+      status: "SENT",
+      sentAt: new Date(),
+    },
+  });
+
+  await prisma.client.update({
+    where: { id: client.id },
+    data: { lastReturnMessageAt: new Date() },
+  });
+
+  revalidatePath("/whatsapp");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function processBulkReturnForTenant(tenantId: string) {
+  await assertAutoWhatsApp(tenantId);
   const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
   if (!settings) throw new Error("Configurações não encontradas");
 
@@ -270,13 +363,20 @@ export async function getWhatsAppMessageLog(limit = 50) {
 }
 
 export async function runAutoReturnCron() {
-  const tenants = await prisma.tenantSettings.findMany({
-    where: { autoReturnEnabled: true, whatsappEnabled: true },
-    select: { tenantId: true },
+  const tenants = await prisma.tenant.findMany({
+    where: {
+      plan: "CLUBE",
+      active: true,
+      settings: {
+        autoReturnEnabled: true,
+        whatsappEnabled: true,
+      },
+    },
+    select: { id: true },
   });
 
   const results = [];
-  for (const { tenantId } of tenants) {
+  for (const { id: tenantId } of tenants) {
     try {
       const result = await processBulkReturnForTenant(tenantId);
       results.push({ tenantId, ...result });

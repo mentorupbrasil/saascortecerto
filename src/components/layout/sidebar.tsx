@@ -16,10 +16,18 @@ import {
   X,
   MessageCircle,
   Crown,
+  Receipt,
+  AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
 import { isSuperAdmin, isTenantAdmin } from "@/lib/auth-utils";
 import type { UserRole } from "@/lib/auth-utils";
+import type { BillingAlertProps } from "@/lib/billing-actions";
+import { formatCurrency } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+export type { BillingAlertProps } from "@/lib/billing-actions";
 
 const navItems = [
   { href: "/dashboard", label: "Hoje", icon: LayoutDashboard },
@@ -29,6 +37,7 @@ const navItems = [
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: true },
   { href: "/servicos", label: "Serviços", icon: Scissors, adminOnly: true },
   { href: "/equipe", label: "Equipe", icon: UserCog, ownerOnly: true },
+  { href: "/faturamento", label: "Faturamento", icon: Receipt, adminOnly: true },
   { href: "/admin", label: "Admin", icon: Shield, superAdminOnly: true },
 ];
 
@@ -147,13 +156,60 @@ export function Sidebar() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  billingAlert,
+}: {
+  children: React.ReactNode;
+  billingAlert?: BillingAlertProps | null;
+}) {
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen bg-zinc-950">
       <Sidebar />
       <main className="lg:pl-64">
-        <div className="mx-auto max-w-5xl px-4 py-6 pt-16 lg:pt-8 lg:px-8">{children}</div>
+        <div className="mx-auto max-w-5xl px-4 py-6 pt-16 lg:pt-8 lg:px-8">
+          {billingAlert?.message && pathname !== "/faturamento" && (
+            <BillingAlertBanner alert={billingAlert} />
+          )}
+          {children}
+        </div>
       </main>
+    </div>
+  );
+}
+
+function BillingAlertBanner({ alert }: { alert: BillingAlertProps }) {
+  const styles =
+    alert.level === "overdue"
+      ? "border-red-500/30 bg-red-500/10 text-red-100"
+      : alert.level === "due_soon"
+        ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
+        : "border-blue-500/20 bg-blue-500/10 text-blue-100";
+
+  return (
+    <div className={`mb-6 rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 ${styles}`}>
+      <div className="flex items-start gap-3 flex-1">
+        <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium">{alert.message}</p>
+          {alert.amount !== null && alert.dueDate && (
+            <p className="text-xs opacity-80 mt-1">
+              {formatCurrency(alert.amount)} — vencimento{" "}
+              {format(new Date(alert.dueDate), "dd/MM/yyyy", { locale: ptBR })}
+            </p>
+          )}
+        </div>
+      </div>
+      {alert.invoiceId && (
+        <Link
+          href="/faturamento"
+          className="shrink-0 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20 transition-colors text-center"
+        >
+          Ver fatura e pagar
+        </Link>
+      )}
     </div>
   );
 }

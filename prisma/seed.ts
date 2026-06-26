@@ -237,6 +237,22 @@ async function main() {
     },
   });
 
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 5);
+
+  await prisma.subscriptionPayment.upsert({
+    where: { id: "seed-payment-tenant1" },
+    update: {},
+    create: {
+      id: "seed-payment-tenant1",
+      tenantId: tenant1.id,
+      plan: "PRO",
+      amount: 39.9,
+      status: "PENDING",
+      dueDate,
+    },
+  });
+
   console.log("✅ Seed completed!");
   console.log("");
   console.log("Contas de acesso:");
