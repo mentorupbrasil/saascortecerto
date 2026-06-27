@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Logo } from "@/components/brand/logo";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
@@ -81,11 +80,18 @@ export function Sidebar() {
 
   const NavContent = () => (
     <>
-      <div className="mb-8 px-1">
-        <Logo variant="compact" href="/dashboard" className="h-9" />
-        {user.tenantName && (
-          <p className="text-xs text-zinc-500 truncate max-w-[160px] mt-2 px-1">{user.tenantName}</p>
-        )}
+      <div className="mb-8 px-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-lg font-bold text-black">
+            ✂️
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-white">CorteCerto</h1>
+            {user.tenantName && (
+              <p className="text-xs text-zinc-500 truncate max-w-[160px]">{user.tenantName}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-1">

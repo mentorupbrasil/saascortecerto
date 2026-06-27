@@ -1,6 +1,6 @@
 "use client";
 
-import { formatTime } from "@/lib/date-format";
+import { formatTime, toDateKey } from "@/lib/date-format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AppointmentActions } from "@/components/appointments/appointment-components";
@@ -119,15 +119,7 @@ export function AgendaCalendarGrid({
 
           {/* Colunas dos dias */}
           {days.map((day) => {
-            const dayApts = appointments.filter((a) => {
-              const aptDate = new Date(a.scheduledAt);
-              const colDate = new Date(day.date);
-              return (
-                aptDate.getFullYear() === colDate.getFullYear() &&
-                aptDate.getMonth() === colDate.getMonth() &&
-                aptDate.getDate() === colDate.getDate()
-              );
-            });
+            const dayApts = appointments.filter((a) => toDateKey(a.scheduledAt) === day.date);
 
             return (
               <div

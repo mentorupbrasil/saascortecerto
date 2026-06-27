@@ -9,7 +9,9 @@ import { AgendaWeekNav } from "@/components/agenda/agenda-week-nav";
 import { AgendaCalendarGrid } from "@/components/agenda/agenda-calendar-grid";
 import { ShareBookingLink } from "@/components/agenda/share-booking-link";
 import { PublicBookingSettings } from "@/components/agenda/public-booking-settings";
-import { PendingBookingCheckouts } from "@/components/agenda/pending-booking-checkouts";
+import { OnlineBookingsPanel } from "@/components/agenda/online-bookings-panel";
+import { getAgendaOnlineItems } from "@/lib/public-booking-actions";
+import { toDateKey } from "@/lib/date-format";
 import {
   startOfWeek,
   endOfWeek,
@@ -39,7 +41,7 @@ export default async function AgendaPage({
 
   const filter = user.role === "BARBER" ? { barberId: user.id } : {};
 
-  const [appointments, services, barbers, settings, tenant] = await Promise.all([
+  const [appointments, services, barbers, settings, tenant, onlineItems] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         tenantId,
@@ -67,10 +69,11 @@ export default async function AgendaPage({
       where: { id: tenantId },
       select: { slug: true, phone: true },
     }),
+    getAgendaOnlineItems(tenantId),
   ]);
 
   const days = daysRaw.map((day) => ({
-    date: day.toISOString(),
+    date: toDateKey(day),
     label: format(day, "EEE d", { locale: ptBR }),
     isToday: isSameDay(day, new Date()),
   }));
@@ -105,6 +108,11 @@ export default async function AgendaPage({
 
         <AgendaWeekNav currentDate={currentDate.toISOString()} />
 
+        <OnlineBookingsPanel
+          pendingCheckouts={onlineItems.pendingCheckouts}
+          onlineAppointments={onlineItems.onlineAppointments}
+        />
+
         {tenant && (
           <ShareBookingLink
             slug={tenant.slug}
@@ -113,8 +121,6 @@ export default async function AgendaPage({
         )}
 
         <AgendaCalendarGrid days={days} appointments={calendarAppointments} />
-
-        <PendingBookingCheckouts />
 
         {tenant && (
           <PublicBookingSettings

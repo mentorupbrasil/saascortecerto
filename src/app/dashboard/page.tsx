@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   const tenantId = requireTenantId(user);
   const { appointments, revenue, clientsServed } = await fetchTodayStats(user);
 
-  const [{ plan }, dueClients, onlineToday] = await Promise.all([
+  const [{ plan }, dueClients, onlineToday, pendingPix] = await Promise.all([
     getWhatsAppSettings(),
     isTenantAdmin(user) ? getReturnPreview() : Promise.resolve([]),
     prisma.appointment.count({
@@ -40,6 +40,13 @@ export default async function DashboardPage() {
         bookedOnline: true,
         scheduledAt: { gte: startOfDay(new Date()), lte: endOfDay(new Date()) },
         status: { not: "CANCELLED" },
+      },
+    }),
+    prisma.publicBookingCheckout.count({
+      where: {
+        tenantId,
+        status: { in: ["PENDING_PAYMENT", "AWAITING_CONFIRMATION"] },
+        expiresAt: { gt: new Date() },
       },
     }),
   ]);
@@ -88,12 +95,24 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {onlineToday > 0 && isTenantAdmin(user) && (
+        {(onlineToday > 0 || pendingPix > 0) && isTenantAdmin(user) && (
           <Card className="border-green-500/20 bg-green-500/5">
             <p className="text-sm text-green-300">
-              🌐 <strong>{onlineToday}</strong> agendamento(s) online hoje —{" "}
-              <Link href="/agenda" className="underline hover:text-green-200">
-                ver na agenda
+              🌐{" "}
+              {onlineToday > 0 && (
+                <>
+                  <strong>{onlineToday}</strong> agendamento(s) online hoje
+                </>
+              )}
+              {onlineToday > 0 && pendingPix > 0 && " · "}
+              {pendingPix > 0 && (
+                <>
+                  <strong>{pendingPix}</strong> aguardando PIX
+                </>
+              )}{" "}
+              —{" "}
+              <Link href="/agenda#online-bookings" className="underline hover:text-green-200">
+                ver e confirmar na agenda
               </Link>
             </p>
           </Card>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { LandingHeroPreview } from "@/components/marketing/landing-hero-preview";
 import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
@@ -305,7 +304,12 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/[0.06] py-8 safe-bottom">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 text-center md:text-left">
-          <Logo variant="compact" href="/" className="h-8" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--gold)]/30">
+              <span className="font-display text-sm text-[var(--gold)]">C</span>
+            </div>
+            <span className="font-display text-lg text-white">CorteCerto</span>
+          </div>
           <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">
             © {new Date().getFullYear()} — Gestão premium para barbearias
           </p>

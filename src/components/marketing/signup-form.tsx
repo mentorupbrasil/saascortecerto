@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { createSignupCheckout } from "@/lib/signup-actions";
 import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
 import { SiteHeader } from "@/components/marketing/site-header";
-import { Logo } from "@/components/brand/logo";
 import { Shield } from "lucide-react";
 
 export function SignupPageClient({ defaultPlan }: { defaultPlan: "PRO" | "CLUBE" }) {
@@ -48,7 +47,6 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: "PRO" | "CLUBE"
       <SiteHeader />
       <div className="mx-auto max-w-lg px-4 py-12 lg:px-8">
         <div className="mb-8 text-center">
-          <Logo variant="compact" href="/" className="mx-auto h-10 mb-4" />
           <h1 className="text-2xl font-bold text-white">Criar sua barbearia</h1>
           <p className="text-sm text-zinc-400 mt-2">
             Preencha os dados, escolha o plano e pague. Sua conta é liberada automaticamente.

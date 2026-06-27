@@ -4,7 +4,6 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -52,8 +51,13 @@ export default function LoginPage() {
       <div className="flex flex-1 items-center justify-center pb-8 sm:pb-12 px-1">
         <div className="w-full max-w-md animate-fade-in">
           <div className="mb-6 sm:mb-8 text-center">
-            <Logo variant="full" href="/" className="mx-auto h-12 sm:h-14" priority />
-            <p className="mt-4 text-zinc-400">Área do cliente</p>
+            <Link href="/">
+              <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-amber-500 text-2xl sm:text-3xl">
+                ✂️
+              </div>
+            </Link>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">CorteCerto</h1>
+            <p className="mt-2 text-zinc-400">Área do cliente</p>
           </div>
 
           <Card>

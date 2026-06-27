@@ -774,6 +774,63 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   };
 }
 
+export async function getAgendaOnlineItems(tenantId: string) {
+  const { expireStaleBookingCheckouts } = await import("@/lib/booking-checkout");
+  await expireStaleBookingCheckouts(tenantId);
+
+  const checkouts = await prisma.publicBookingCheckout.findMany({
+    where: {
+      tenantId,
+      status: { in: ["PENDING_PAYMENT", "AWAITING_CONFIRMATION"] },
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { scheduledAt: "asc" },
+  });
+
+  const serviceIds = [...new Set(checkouts.map((c) => c.serviceId))];
+  const services =
+    serviceIds.length > 0
+      ? await prisma.service.findMany({
+          where: { id: { in: serviceIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const serviceMap = new Map(services.map((s) => [s.id, s.name]));
+
+  const onlineAppointments = await prisma.appointment.findMany({
+    where: {
+      tenantId,
+      bookedOnline: true,
+      status: { in: ["SCHEDULED"] },
+      scheduledAt: { gte: new Date() },
+    },
+    include: { client: true, service: true },
+    orderBy: { scheduledAt: "asc" },
+    take: 20,
+  });
+
+  return {
+    pendingCheckouts: checkouts.map((checkout) => ({
+      id: checkout.id,
+      status: checkout.status,
+      clientName: checkout.clientName,
+      clientPhone: checkout.clientPhone,
+      serviceName: serviceMap.get(checkout.serviceId) ?? "Serviço",
+      scheduledAt: checkout.scheduledAt.toISOString(),
+      amount: Number(checkout.amount),
+      expiresAt: checkout.expiresAt.toISOString(),
+      autoPix: !!checkout.mercadoPagoPaymentId,
+    })),
+    onlineAppointments: onlineAppointments.map((apt) => ({
+      id: apt.id,
+      clientName: apt.client.name,
+      serviceName: apt.service.name,
+      scheduledAt: apt.scheduledAt.toISOString(),
+      status: apt.status,
+    })),
+  };
+}
+
 export async function getPendingBookingCheckoutsForTenant() {
   const { requireAuth } = await import("@/lib/session");
   const { isTenantAdmin, requireTenantId } = await import("@/lib/auth-utils");
