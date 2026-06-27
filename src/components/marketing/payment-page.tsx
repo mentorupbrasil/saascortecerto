@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SiteHeader } from "@/components/marketing/site-header";
+import { Logo } from "@/components/brand/logo";
 import { getSignupCheckoutPublic } from "@/lib/signup-actions";
 import { formatCurrency } from "@/lib/utils";
 import { Copy, Loader2 } from "lucide-react";
@@ -70,6 +71,7 @@ export function PaymentPageClient({ checkoutId }: { checkoutId: string }) {
     <div className="min-h-screen bg-zinc-950">
       <SiteHeader />
       <div className="mx-auto max-w-lg px-4 py-12">
+        <Logo variant="compact" href="/" className="mx-auto h-10 mb-6" />
         <h1 className="text-2xl font-bold text-white text-center mb-2">Finalizar assinatura</h1>
         <p className="text-sm text-zinc-400 text-center mb-8">
           {checkout.barbershopName} · Plano {checkout.planLabel}

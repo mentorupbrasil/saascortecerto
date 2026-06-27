@@ -18,7 +18,10 @@ export const metadata: Metadata = {
   title: "CorteCerto — Gestão para Barbearias",
   description:
     "Agenda, clientes, WhatsApp de retorno e clube de assinatura. A partir de R$ 39,90/mês. Cada barbearia com ambiente isolado.",
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport = {

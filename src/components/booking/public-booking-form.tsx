@@ -2,7 +2,8 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";import { Input, Select } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   createPublicBooking,
@@ -12,6 +13,7 @@ import { formatSlotLabel } from "@/lib/booking-slots";
 import { formatCurrency } from "@/lib/utils";
 import { format, addDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Logo } from "@/components/brand/logo";
 import { Calendar, CheckCircle2, ExternalLink, Scissors } from "lucide-react";
 
 type PublicBookingData = {
@@ -231,9 +233,7 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
 export function PublicBookingHeader({ tenant }: { tenant: PublicBookingData }) {
   return (
     <div className="text-center mb-8">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500 text-3xl">
-        ✂️
-      </div>
+      <Logo variant="compact" href={null} className="mx-auto h-10 mb-4" />
       <h1 className="text-2xl font-bold text-white">{tenant.name}</h1>
       <p className="text-zinc-400 mt-1 flex items-center justify-center gap-2 text-sm">
         <Calendar className="h-4 w-4" />
