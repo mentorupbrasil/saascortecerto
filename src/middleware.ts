@@ -1,22 +1,31 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
+const TENANT_APP_PATHS = [
+  "/dashboard",
+  "/agenda",
+  "/clientes",
+  "/clube",
+  "/whatsapp",
+  "/servicos",
+  "/equipe",
+  "/faturamento",
+  "/lista-espera",
+  "/relatorios",
+  "/financeiro",
+  "/caixa",
+  "/comandas",
+  "/estoque",
+  "/comissoes",
+];
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
     if (token?.role === "SUPER_ADMIN" && !token.tenantId) {
-      if (
-        path === "/dashboard" ||
-        path.startsWith("/agenda") ||
-        path.startsWith("/clientes") ||
-        path.startsWith("/clube") ||
-        path.startsWith("/whatsapp") ||
-        path.startsWith("/servicos") ||
-        path.startsWith("/equipe") ||
-        path.startsWith("/faturamento")
-      ) {
+      if (TENANT_APP_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
         return NextResponse.redirect(new URL("/admin", req.url));
       }
     }
@@ -26,6 +35,14 @@ export default withAuth(
     }
 
     if (path.startsWith("/faturamento") && token?.role === "RECEPTIONIST") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    if (path.startsWith("/relatorios") && token?.role === "BARBER") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    if (path.startsWith("/relatorios") && token?.role === "RECEPTIONIST") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
@@ -55,6 +72,10 @@ export const config = {
     "/dashboard/:path*",
     "/agenda",
     "/agenda/:path*",
+    "/lista-espera",
+    "/lista-espera/:path*",
+    "/relatorios",
+    "/relatorios/:path*",
     "/clientes",
     "/clientes/:path*",
     "/clube",
@@ -67,6 +88,16 @@ export const config = {
     "/equipe/:path*",
     "/faturamento",
     "/faturamento/:path*",
+    "/financeiro",
+    "/financeiro/:path*",
+    "/caixa",
+    "/caixa/:path*",
+    "/comandas",
+    "/comandas/:path*",
+    "/estoque",
+    "/estoque/:path*",
+    "/comissoes",
+    "/comissoes/:path*",
     "/conta-bloqueada",
     "/admin",
     "/admin/:path*",

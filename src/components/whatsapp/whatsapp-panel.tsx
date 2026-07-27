@@ -17,7 +17,7 @@ import { ExternalLink, MessageCircle, Send, Settings } from "lucide-react";
 type Settings = {
   whatsappEnabled: boolean;
   whatsappPhoneNumberId: string | null;
-  whatsappAccessToken: string | null;
+  whatsappTokenConfigured: boolean;
   whatsappReturnTemplate: string;
   autoReturnEnabled: boolean;
   returnMessageDays: number;
@@ -127,11 +127,14 @@ export function WhatsAppSettingsForm({
               defaultValue={settings?.whatsappPhoneNumberId ?? ""}
             />
             <Input
-              name="whatsappAccessToken"
+              name="newWhatsAppAccessToken"
               label="Access Token (deixe vazio para manter o atual)"
               type="password"
               placeholder="EAAxxxx..."
             />
+            {settings?.whatsappTokenConfigured && (
+              <p className="text-xs text-green-400">Token já configurado</p>
+            )}
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"

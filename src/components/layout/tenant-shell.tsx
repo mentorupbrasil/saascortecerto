@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin } from "@/lib/auth-utils";
-import { ensureTenantIsActive, getTenantBillingForSession } from "@/lib/billing-actions";
+import { ensureTenantIsActive } from "@/lib/billing/cron";
+import { getTenantBillingForSession } from "@/lib/billing-actions";
 import { AppShell } from "@/components/layout/sidebar";
 import type { BillingAlertProps } from "@/lib/billing-actions";
 

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
-import { isSuperAdmin, isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
-import { getTenantBillingOverview } from "@/lib/billing-actions";
+import { isSuperAdmin, isTenantAdmin } from "@/lib/auth-utils";
+import { getTenantBillingForSession } from "@/lib/billing-actions";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { TenantBillingPanel } from "@/components/billing/tenant-billing-panel";
@@ -13,8 +13,8 @@ export default async function FaturamentoPage() {
   if (isSuperAdmin(user) && !user.tenantId) redirect("/admin");
   if (!isTenantAdmin(user)) redirect("/dashboard");
 
-  const tenantId = requireTenantId(user);
-  const billing = await getTenantBillingOverview(tenantId);
+  const billing = await getTenantBillingForSession();
+  if (!billing) redirect("/dashboard");
 
   return (
     <TenantAppShell>
@@ -22,10 +22,10 @@ export default async function FaturamentoPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Receipt className="h-7 w-7 text-amber-400" />
-            Faturamento
+            Plano e cobrança
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
-            Consulte suas faturas e pague a assinatura do CorteCerto via PIX.
+            Assinatura do sistema CorteCerto — faturas da plataforma, separado do financeiro da barbearia.
           </p>
         </div>
 

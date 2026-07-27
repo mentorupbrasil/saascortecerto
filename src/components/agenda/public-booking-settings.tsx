@@ -15,7 +15,7 @@ export function PublicBookingSettings({
   pixKey,
   pixHolderName,
   pixCity,
-  mercadoPagoAccessToken,
+  mercadoPagoConfigured,
 }: {
   enabled: boolean;
   notifyPhone: string | null;
@@ -23,7 +23,7 @@ export function PublicBookingSettings({
   pixKey: string | null;
   pixHolderName: string | null;
   pixCity: string | null;
-  mercadoPagoAccessToken: string | null;
+  mercadoPagoConfigured: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -107,12 +107,16 @@ export function PublicBookingSettings({
             defaultValue={pixCity ?? "SAO PAULO"}
           />
           <Input
-            name="mercadoPagoAccessToken"
+            name="newMercadoPagoAccessToken"
             label="Token Mercado Pago (confirmação automática)"
             type="password"
             placeholder="APP_USR-... (opcional, recomendado)"
-            defaultValue={mercadoPagoAccessToken ?? ""}
           />
+          {mercadoPagoConfigured && (
+            <p className="text-xs text-zinc-500">
+              Token já configurado. Deixe em branco para manter.
+            </p>
+          )}
           <p className="text-xs text-zinc-500 leading-relaxed">
             Com o token Mercado Pago da sua conta, o sistema detecta o pagamento PIX e confirma o
             agendamento sozinho. Só com chave PIX, o cliente paga e você confirma manualmente na

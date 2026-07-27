@@ -11,6 +11,7 @@ import { ShareBookingLink } from "@/components/agenda/share-booking-link";
 import { PublicBookingSettings } from "@/components/agenda/public-booking-settings";
 import { OnlineBookingsPanel } from "@/components/agenda/online-bookings-panel";
 import { getAgendaOnlineItems } from "@/lib/public-booking-actions";
+import { getPublicBookingSettingsDto } from "@/lib/public-booking-settings-dto";
 import { toDateKey } from "@/lib/date-format";
 import {
   startOfWeek,
@@ -69,8 +70,10 @@ export default async function AgendaPage({
       where: { id: tenantId },
       select: { slug: true, phone: true },
     }),
-    getAgendaOnlineItems(tenantId),
+    getAgendaOnlineItems(),
   ]);
+
+  const bookingSettings = getPublicBookingSettingsDto(settings);
 
   const days = daysRaw.map((day) => ({
     date: toDateKey(day),
@@ -85,6 +88,7 @@ export default async function AgendaPage({
     status: apt.status,
     clientName: apt.client.name,
     serviceName: apt.service.name,
+    barberId: apt.barberId,
     barberName: apt.barber?.name,
     bookedOnline: apt.bookedOnline,
   }));
@@ -120,17 +124,23 @@ export default async function AgendaPage({
           />
         )}
 
-        <AgendaCalendarGrid days={days} appointments={calendarAppointments} />
+        <AgendaCalendarGrid
+          days={days}
+          appointments={calendarAppointments}
+          openTime={settings?.openTime ?? "08:00"}
+          closeTime={settings?.closeTime ?? "20:00"}
+          barbers={barbers}
+        />
 
         {tenant && (
           <PublicBookingSettings
-            enabled={settings?.publicBookingEnabled ?? true}
-            notifyPhone={settings?.bookingNotifyPhone ?? tenant.phone}
-            requirePixPayment={settings?.bookingRequirePixPayment ?? false}
-            pixKey={settings?.bookingPixKey ?? null}
-            pixHolderName={settings?.bookingPixHolderName ?? null}
-            pixCity={settings?.bookingPixCity ?? null}
-            mercadoPagoAccessToken={settings?.mercadoPagoAccessToken ?? null}
+            enabled={bookingSettings.enabled}
+            notifyPhone={bookingSettings.notifyPhone ?? tenant.phone}
+            requirePixPayment={bookingSettings.requirePixPayment}
+            pixKey={bookingSettings.pixKey}
+            pixHolderName={bookingSettings.pixHolderName}
+            pixCity={bookingSettings.pixCity}
+            mercadoPagoConfigured={bookingSettings.mercadoPagoConfigured}
           />
         )}
       </div>

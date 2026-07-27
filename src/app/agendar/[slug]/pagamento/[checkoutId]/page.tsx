@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getPublicBookingPage } from "@/lib/public-booking-actions";
 import { PublicBookingHeader } from "@/components/booking/public-booking-form";
 import { PublicBookingPaymentClient } from "@/components/booking/public-booking-payment";
@@ -20,9 +21,9 @@ export default async function PublicBookingPaymentPage({
         <PublicBookingPaymentClient slug={slug} checkoutId={checkoutId} />
         <p className="text-center text-xs text-zinc-600 mt-8">
           Agendamento via{" "}
-          <a href="/" className="text-zinc-500 hover:text-amber-400">
+          <Link href="/" className="text-zinc-500 hover:text-amber-400">
             CorteCerto
-          </a>
+          </Link>
         </p>
       </div>
     </div>

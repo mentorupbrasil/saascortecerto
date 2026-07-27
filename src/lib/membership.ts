@@ -1,6 +1,6 @@
 import type { ClientMembership, MembershipPlan } from "@prisma/client";
 import { addMonths, isAfter } from "date-fns";
-import { isWeekdayAllowed } from "./whatsapp";
+import { isWeekdayAllowed } from "./weekdays";
 
 export function getMembershipStatusLabel(status: string) {
   const labels: Record<string, string> = {

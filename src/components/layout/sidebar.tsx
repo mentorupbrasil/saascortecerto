@@ -18,6 +18,13 @@ import {
   Crown,
   Receipt,
   AlertTriangle,
+  Wallet,
+  Banknote,
+  ShoppingCart,
+  Package,
+  Percent,
+  Clock,
+  BarChart3,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { isSuperAdmin, isTenantAdmin } from "@/lib/auth-utils";
@@ -32,12 +39,19 @@ export type { BillingAlertProps } from "@/lib/billing-actions";
 const navItems = [
   { href: "/dashboard", label: "Hoje", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: Calendar },
+  { href: "/lista-espera", label: "Lista de espera", icon: Clock, agendaEditOnly: true },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3, financeViewOnly: true },
+  { href: "/financeiro", label: "Financeiro", icon: Wallet, financeViewOnly: true },
+  { href: "/caixa", label: "Caixa", icon: Banknote, financeOpsOnly: true },
+  { href: "/comandas", label: "Comandas", icon: ShoppingCart, financeSellOnly: true },
+  { href: "/estoque", label: "Estoque", icon: Package, inventoryOnly: true },
+  { href: "/comissoes", label: "Comissões", icon: Percent, financeViewOnly: true },
   { href: "/clube", label: "Clube", icon: Crown, adminOnly: true },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: true },
   { href: "/servicos", label: "Serviços", icon: Scissors, adminOnly: true },
   { href: "/equipe", label: "Equipe", icon: UserCog, ownerOnly: true },
-  { href: "/faturamento", label: "Faturamento", icon: Receipt, adminOnly: true },
+  { href: "/faturamento", label: "Plano e cobrança", icon: Receipt, adminOnly: true },
   { href: "/admin", label: "Admin", icon: Shield, superAdminOnly: true },
 ];
 
@@ -68,10 +82,31 @@ export function Sidebar() {
     id: session.user.id,
   };
 
+  const canFinanceView =
+    user.role === "OWNER" || user.role === "MANAGER" || user.role === "SUPER_ADMIN";
+  const canFinanceSell =
+    canFinanceView ||
+    user.role === "RECEPTIONIST" ||
+    user.role === "BARBER";
+  const canFinanceOps =
+    canFinanceView || user.role === "RECEPTIONIST";
+  const canInventory =
+    canFinanceView || user.role === "RECEPTIONIST";
+
+  const canAgendaEdit =
+    canFinanceView ||
+    user.role === "RECEPTIONIST" ||
+    user.role === "BARBER";
+
   const filteredNav = navItems.filter((item) => {
     if (item.superAdminOnly && !isSuperAdmin(user)) return false;
     if (item.ownerOnly && !isTenantAdmin(user)) return false;
     if (item.adminOnly && !isTenantAdmin(user)) return false;
+    if (item.financeViewOnly && !canFinanceView) return false;
+    if (item.financeSellOnly && !canFinanceSell) return false;
+    if (item.financeOpsOnly && !canFinanceOps) return false;
+    if (item.inventoryOnly && !canInventory) return false;
+    if ("agendaEditOnly" in item && item.agendaEditOnly && !canAgendaEdit) return false;
     if (item.href !== "/admin" && isSuperAdmin(user) && !user.tenantId) {
       return false;
     }
@@ -220,7 +255,7 @@ function BillingAlertBanner({ alert }: { alert: BillingAlertProps }) {
           href="/faturamento"
           className="shrink-0 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20 transition-colors text-center"
         >
-          Ver fatura e pagar
+          Ver plano e cobrança
         </Link>
       )}
     </div>

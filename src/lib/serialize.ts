@@ -30,6 +30,7 @@ export function serializeClientForForm(client: {
   notes: string | null;
   returnDays: number;
   photoUrl?: string | null;
+  whatsappOptIn?: boolean;
 }) {
   return {
     id: client.id,
@@ -39,6 +40,7 @@ export function serializeClientForForm(client: {
     notes: client.notes,
     returnDays: client.returnDays,
     photoUrl: client.photoUrl ?? null,
+    whatsappOptIn: client.whatsappOptIn ?? true,
   };
 }
 

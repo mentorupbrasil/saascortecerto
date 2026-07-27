@@ -2,25 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { canUseAutoWhatsApp } from "@/lib/plan-pricing";
-import { buildWhatsAppUrl, renderMessageTemplate, sendWhatsAppText } from "@/lib/whatsapp";
-import { formatCurrency, formatPhone } from "@/lib/utils";
+import { buildWhatsAppUrl, renderMessageTemplate } from "@/lib/whatsapp";
 import { z } from "zod";
-import { parseISO, startOfDay, endOfDay, format } from "date-fns";
+import { parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   buildBookingPixPayload,
   createMercadoPagoBookingPayment,
   expireStaleBookingCheckouts,
-  getBookingMercadoPagoToken,
+  fetchBookingMercadoPagoPayment,
   getCheckoutExpiryDate,
   getDayOccupancy,
+  isBookingMercadoPagoConfigured,
   isCheckoutExpired,
   markCheckoutExpired,
   resolveBarberId,
   validatePublicBookingSlot,
 } from "@/lib/booking-checkout";
-import { fetchMercadoPagoPayment, isBookingDemoMode } from "@/lib/mercadopago";
+import { isBookingDemoMode } from "@/lib/mercadopago";
+import { credentialConfigured, prepareCredentialForStorage } from "@/lib/crypto/credentials";
+import { requireTenantAdmin, requireTenantUser } from "@/lib/authz";
 
 const publicBookingSchema = z.object({
   clientName: z.string().min(2),
@@ -48,9 +49,15 @@ function getTenantBookingSettings(settings: {
     pixKey: settings.bookingPixKey?.trim() || null,
     pixHolderName: settings.bookingPixHolderName?.trim() || null,
     pixCity: settings.bookingPixCity?.trim() || "SAO PAULO",
-    mercadoPagoAccessToken: settings.mercadoPagoAccessToken?.trim() || null,
+    mercadoPagoConfigured: credentialConfigured(settings.mercadoPagoAccessToken),
   };
 }
+
+import {
+  buildPublicBookingConfirmationResponse,
+  finalizeBookingFromVerifiedPayment,
+  notifyBarbershopBooking,
+} from "@/lib/domain/booking-finalize";
 
 export async function getPublicBookingPage(slug: string) {
   const tenant = await prisma.tenant.findFirst({
@@ -79,8 +86,7 @@ export async function getPublicBookingPage(slug: string) {
     mercadoPagoAccessToken: tenant.settings?.mercadoPagoAccessToken,
   });
 
-  const autoPaymentEnabled =
-    !!getBookingMercadoPagoToken(booking.mercadoPagoAccessToken) || isBookingDemoMode();
+  const autoPaymentEnabled = booking.mercadoPagoConfigured || isBookingDemoMode();
 
   return {
     id: tenant.id,
@@ -140,232 +146,14 @@ export async function getPublicAvailableSlots(
   return slots;
 }
 
-async function notifyBarbershopBooking(options: {
-  tenantId: string;
-  tenantName: string;
-  plan: "FREE" | "PRO" | "CLUBE";
-  clientName: string;
-  clientPhone: string;
-  serviceName: string;
-  scheduledAt: Date;
-  price: number;
-  paid?: boolean;
-}) {
-  const [settings, tenant] = await Promise.all([
-    prisma.tenantSettings.findUnique({ where: { tenantId: options.tenantId } }),
-    prisma.tenant.findUnique({
-      where: { id: options.tenantId },
-      select: { phone: true },
-    }),
-  ]);
-
-  const notifyPhone = (settings?.bookingNotifyPhone || tenant?.phone || "").replace(/\D/g, "");
-  if (!notifyPhone) {
-    return { notified: false, waUrl: null };
-  }
-
-  const when = format(options.scheduledAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  const template = options.paid
-    ? "✅ *Agendamento confirmado (PIX pago)!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— CorteCerto"
-    : "📅 *Novo agendamento online!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— CorteCerto";
-
-  const message = renderMessageTemplate(template, {
-    nome: options.clientName,
-    telefone: formatPhone(options.clientPhone),
-    servico: options.serviceName,
-    horario: when,
-    valor: formatCurrency(options.price),
-  });
-
-  let status: "SENT" | "SIMULATED" | "FAILED" | "PENDING" = "PENDING";
-  let error: string | undefined;
-
-  if (settings && canUseAutoWhatsApp(options.plan) && settings.whatsappEnabled) {
-    const result = await sendWhatsAppText(settings, notifyPhone, message);
-    if (result.success) {
-      status = result.simulated ? "SIMULATED" : "SENT";
-    } else {
-      status = "FAILED";
-      error = result.error;
-    }
-  }
-
-  await prisma.whatsAppMessage.create({
-    data: {
-      tenantId: options.tenantId,
-      phone: notifyPhone,
-      message,
-      type: "CONFIRMATION",
-      status,
-      error,
-      sentAt: status === "SENT" || status === "SIMULATED" ? new Date() : null,
-    },
-  });
-
-  return {
-    notified: status === "SENT" || status === "SIMULATED",
-    waUrl: buildWhatsAppUrl(notifyPhone, message),
-  };
-}
-
-async function finalizeBookingFromCheckout(checkoutId: string) {
-  const checkout = await prisma.publicBookingCheckout.findUnique({
-    where: { id: checkoutId },
-    include: { tenant: { include: { settings: true } } },
-  });
-
-  if (!checkout) throw new Error("Reserva não encontrada");
-  if (checkout.status === "PAID" && checkout.appointmentId) {
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: checkout.appointmentId },
-      include: { client: true, service: true },
-    });
-    if (!appointment) throw new Error("Agendamento não encontrado");
-    return {
-      checkout,
-      appointment,
-      client: appointment.client,
-      service: appointment.service,
-      phone: checkout.clientPhone,
-    };
-  }
-  if (checkout.status === "EXPIRED" || isCheckoutExpired(checkout.expiresAt)) {
-    await markCheckoutExpired(checkoutId);
-    throw new Error("Reserva expirada. Escolha o horário novamente.");
-  }
-
-  const service = await prisma.service.findFirst({
-    where: { id: checkout.serviceId, tenantId: checkout.tenantId, active: true },
-  });
-  if (!service) throw new Error("Serviço inválido");
-
-  const settings = checkout.tenant.settings;
-  const bookingSettings = getTenantBookingSettings({
-    openTime: settings?.openTime ?? "08:00",
-    closeTime: settings?.closeTime ?? "20:00",
-    workingDays: settings?.workingDays ?? "1,2,3,4,5,6",
-  });
-
-  const { barbers, dayAppointments } = await validatePublicBookingSlot({
-    tenantId: checkout.tenantId,
-    serviceId: checkout.serviceId,
-    barberId: checkout.barberId,
-    scheduledAt: checkout.scheduledAt,
-    settings: bookingSettings,
-  });
-
-  const phone = checkout.clientPhone.replace(/\D/g, "");
-
-  let client = await prisma.client.findUnique({
-    where: { tenantId_phone: { tenantId: checkout.tenantId, phone } },
-  });
-
-  if (!client) {
-    client = await prisma.client.create({
-      data: {
-        tenantId: checkout.tenantId,
-        name: checkout.clientName,
-        phone,
-      },
-    });
-  } else if (client.name !== checkout.clientName) {
-    client = await prisma.client.update({
-      where: { id: client.id },
-      data: { name: checkout.clientName },
-    });
-  }
-
-  const barberId = await resolveBarberId({
-    tenantId: checkout.tenantId,
-    barberId: checkout.barberId,
-    scheduledAt: checkout.scheduledAt,
-    serviceDuration: service.duration,
-    dayAppointments,
-    barbers,
-  });
-
-  const appointment = await prisma.$transaction(async (tx) => {
-    const apt = await tx.appointment.create({
-      data: {
-        tenantId: checkout.tenantId,
-        clientId: client!.id,
-        serviceId: service.id,
-        barberId,
-        scheduledAt: checkout.scheduledAt,
-        duration: service.duration,
-        price: checkout.amount,
-        paymentMethod: "PIX",
-        status: "CONFIRMED",
-        bookedOnline: true,
-        notes: "Agendamento online — PIX confirmado",
-      },
-    });
-
-    await tx.publicBookingCheckout.update({
-      where: { id: checkoutId },
-      data: {
-        status: "PAID",
-        paidAt: new Date(),
-        appointmentId: apt.id,
-      },
-    });
-
-    return apt;
-  });
-
-  await notifyBarbershopBooking({
-    tenantId: checkout.tenantId,
-    tenantName: checkout.tenant.name,
-    plan: checkout.tenant.plan,
-    clientName: client.name,
-    clientPhone: phone,
-    serviceName: service.name,
-    scheduledAt: checkout.scheduledAt,
-    price: Number(checkout.amount),
-    paid: true,
-  });
-
-  revalidatePath("/agenda");
-  revalidatePath("/dashboard");
-
-  return { checkout, appointment, client, service, phone };
-}
-
-export async function confirmPublicBookingCheckout(checkoutId: string) {
-  const result = await finalizeBookingFromCheckout(checkoutId);
-  const when = format(result.checkout.scheduledAt, "dd/MM 'às' HH:mm", { locale: ptBR });
-  const clientMessage = renderMessageTemplate(
-    "Olá {nome}! Seu horário na {barbearia} está confirmado para {horario}. Serviço: {servico}. Pagamento recebido. Te esperamos! ✂️",
-    {
-      nome: result.client.name.split(" ")[0],
-      barbearia: result.checkout.tenant.name,
-      horario: when,
-      servico: result.service.name,
-    }
-  );
-
-  return {
-    appointmentId: result.appointment.id,
-    scheduledAt: result.checkout.scheduledAt.toISOString(),
-    serviceName: result.service.name,
-    barbershopName: result.checkout.tenant.name,
-    clientWaUrl: buildWhatsAppUrl(result.phone, clientMessage),
-  };
-}
-
 export async function processBookingMercadoPagoPayment(paymentId: string) {
   let checkout = await prisma.publicBookingCheckout.findFirst({
     where: { mercadoPagoPaymentId: String(paymentId) },
     include: { tenant: { include: { settings: true } } },
   });
 
-  const token = checkout
-    ? getBookingMercadoPagoToken(checkout.tenant.settings?.mercadoPagoAccessToken)
-    : getBookingMercadoPagoToken(null);
-
-  if (!token) return null;
-
-  const payment = await fetchMercadoPagoPayment(paymentId, token);
+  const storedToken = checkout?.tenant.settings?.mercadoPagoAccessToken ?? null;
+  const payment = await fetchBookingMercadoPagoPayment(paymentId, storedToken);
   if (!payment) return null;
 
   if (payment.external_reference?.startsWith("bk_")) {
@@ -387,8 +175,10 @@ export async function processBookingMercadoPagoPayment(paymentId: string) {
     data: { mercadoPagoPaymentId: String(payment.id) },
   });
 
-  const result = await confirmPublicBookingCheckout(checkout.id);
-  return result.appointmentId;
+  const result = await finalizeBookingFromVerifiedPayment(checkout.id, {
+    paymentSource: "PAID_PROVIDER",
+  });
+  return result.appointment.id;
 }
 
 export async function createPublicBookingCheckout(slug: string, formData: FormData) {
@@ -410,6 +200,7 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
     throw new Error("Agendamento online desativado");
   }
 
+  const storedMercadoPagoToken = tenant.settings?.mercadoPagoAccessToken ?? null;
   const booking = getTenantBookingSettings({
     openTime: tenant.settings?.openTime ?? "08:00",
     closeTime: tenant.settings?.closeTime ?? "20:00",
@@ -418,10 +209,14 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
     bookingPixKey: tenant.settings?.bookingPixKey,
     bookingPixHolderName: tenant.settings?.bookingPixHolderName,
     bookingPixCity: tenant.settings?.bookingPixCity,
-    mercadoPagoAccessToken: tenant.settings?.mercadoPagoAccessToken,
+    mercadoPagoAccessToken: storedMercadoPagoToken,
   });
 
-  if (booking.requirePixPayment && !booking.pixKey && !getBookingMercadoPagoToken(booking.mercadoPagoAccessToken)) {
+  if (
+    booking.requirePixPayment &&
+    !booking.pixKey &&
+    !isBookingMercadoPagoConfigured(storedMercadoPagoToken)
+  ) {
     throw new Error("Pagamento PIX não configurado pela barbearia.");
   }
 
@@ -438,6 +233,13 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
   const amount = Number(service.price);
   const holderName = booking.pixHolderName || tenant.name;
 
+  const barber = parsed.barberId
+    ? await prisma.user.findFirst({
+        where: { id: parsed.barberId, tenantId: tenant.id, role: "BARBER", active: true },
+        select: { name: true },
+      })
+    : null;
+
   const checkout = await prisma.publicBookingCheckout.create({
     data: {
       tenantId: tenant.id,
@@ -448,6 +250,11 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
       scheduledAt,
       amount: service.price,
       expiresAt: getCheckoutExpiryDate(),
+      serviceName: service.name,
+      serviceDuration: service.duration,
+      servicePrice: service.price,
+      barberName: barber?.name ?? null,
+      currency: "BRL",
     },
   });
 
@@ -456,11 +263,10 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
   let pixKey: string | null = booking.pixKey;
   let autoConfirm = false;
 
-  const mpToken = getBookingMercadoPagoToken(booking.mercadoPagoAccessToken);
-  if (mpToken) {
+  if (isBookingMercadoPagoConfigured(storedMercadoPagoToken)) {
     try {
       const mpPayment = await createMercadoPagoBookingPayment({
-        accessToken: mpToken,
+        storedToken: storedMercadoPagoToken,
         checkoutId: checkout.id,
         amount,
         description: `${service.name} — ${tenant.name}`,
@@ -494,7 +300,10 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
   }
 
   if (isBookingDemoMode()) {
-    const confirmed = await confirmPublicBookingCheckout(checkout.id);
+    const result = await finalizeBookingFromVerifiedPayment(checkout.id, {
+      paymentSource: "DEMO",
+    });
+    const confirmed = buildPublicBookingConfirmationResponse(result);
     return {
       checkoutId: checkout.id,
       demoConfirmed: true,
@@ -533,6 +342,7 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
 
   if (!checkout) return null;
 
+  const storedMercadoPagoToken = checkout.tenant.settings?.mercadoPagoAccessToken ?? null;
   const service = checkout.appointment?.service
     ? checkout.appointment.service
     : await prisma.service.findUnique({
@@ -548,12 +358,16 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
   if (
     checkout.mercadoPagoPaymentId &&
     checkout.status === "PENDING_PAYMENT" &&
-    getBookingMercadoPagoToken(checkout.tenant.settings?.mercadoPagoAccessToken)
+    isBookingMercadoPagoConfigured(storedMercadoPagoToken)
   ) {
-    const token = getBookingMercadoPagoToken(checkout.tenant.settings?.mercadoPagoAccessToken);
-    const payment = await fetchMercadoPagoPayment(checkout.mercadoPagoPaymentId, token!);
+    const payment = await fetchBookingMercadoPagoPayment(
+      checkout.mercadoPagoPaymentId,
+      storedMercadoPagoToken
+    );
     if (payment?.status === "approved") {
-      await confirmPublicBookingCheckout(checkout.id);
+      await finalizeBookingFromVerifiedPayment(checkout.id, {
+        paymentSource: "PAID_PROVIDER",
+      });
       const refreshed = await prisma.publicBookingCheckout.findUnique({
         where: { id: checkoutId },
         include: {
@@ -572,19 +386,19 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
     bookingPixKey: checkout.tenant.settings?.bookingPixKey,
     bookingPixHolderName: checkout.tenant.settings?.bookingPixHolderName,
     bookingPixCity: checkout.tenant.settings?.bookingPixCity,
-    mercadoPagoAccessToken: checkout.tenant.settings?.mercadoPagoAccessToken,
+    mercadoPagoAccessToken: storedMercadoPagoToken,
   });
 
   let copiaECola: string | null = null;
   let qrCodeBase64: string | null = null;
 
   if (checkout.mercadoPagoPaymentId && checkout.status === "PENDING_PAYMENT") {
-    const token = getBookingMercadoPagoToken(booking.mercadoPagoAccessToken);
-    if (token) {
-      const payment = await fetchMercadoPagoPayment(checkout.mercadoPagoPaymentId, token);
-      copiaECola = payment?.point_of_interaction?.transaction_data?.qr_code ?? null;
-      qrCodeBase64 = payment?.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
-    }
+    const payment = await fetchBookingMercadoPagoPayment(
+      checkout.mercadoPagoPaymentId,
+      storedMercadoPagoToken
+    );
+    copiaECola = payment?.point_of_interaction?.transaction_data?.qr_code ?? null;
+    qrCodeBase64 = payment?.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
   }
 
   if (!copiaECola && booking.pixKey && checkout.status === "PENDING_PAYMENT") {
@@ -615,7 +429,7 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
     id: checkout.id,
     status: checkout.status,
     amount: Number(checkout.amount),
-    serviceName: service?.name ?? "Serviço",
+    serviceName: service?.name ?? checkout.serviceName ?? "Serviço",
     scheduledAt: checkout.scheduledAt.toISOString(),
     expiresAt: checkout.expiresAt.toISOString(),
     barbershopName: checkout.tenant.name,
@@ -624,7 +438,7 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
     qrCodeBase64,
     pixKey: booking.pixKey,
     holderName: booking.pixHolderName || checkout.tenant.name,
-    autoConfirm: !!getBookingMercadoPagoToken(booking.mercadoPagoAccessToken),
+    autoConfirm: booking.mercadoPagoConfigured,
     clientWaUrl: clientMessage ? buildWhatsAppUrl(phone, clientMessage) : null,
   };
 }
@@ -641,7 +455,7 @@ export async function reportPublicBookingPaid(slug: string, checkoutId: string) 
   }
 
   if (
-    getBookingMercadoPagoToken(checkout.tenant.settings?.mercadoPagoAccessToken) ||
+    isBookingMercadoPagoConfigured(checkout.tenant.settings?.mercadoPagoAccessToken) ||
     checkout.mercadoPagoPaymentId
   ) {
     throw new Error("Aguarde a confirmação automática do PIX.");
@@ -749,6 +563,7 @@ export async function createPublicBooking(slug: string, formData: FormData) {
     serviceName: service.name,
     scheduledAt,
     price: Number(service.price),
+    paid: false,
   });
 
   revalidatePath("/agenda");
@@ -774,8 +589,10 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   };
 }
 
-export async function getAgendaOnlineItems(tenantId: string) {
-  const { expireStaleBookingCheckouts } = await import("@/lib/booking-checkout");
+export async function getAgendaOnlineItems() {
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
+
   await expireStaleBookingCheckouts(tenantId);
 
   const checkouts = await prisma.publicBookingCheckout.findMany({
@@ -815,7 +632,7 @@ export async function getAgendaOnlineItems(tenantId: string) {
       status: checkout.status,
       clientName: checkout.clientName,
       clientPhone: checkout.clientPhone,
-      serviceName: serviceMap.get(checkout.serviceId) ?? "Serviço",
+      serviceName: checkout.serviceName ?? serviceMap.get(checkout.serviceId) ?? "Serviço",
       scheduledAt: checkout.scheduledAt.toISOString(),
       amount: Number(checkout.amount),
       expiresAt: checkout.expiresAt.toISOString(),
@@ -832,12 +649,8 @@ export async function getAgendaOnlineItems(tenantId: string) {
 }
 
 export async function getPendingBookingCheckoutsForTenant() {
-  const { requireAuth } = await import("@/lib/session");
-  const { isTenantAdmin, requireTenantId } = await import("@/lib/auth-utils");
-
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
 
   await expireStaleBookingCheckouts(tenantId);
 
@@ -869,7 +682,7 @@ export async function getPendingBookingCheckoutsForTenant() {
     status: checkout.status,
     clientName: checkout.clientName,
     clientPhone: checkout.clientPhone,
-    serviceName: serviceMap.get(checkout.serviceId) ?? "Serviço",
+    serviceName: checkout.serviceName ?? serviceMap.get(checkout.serviceId) ?? "Serviço",
     scheduledAt: checkout.scheduledAt.toISOString(),
     amount: Number(checkout.amount),
     expiresAt: checkout.expiresAt.toISOString(),
@@ -877,12 +690,8 @@ export async function getPendingBookingCheckoutsForTenant() {
 }
 
 export async function confirmPendingBookingCheckout(checkoutId: string) {
-  const { requireAuth } = await import("@/lib/session");
-  const { isTenantAdmin, requireTenantId } = await import("@/lib/auth-utils");
-
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
 
   const checkout = await prisma.publicBookingCheckout.findFirst({
     where: {
@@ -893,18 +702,19 @@ export async function confirmPendingBookingCheckout(checkoutId: string) {
   });
   if (!checkout) throw new Error("Reserva não encontrada");
 
-  await confirmPublicBookingCheckout(checkoutId);
+  await finalizeBookingFromVerifiedPayment(checkoutId, {
+    confirmedByUserId: user.id,
+    paymentSource: "PAID_MANUAL",
+  });
   revalidatePath("/agenda");
   return { success: true };
 }
 
 export async function updatePublicBookingSettings(formData: FormData) {
-  const { requireAuth } = await import("@/lib/session");
-  const { isTenantAdmin, requireTenantId } = await import("@/lib/auth-utils");
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
 
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  const existing = await prisma.tenantSettings.findUnique({ where: { tenantId } });
 
   const publicBookingEnabled = formData.get("publicBookingEnabled") === "on";
   const bookingRequirePixPayment = formData.get("bookingRequirePixPayment") === "on";
@@ -912,10 +722,14 @@ export async function updatePublicBookingSettings(formData: FormData) {
   const bookingPixKey = String(formData.get("bookingPixKey") || "").trim() || null;
   const bookingPixHolderName = String(formData.get("bookingPixHolderName") || "").trim() || null;
   const bookingPixCity = String(formData.get("bookingPixCity") || "").trim() || "SAO PAULO";
-  const mercadoPagoAccessToken =
-    String(formData.get("mercadoPagoAccessToken") || "").trim() || null;
+  const newMercadoPagoAccessToken = String(formData.get("newMercadoPagoAccessToken") || "").trim();
 
-  if (bookingRequirePixPayment && !bookingPixKey && !mercadoPagoAccessToken) {
+  const mercadoPagoAccessToken = prepareCredentialForStorage(
+    newMercadoPagoAccessToken || null,
+    existing?.mercadoPagoAccessToken
+  );
+
+  if (bookingRequirePixPayment && !bookingPixKey && !credentialConfigured(mercadoPagoAccessToken)) {
     throw new Error("Informe a chave PIX ou o token Mercado Pago para exigir pagamento.");
   }
 

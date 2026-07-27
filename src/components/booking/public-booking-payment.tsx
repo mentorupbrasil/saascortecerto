@@ -28,8 +28,6 @@ export function PublicBookingPaymentClient({
   const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-
     async function load() {
       const data = await getPublicBookingCheckoutPublic(slug, checkoutId);
       setCheckout(data);
@@ -37,7 +35,7 @@ export function PublicBookingPaymentClient({
     }
 
     load();
-    interval = setInterval(load, 4000);
+    const interval = setInterval(load, 4000);
 
     return () => clearInterval(interval);
   }, [slug, checkoutId]);

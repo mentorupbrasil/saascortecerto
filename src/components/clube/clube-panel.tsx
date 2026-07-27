@@ -12,7 +12,7 @@ import {
   toggleMembershipPlan,
 } from "@/lib/membership-actions";
 import { formatCurrency } from "@/lib/utils";
-import { PLAN_TYPE_LABELS, WEEKDAY_LABELS } from "@/lib/whatsapp";
+import { PLAN_TYPE_LABELS, WEEKDAY_LABELS } from "@/lib/constants/labels";
 import { getMembershipRemaining, getMembershipStatusLabel } from "@/lib/membership";
 import { Plus, X, Crown } from "lucide-react";
 import { format } from "date-fns";

@@ -7,7 +7,9 @@ import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
 import { getPlanPrice, PLAN_LABELS } from "@/lib/plan-pricing";
 import { getPlatformPixConfig } from "@/lib/platform-billing";
 import { generatePixCopiaECola } from "@/lib/pix";
-import { differenceInCalendarDays, startOfDay, startOfMonth, endOfMonth } from "date-fns";
+import { differenceInCalendarDays, startOfDay } from "date-fns";
+import { assertTenantResource, requireAuthenticatedUser } from "@/lib/authz";
+import { syncOverdueSubscriptionPayments } from "@/lib/billing/cron";
 import type { Plan, SubscriptionPaymentStatus } from "@prisma/client";
 
 export type BillingAlertLevel = "none" | "upcoming" | "due_soon" | "overdue";
@@ -125,19 +127,12 @@ function buildAlert(openInvoice: TenantInvoiceRow | null): {
   return { alertLevel: "none", alertMessage: null, daysUntilDue };
 }
 
-export async function syncOverdueSubscriptionPayments() {
-  const now = new Date();
-  await prisma.subscriptionPayment.updateMany({
-    where: {
-      status: "PENDING",
-      dueDate: { lt: now },
-      tenantReportedPaidAt: null,
-    },
-    data: { status: "OVERDUE" },
-  });
-}
-
 export async function getTenantBillingOverview(tenantId: string): Promise<TenantBillingOverview> {
+  const user = await requireAuthenticatedUser();
+  if (user.role !== "SUPER_ADMIN") {
+    assertTenantResource(user, tenantId);
+  }
+
   await syncOverdueSubscriptionPayments();
 
   const tenant = await prisma.tenant.findUnique({
@@ -243,54 +238,4 @@ export async function reportTenantPayment(paymentId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/admin");
   return { success: true };
-}
-
-export async function ensureTenantIsActive(tenantId: string) {
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { active: true },
-  });
-  return tenant?.active ?? false;
-}
-
-export async function autoGenerateMonthlyInvoices() {
-  const tenants = await prisma.tenant.findMany({
-    where: { active: true, plan: { not: "FREE" } },
-  });
-
-  const dueDate = new Date();
-  dueDate.setDate(5);
-  let created = 0;
-
-  for (const tenant of tenants) {
-    const amount = getPlanPrice(tenant.plan);
-    if (amount === 0) continue;
-
-    const existing = await prisma.subscriptionPayment.findFirst({
-      where: {
-        tenantId: tenant.id,
-        dueDate: { gte: startOfMonth(new Date()), lte: endOfMonth(new Date()) },
-      },
-    });
-    if (existing) continue;
-
-    await prisma.subscriptionPayment.create({
-      data: {
-        tenantId: tenant.id,
-        plan: tenant.plan,
-        amount,
-        status: "PENDING",
-        dueDate,
-      },
-    });
-    created++;
-  }
-
-  return { created };
-}
-
-export async function runBillingCron() {
-  await syncOverdueSubscriptionPayments();
-  const invoices = await autoGenerateMonthlyInvoices();
-  return invoices;
 }

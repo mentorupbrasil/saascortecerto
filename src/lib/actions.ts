@@ -24,6 +24,7 @@ import {
   startOfWeek,
   endOfWeek,
 } from "date-fns";
+import { recordConsent } from "@/lib/crm/consents";
 
 const appointmentSchema = z.object({
   clientName: z.string().min(2),
@@ -41,6 +42,17 @@ const clientSchema = z.object({
   birthday: z.string().optional(),
   notes: z.string().optional(),
   returnDays: z.coerce.number().min(7).max(60).optional(),
+  whatsappOptIn: z
+    .union([z.literal("on"), z.literal("true"), z.literal("false"), z.literal("off"), z.null()])
+    .optional()
+    .transform((v) => {
+      if (v === undefined || v === null) return undefined;
+      return v === "on" || v === "true";
+    }),
+  dataConsent: z
+    .union([z.literal("on"), z.literal("true"), z.literal("false"), z.literal("off"), z.null()])
+    .optional()
+    .transform((v) => v === "on" || v === "true"),
 });
 
 const serviceSchema = z.object({
@@ -113,20 +125,29 @@ export async function createAppointment(formData: FormData) {
   const barberId =
     user.role === "BARBER"
       ? user.id
-      : parsed.barberId || undefined;
+      : parsed.barberId || null;
 
-  await prisma.appointment.create({
-    data: {
-      tenantId,
-      clientId: client.id,
-      serviceId: service.id,
-      barberId,
-      scheduledAt: parseISO(parsed.scheduledAt),
-      duration: service.duration,
-      price: service.price,
-      paymentMethod: parsed.paymentMethod as PaymentMethod | undefined,
-      notes: parsed.notes,
-    },
+  if (barberId) {
+    const barber = await prisma.user.findFirst({
+      where: { id: barberId, tenantId, active: true },
+    });
+    if (!barber) throw new Error("Profissional inválido");
+  }
+
+  const { createAppointmentWithConflictGuard } = await import(
+    "@/lib/domain/appointment-create"
+  );
+  await createAppointmentWithConflictGuard({
+    tenantId,
+    clientId: client.id,
+    serviceId: service.id,
+    barberId,
+    scheduledAt: parseISO(parsed.scheduledAt),
+    duration: service.duration,
+    price: service.price,
+    paymentMethod: parsed.paymentMethod as PaymentMethod | undefined,
+    notes: parsed.notes,
+    origin: "INTERNAL",
   });
 
   revalidateDashboard();
@@ -134,48 +155,10 @@ export async function createAppointment(formData: FormData) {
 }
 
 export async function updateAppointmentStatus(id: string, status: AppointmentStatus) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
-
-  const filter = getAppointmentFilter(user);
-
-  await prisma.appointment.updateMany({
-    where: { id, tenantId, ...filter },
-    data: {
-      status,
-      ...(status === "COMPLETED" ? {} : {}),
-    },
-  });
-
-  if (status === "COMPLETED") {
-    const apt = await prisma.appointment.findFirst({
-      where: { id, tenantId },
-    });
-    if (apt) {
-      await prisma.client.update({
-        where: { id: apt.clientId },
-        data: { lastVisitAt: apt.scheduledAt },
-      });
-
-      if (apt.membershipId) {
-        const { recordMembershipVisit } = await import("@/lib/membership-actions");
-        await recordMembershipVisit(apt.membershipId);
-      } else {
-        const activeMembership = await prisma.clientMembership.findFirst({
-          where: { clientId: apt.clientId, tenantId, status: "ACTIVE" },
-        });
-        if (activeMembership) {
-          const { recordMembershipVisit } = await import("@/lib/membership-actions");
-          await recordMembershipVisit(activeMembership.id);
-          await prisma.appointment.update({
-            where: { id: apt.id },
-            data: { membershipId: activeMembership.id },
-          });
-        }
-      }
-    }
-  }
-
+  const { updateAppointmentStatusSecure } = await import(
+    "@/lib/domain/appointment-status"
+  );
+  await updateAppointmentStatusSecure(id, status);
   revalidateDashboard();
   return { success: true };
 }
@@ -203,6 +186,8 @@ export async function createClient(formData: FormData) {
     birthday: formData.get("birthday") || undefined,
     notes: formData.get("notes") || undefined,
     returnDays: formData.get("returnDays") || 20,
+    whatsappOptIn: formData.get("whatsappOptIn")?.toString(),
+    dataConsent: formData.get("dataConsent")?.toString(),
   });
 
   const phone = parsed.phone.replace(/\D/g, "");
@@ -215,8 +200,28 @@ export async function createClient(formData: FormData) {
       birthday: parsed.birthday ? parseISO(parsed.birthday) : null,
       notes: parsed.notes,
       returnDays: parsed.returnDays ?? 20,
+      whatsappOptIn: parsed.whatsappOptIn ?? true,
     },
   });
+
+  if (parsed.whatsappOptIn !== undefined) {
+    await recordConsent({
+      tenantId,
+      clientId: client.id,
+      type: "WHATSAPP",
+      granted: parsed.whatsappOptIn,
+      source: "client_form",
+    });
+  }
+  if (parsed.dataConsent) {
+    await recordConsent({
+      tenantId,
+      clientId: client.id,
+      type: "DATA_PROCESSING",
+      granted: true,
+      source: "client_form",
+    });
+  }
 
   revalidatePath("/clientes");
   return { success: true, id: client.id };
@@ -232,6 +237,8 @@ export async function updateClient(id: string, formData: FormData) {
     birthday: formData.get("birthday") || undefined,
     notes: formData.get("notes") || undefined,
     returnDays: formData.get("returnDays") || 20,
+    whatsappOptIn: formData.get("whatsappOptIn")?.toString(),
+    dataConsent: formData.get("dataConsent")?.toString(),
   });
 
   await prisma.client.updateMany({
@@ -242,8 +249,30 @@ export async function updateClient(id: string, formData: FormData) {
       birthday: parsed.birthday ? parseISO(parsed.birthday) : null,
       notes: parsed.notes,
       returnDays: parsed.returnDays ?? 20,
+      ...(parsed.whatsappOptIn !== undefined
+        ? { whatsappOptIn: parsed.whatsappOptIn }
+        : {}),
     },
   });
+
+  if (parsed.whatsappOptIn !== undefined) {
+    await recordConsent({
+      tenantId,
+      clientId: id,
+      type: "WHATSAPP",
+      granted: parsed.whatsappOptIn,
+      source: "client_form",
+    });
+  }
+  if (parsed.dataConsent) {
+    await recordConsent({
+      tenantId,
+      clientId: id,
+      type: "DATA_PROCESSING",
+      granted: true,
+      source: "client_form",
+    });
+  }
 
   revalidatePath("/clientes");
   return { success: true };

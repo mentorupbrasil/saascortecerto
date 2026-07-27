@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { SendSingleButton } from "@/components/whatsapp/whatsapp-panel";
 import { formatPhone } from "@/lib/utils";
 import type { Plan } from "@prisma/client";
+import { isWhatsAppDemoMode } from "@/lib/env";
 
 export default async function WhatsAppPage() {
   const user = await getSessionUser();
@@ -51,7 +52,9 @@ export default async function WhatsAppPage() {
   const autoWhatsApp = canUseAutoWhatsApp(plan);
   const demoMode =
     autoWhatsApp &&
-    (process.env.WHATSAPP_DEMO_MODE === "true" || !settings?.whatsappPhoneNumberId);
+    (isWhatsAppDemoMode() ||
+      !settings?.whatsappPhoneNumberId ||
+      !settings?.whatsappTokenConfigured);
 
   return (
     <TenantAppShell>

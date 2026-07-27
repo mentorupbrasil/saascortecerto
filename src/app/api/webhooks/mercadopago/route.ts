@@ -1,41 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processMercadoPagoWebhookPayment } from "@/lib/signup-actions";
+import { createHash } from "crypto";
+import { processMercadoPagoWebhookPayment } from "@/lib/signup/webhook-processor";
+import {
+  claimWebhookEvent,
+  completeWebhookEvent,
+  verifyMercadoPagoSignature,
+} from "@/lib/integrations/mercadopago-webhook";
+import { logger, createRequestId } from "@/lib/logging/logger";
 
 export async function POST(req: NextRequest) {
+  const requestId = createRequestId();
   try {
-    const body = await req.json();
-    const paymentId =
-      body?.data?.id ??
-      body?.id ??
-      new URL(req.url).searchParams.get("id") ??
-      new URL(req.url).searchParams.get("data.id");
+    const rawBody = await req.text();
+    let body: Record<string, unknown> = {};
+    try {
+      body = rawBody ? (JSON.parse(rawBody) as Record<string, unknown>) : {};
+    } catch {
+      return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    }
+
+    const data = body.data as { id?: string | number } | undefined;
+    const paymentId = String(
+      data?.id ?? body.id ?? new URL(req.url).searchParams.get("data.id") ?? ""
+    );
 
     if (!paymentId) {
       return NextResponse.json({ ok: true, skipped: "no payment id" });
     }
 
-    const tenantId = await processMercadoPagoWebhookPayment(String(paymentId));
+    const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() ?? "";
+    const xSignature = req.headers.get("x-signature");
+    const xRequestId = req.headers.get("x-request-id");
+
+    // In production, secret is mandatory. In development, allow without if unset.
+    if (process.env.NODE_ENV === "production" || secret) {
+      const verified = verifyMercadoPagoSignature({
+        xSignature,
+        xRequestId,
+        dataId: paymentId,
+        secret,
+      });
+      if (!verified.ok) {
+        logger.warn("webhook_signature_rejected", {
+          requestId,
+          action: "webhook.mercadopago",
+          errorCode: verified.reason,
+          result: "failure",
+        });
+        return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+      }
+    }
+
+    const eventKey = `payment:${paymentId}:${xRequestId ?? "no-req"}`;
+    const payloadHash = createHash("sha256").update(rawBody).digest("hex");
+    const claim = await claimWebhookEvent({
+      provider: "mercadopago",
+      eventKey,
+      payloadHash,
+    });
+    if (claim === "duplicate") {
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
+
+    const tenantId = await processMercadoPagoWebhookPayment(paymentId);
+    await completeWebhookEvent("mercadopago", eventKey, tenantId ? "ok" : "skipped");
+
     return NextResponse.json({ ok: true, tenantId });
   } catch (err) {
-    console.error("Mercado Pago webhook error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Erro" },
-      { status: 500 }
-    );
+    logger.error("webhook_mercadopago_error", {
+      requestId,
+      action: "webhook.mercadopago",
+      result: "failure",
+      errorCode: err instanceof Error ? err.message : "unknown",
+    });
+    return NextResponse.json({ error: "webhook_failed" }, { status: 500 });
   }
 }
 
-export async function GET(req: NextRequest) {
-  const paymentId = new URL(req.url).searchParams.get("id");
-  if (!paymentId) {
-    return NextResponse.json({ ok: true });
-  }
-
-  try {
-    const tenantId = await processMercadoPagoWebhookPayment(paymentId);
-    return NextResponse.json({ ok: true, tenantId });
-  } catch (err) {
-    console.error("Mercado Pago webhook GET error:", err);
-    return NextResponse.json({ error: "failed" }, { status: 500 });
-  }
+/** Health/verification only — never mutate state on GET */
+export async function GET() {
+  return NextResponse.json({ ok: true, method: "GET", mutate: false });
 }

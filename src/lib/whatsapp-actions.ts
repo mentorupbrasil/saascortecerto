@@ -6,13 +6,18 @@ import { requireAuth } from "@/lib/session";
 import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
 import { canUseAutoWhatsApp } from "@/lib/plan-pricing";
 import {
-  buildWhatsAppUrl,
+  credentialConfigured,
+  prepareCredentialForStorage,
+} from "@/lib/crypto/credentials";
+import {
   daysSince,
   renderMessageTemplate,
   sendWhatsAppText,
 } from "@/lib/whatsapp";
+import { processBulkReturnForTenant } from "@/lib/whatsapp/cron";
+import { getClientsDueForReturn } from "@/lib/whatsapp/return-queue";
 import { z } from "zod";
-import type { Plan, WhatsAppMessageStatus, WhatsAppMessageType } from "@prisma/client";
+import type { Plan } from "@prisma/client";
 
 async function getTenantPlan(tenantId: string): Promise<Plan> {
   const tenant = await prisma.tenant.findUnique({
@@ -34,11 +39,21 @@ async function assertAutoWhatsApp(tenantId: string) {
 const settingsSchema = z.object({
   whatsappEnabled: z.coerce.boolean().optional(),
   whatsappPhoneNumberId: z.string().optional(),
-  whatsappAccessToken: z.string().optional(),
+  newWhatsAppAccessToken: z.string().optional(),
   whatsappReturnTemplate: z.string().min(10),
   autoReturnEnabled: z.coerce.boolean().optional(),
   returnMessageDays: z.coerce.number().min(7).max(90),
 });
+
+export type WhatsAppSettingsDto = {
+  whatsappEnabled: boolean;
+  whatsappPhoneNumberId: string | null;
+  whatsappReturnTemplate: string;
+  autoReturnEnabled: boolean;
+  returnMessageDays: number;
+  lastBulkSendAt: Date | null;
+  whatsappTokenConfigured: boolean;
+};
 
 export async function getWhatsAppSettings() {
   const user = await requireAuth();
@@ -53,7 +68,23 @@ export async function getWhatsAppSettings() {
     where: { tenantId },
   });
 
-  return { tenant, settings, plan: tenant?.plan ?? "FREE" };
+  const plan = tenant?.plan ?? "FREE";
+
+  return {
+    tenant: { name: tenant?.name ?? "", plan },
+    plan,
+    settings: settings
+      ? {
+          whatsappEnabled: settings.whatsappEnabled,
+          whatsappPhoneNumberId: settings.whatsappPhoneNumberId,
+          whatsappReturnTemplate: settings.whatsappReturnTemplate,
+          autoReturnEnabled: settings.autoReturnEnabled,
+          returnMessageDays: settings.returnMessageDays,
+          lastBulkSendAt: settings.lastBulkSendAt,
+          whatsappTokenConfigured: credentialConfigured(settings.whatsappAccessToken),
+        }
+      : null,
+  };
 }
 
 export async function updateWhatsAppSettings(formData: FormData) {
@@ -68,8 +99,8 @@ export async function updateWhatsAppSettings(formData: FormData) {
     whatsappPhoneNumberId: autoAllowed
       ? formData.get("whatsappPhoneNumberId") || undefined
       : undefined,
-    whatsappAccessToken: autoAllowed
-      ? formData.get("whatsappAccessToken") || undefined
+    newWhatsAppAccessToken: autoAllowed
+      ? (formData.get("newWhatsAppAccessToken") as string | null) || undefined
       : undefined,
     whatsappReturnTemplate: formData.get("whatsappReturnTemplate"),
     autoReturnEnabled: autoAllowed && formData.get("autoReturnEnabled") === "on",
@@ -77,6 +108,13 @@ export async function updateWhatsAppSettings(formData: FormData) {
   });
 
   const existing = await prisma.tenantSettings.findUnique({ where: { tenantId } });
+
+  const whatsappAccessToken = autoAllowed
+    ? prepareCredentialForStorage(
+        parsed.newWhatsAppAccessToken,
+        existing?.whatsappAccessToken
+      )
+    : existing?.whatsappAccessToken ?? null;
 
   await prisma.tenantSettings.upsert({
     where: { tenantId },
@@ -87,7 +125,7 @@ export async function updateWhatsAppSettings(formData: FormData) {
       autoReturnEnabled: parsed.autoReturnEnabled ?? false,
       returnMessageDays: parsed.returnMessageDays,
       whatsappPhoneNumberId: parsed.whatsappPhoneNumberId ?? null,
-      whatsappAccessToken: parsed.whatsappAccessToken ?? null,
+      whatsappAccessToken,
     },
     update: {
       whatsappEnabled: parsed.whatsappEnabled ?? false,
@@ -97,69 +135,12 @@ export async function updateWhatsAppSettings(formData: FormData) {
       ...(parsed.whatsappPhoneNumberId
         ? { whatsappPhoneNumberId: parsed.whatsappPhoneNumberId }
         : {}),
-      ...(parsed.whatsappAccessToken
-        ? { whatsappAccessToken: parsed.whatsappAccessToken }
-        : existing?.whatsappAccessToken
-          ? { whatsappAccessToken: existing.whatsappAccessToken }
-          : {}),
+      ...(autoAllowed ? { whatsappAccessToken } : {}),
     },
   });
 
   revalidatePath("/whatsapp");
   return { success: true };
-}
-
-export async function getClientsDueForReturn(tenantId: string) {
-  const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
-  const defaultInterval = settings?.returnMessageDays ?? 20;
-
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { name: true },
-  });
-
-  const clients = await prisma.client.findMany({
-    where: { tenantId, whatsappOptIn: true },
-  });
-
-  return clients
-    .filter((client) => {
-      const interval = client.returnDays || defaultInterval;
-      const referenceDate = client.lastReturnMessageAt ?? client.lastVisitAt;
-      if (!referenceDate) return false;
-
-      const days = daysSince(referenceDate);
-      if (client.lastReturnMessageAt) {
-        return days >= interval;
-      }
-      if (client.lastVisitAt) {
-        return daysSince(client.lastVisitAt) >= interval;
-      }
-      return false;
-    })
-    .map((client) => {
-      const referenceDate = client.lastReturnMessageAt ?? client.lastVisitAt!;
-      const daysSinceRef = daysSince(referenceDate);
-      const message = renderMessageTemplate(
-        settings?.whatsappReturnTemplate ??
-          "Fala {nome}! Já faz {dias} dias do seu último corte na {barbearia}. Bora marcar? ✂️",
-        {
-          nome: client.name.split(" ")[0],
-          dias: daysSinceRef,
-          barbearia: tenant?.name ?? "nossa barbearia",
-        }
-      );
-
-      return {
-        id: client.id,
-        name: client.name,
-        phone: client.phone,
-        daysSince: daysSinceRef,
-        message,
-        waUrl: buildWhatsAppUrl(client.phone, message),
-        tenantName: tenant?.name ?? "Barbearia",
-      };
-    });
 }
 
 export async function getReturnPreview() {
@@ -283,74 +264,6 @@ export async function markManualReturnSent(clientId: string) {
   return { success: true };
 }
 
-export async function processBulkReturnForTenant(tenantId: string) {
-  await assertAutoWhatsApp(tenantId);
-  const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
-  if (!settings) throw new Error("Configurações não encontradas");
-
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-  const clients = await getClientsDueForReturn(tenantId);
-
-  let sent = 0;
-  let failed = 0;
-  let simulated = 0;
-
-  for (const client of clients) {
-    const message = renderMessageTemplate(settings.whatsappReturnTemplate, {
-      nome: client.name.split(" ")[0],
-      dias: client.daysSince,
-      barbearia: tenant?.name ?? "nossa barbearia",
-    });
-
-    const result = await sendWhatsAppText(settings, client.phone, message);
-
-    let status: WhatsAppMessageStatus = "FAILED";
-    if (result.simulated) {
-      status = "SIMULATED";
-      simulated++;
-    } else if (result.success) {
-      status = "SENT";
-      sent++;
-    } else {
-      failed++;
-    }
-
-    await prisma.whatsAppMessage.create({
-      data: {
-        tenantId,
-        clientId: client.id,
-        phone: client.phone,
-        message,
-        type: "RETURN" as WhatsAppMessageType,
-        status,
-        error: result.error,
-        sentAt: result.success ? new Date() : null,
-      },
-    });
-
-    if (result.success) {
-      await prisma.client.update({
-        where: { id: client.id },
-        data: { lastReturnMessageAt: new Date() },
-      });
-    }
-
-    await new Promise((r) => setTimeout(r, 300));
-  }
-
-  await prisma.tenantSettings.update({
-    where: { tenantId },
-    data: { lastBulkSendAt: new Date() },
-  });
-
-  return {
-    total: clients.length,
-    sent,
-    failed,
-    simulated,
-  };
-}
-
 export async function getWhatsAppMessageLog(limit = 50) {
   const user = await requireAuth();
   const tenantId = requireTenantId(user);
@@ -360,33 +273,4 @@ export async function getWhatsAppMessageLog(limit = 50) {
     orderBy: { createdAt: "desc" },
     take: limit,
   });
-}
-
-export async function runAutoReturnCron() {
-  const tenants = await prisma.tenant.findMany({
-    where: {
-      plan: "CLUBE",
-      active: true,
-      settings: {
-        autoReturnEnabled: true,
-        whatsappEnabled: true,
-      },
-    },
-    select: { id: true },
-  });
-
-  const results = [];
-  for (const { id: tenantId } of tenants) {
-    try {
-      const result = await processBulkReturnForTenant(tenantId);
-      results.push({ tenantId, ...result });
-    } catch (err) {
-      results.push({
-        tenantId,
-        error: err instanceof Error ? err.message : "Erro",
-      });
-    }
-  }
-
-  return results;
 }

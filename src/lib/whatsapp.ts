@@ -1,4 +1,6 @@
 import type { TenantSettings } from "@prisma/client";
+import { decryptCredential } from "@/lib/crypto/credentials";
+import { isWhatsAppDemoMode } from "@/lib/env";
 
 export type WhatsAppSendResult = {
   success: boolean;
@@ -35,17 +37,17 @@ export async function sendWhatsAppText(
   phone: string,
   message: string
 ): Promise<WhatsAppSendResult> {
-  const demoMode =
-    process.env.WHATSAPP_DEMO_MODE === "true" ||
-    !settings.whatsappPhoneNumberId ||
-    !settings.whatsappAccessToken;
-
-  if (demoMode) {
+  if (isWhatsAppDemoMode()) {
     return { success: true, simulated: true, messageId: `demo-${Date.now()}` };
   }
 
   if (!settings.whatsappEnabled) {
     return { success: false, error: "WhatsApp desativado nas configurações" };
+  }
+
+  const accessToken = decryptCredential(settings.whatsappAccessToken);
+  if (!settings.whatsappPhoneNumberId || !accessToken) {
+    return { success: false, error: "WhatsApp API não configurada" };
   }
 
   const to = formatPhoneE164(phone);
@@ -56,7 +58,7 @@ export async function sendWhatsAppText(
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${settings.whatsappAccessToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -94,20 +96,6 @@ export function daysSince(date: Date): number {
   return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function parseWeekdays(allowedWeekdays: string): number[] {
-  return allowedWeekdays.split(",").map((d) => parseInt(d.trim(), 10));
-}
+export { parseWeekdays, isWeekdayAllowed } from "@/lib/weekdays";
 
-export function isWeekdayAllowed(date: Date, allowedWeekdays: string): boolean {
-  const allowed = parseWeekdays(allowedWeekdays);
-  return allowed.includes(date.getDay());
-}
-
-export const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-export const PLAN_TYPE_LABELS: Record<string, string> = {
-  MONTHLY_LIMITED: "Mensal — X cortes/mês",
-  MONTHLY_UNLIMITED: "Mensal — ilimitado",
-  VISIT_PACK: "Pacote de visitas",
-  LOYALTY: "Fidelidade — bônus após X cortes",
-};
+export { PLAN_TYPE_LABELS, WEEKDAY_LABELS } from "@/lib/constants/labels";

@@ -19,8 +19,6 @@ export function PaymentPageClient({ checkoutId }: { checkoutId: string }) {
   const router = useRouter();
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-
     async function load() {
       const data = await getSignupCheckoutPublic(checkoutId);
       setCheckout(data);
@@ -32,7 +30,7 @@ export function PaymentPageClient({ checkoutId }: { checkoutId: string }) {
     }
 
     load();
-    interval = setInterval(load, 5000);
+    const interval = setInterval(load, 5000);
 
     return () => clearInterval(interval);
   }, [checkoutId, router]);

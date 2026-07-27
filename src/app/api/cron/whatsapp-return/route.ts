@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runAutoReturnCron } from "@/lib/whatsapp-actions";
+import { runAutoReturnCron } from "@/lib/whatsapp/cron";
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");

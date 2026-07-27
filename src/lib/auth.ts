@@ -49,11 +49,37 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.tenantId = user.tenantId;
         token.tenantName = user.tenantName;
+        token.lastDbSync = Date.now();
+        return token;
+      }
+
+      // Revalidate role/active/tenant from DB periodically (not only at login)
+      const lastSync = typeof token.lastDbSync === "number" ? token.lastDbSync : 0;
+      const shouldSync = Date.now() - lastSync > 60_000; // every 60s
+      if (shouldSync && token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          include: { tenant: { select: { id: true, name: true, active: true } } },
+        });
+        if (!dbUser || !dbUser.active || (dbUser.tenant && !dbUser.tenant.active)) {
+          // Invalidate session claims — middleware/actions will reject
+          token.active = false;
+        } else {
+          token.active = true;
+          token.role = dbUser.role;
+          token.tenantId = dbUser.tenantId;
+          token.tenantName = dbUser.tenant?.name ?? null;
+        }
+        token.lastDbSync = Date.now();
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
+        if (token.active === false) {
+          // Force empty session for deactivated users
+          return { ...session, user: undefined as never };
+        }
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.tenantId = (token.tenantId as string | null) ?? null;

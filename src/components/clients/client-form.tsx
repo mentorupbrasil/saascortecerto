@@ -17,6 +17,7 @@ type Client = {
   notes: string | null;
   returnDays: number;
   photoUrl?: string | null;
+  whatsappOptIn?: boolean;
 };
 
 async function uploadClientPhoto(clientId: string, file: File) {
@@ -197,6 +198,31 @@ export function ClientFormModal({
                 defaultValue={client?.returnDays ?? 20}
               />
               <Textarea name="notes" label="Observações" defaultValue={client?.notes ?? undefined} />
+
+              <label className="flex items-start gap-3 rounded-xl border border-zinc-800 p-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="whatsappOptIn"
+                  defaultChecked={client?.whatsappOptIn ?? true}
+                  className="mt-1 rounded border-zinc-600"
+                />
+                <span className="text-sm text-zinc-300">
+                  Autoriza mensagens WhatsApp (lembretes e retorno)
+                </span>
+              </label>
+
+              {!edit && (
+                <label className="flex items-start gap-3 rounded-xl border border-zinc-800 p-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="dataConsent"
+                    className="mt-1 rounded border-zinc-600"
+                  />
+                  <span className="text-sm text-zinc-300">
+                    Cliente consente com tratamento de dados (LGPD)
+                  </span>
+                </label>
+              )}
 
               {error && (
                 <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>

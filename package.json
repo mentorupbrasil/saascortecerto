@@ -5,13 +5,21 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma db push --accept-data-loss && prisma generate && next build",
+    "vercel-build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "echo \"E2E requires Playwright + DATABASE_URL; see docs/TESTING.md\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "db:setup": "prisma migrate deploy && prisma db seed || tsx prisma/seed.ts",
+    "credentials:migrate": "tsx scripts/migrate-credentials.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -29,16 +37,19 @@
     "zod": "^3.25.36"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "@tailwindcss/postcss": "^4.1.8",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.15.29",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^6.0.4",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.3",
     "prisma": "^6.9.0",
     "tailwindcss": "^4.1.8",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.10"
   }
 }

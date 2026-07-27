@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getPublicBookingPage } from "@/lib/public-booking-actions";
 import {
   PublicBookingForm,
@@ -30,9 +31,9 @@ export default async function PublicBookingPage({
         <PublicBookingForm tenant={tenant} />
         <p className="text-center text-xs text-zinc-600 mt-8">
           Agendamento via{" "}
-          <a href="/" className="text-zinc-500 hover:text-amber-400">
+          <Link href="/" className="text-zinc-500 hover:text-amber-400">
             CorteCerto
-          </a>
+          </Link>
         </p>
       </div>
     </div>

@@ -3,18 +3,33 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getAvailableSlots } from "@/lib/booking-slots";
 import { generatePixCopiaECola } from "@/lib/pix";
+import { decryptCredential, credentialConfigured } from "@/lib/crypto/credentials";
 import {
   createMercadoPagoPixPayment,
   fetchMercadoPagoPayment,
   getMercadoPagoAccessToken,
-  isBookingDemoMode,
 } from "@/lib/mercadopago";
 import { parseISO, startOfDay, endOfDay, addMinutes } from "date-fns";
 
 const CHECKOUT_HOLD_MINUTES = 15;
 
-export function getBookingMercadoPagoToken(tenantToken?: string | null) {
-  return tenantToken?.trim() || getMercadoPagoAccessToken();
+function resolveBookingMercadoPagoToken(storedToken?: string | null): string | null {
+  const decrypted = decryptCredential(storedToken)?.trim() || null;
+  return decrypted || getMercadoPagoAccessToken();
+}
+
+export function isBookingMercadoPagoConfigured(storedToken?: string | null): boolean {
+  if (credentialConfigured(storedToken)) return true;
+  return !!getMercadoPagoAccessToken();
+}
+
+export async function fetchBookingMercadoPagoPayment(
+  paymentId: string,
+  storedToken?: string | null
+) {
+  const token = resolveBookingMercadoPagoToken(storedToken);
+  if (!token) return null;
+  return fetchMercadoPagoPayment(paymentId, token);
 }
 
 export async function expireStaleBookingCheckouts(tenantId?: string) {
@@ -173,17 +188,20 @@ export function buildBookingPixPayload(options: {
 }
 
 export async function createMercadoPagoBookingPayment(options: {
-  accessToken: string;
+  storedToken?: string | null;
   checkoutId: string;
   amount: number;
   description: string;
   clientPhone: string;
 }) {
+  const accessToken = resolveBookingMercadoPagoToken(options.storedToken);
+  if (!accessToken) throw new Error("Mercado Pago não configurado");
+
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
   const payerEmail = `${options.clientPhone.replace(/\D/g, "").slice(-11)}@agendamento.cortecerto.app`;
 
   return createMercadoPagoPixPayment({
-    accessToken: options.accessToken,
+    accessToken,
     amount: options.amount,
     description: options.description,
     externalReference: `bk_${options.checkoutId}`,
@@ -202,10 +220,10 @@ export async function tryConfirmBookingViaMercadoPago(checkoutId: string) {
   }
   if (!checkout.mercadoPagoPaymentId) return checkout;
 
-  const token = getBookingMercadoPagoToken(checkout.tenant.settings?.mercadoPagoAccessToken);
-  if (!token) return checkout;
-
-  const payment = await fetchMercadoPagoPayment(checkout.mercadoPagoPaymentId, token);
+  const payment = await fetchBookingMercadoPagoPayment(
+    checkout.mercadoPagoPaymentId,
+    checkout.tenant.settings?.mercadoPagoAccessToken
+  );
   if (payment?.status !== "approved") return checkout;
 
   return checkout;

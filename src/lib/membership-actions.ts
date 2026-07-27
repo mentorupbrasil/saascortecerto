@@ -7,7 +7,6 @@ import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
 import { computeMembershipExpiry } from "@/lib/membership";
 import { z } from "zod";
 import type { MembershipPlanType, MembershipBilling } from "@prisma/client";
-import { addMonths } from "date-fns";
 
 const planSchema = z.object({
   name: z.string().min(2),
@@ -167,49 +166,10 @@ export async function cancelMembership(membershipId: string) {
   return { success: true };
 }
 
-export async function recordMembershipVisit(membershipId: string) {
-  const membership = await prisma.clientMembership.findUnique({
-    where: { id: membershipId },
-    include: { plan: true },
-  });
-  if (!membership || membership.status !== "ACTIVE") return;
+export async function getClientActiveMembership(clientId: string) {
+  const user = await requireAuth();
+  const tenantId = requireTenantId(user);
 
-  const now = new Date();
-  let visitsUsedThisPeriod = membership.visitsUsedThisPeriod + 1;
-  let periodStartAt = membership.periodStartAt;
-  let bonusEarned = membership.bonusEarned;
-
-  if (
-    membership.plan.billingCycle === "MONTHLY" &&
-    periodStartAt &&
-    now > addMonths(periodStartAt, 1)
-  ) {
-    visitsUsedThisPeriod = 1;
-    periodStartAt = now;
-  }
-
-  const totalVisitsUsed = membership.totalVisitsUsed + 1;
-
-  if (
-    membership.plan.planType === "LOYALTY" &&
-    membership.plan.bonusAfterVisits &&
-    totalVisitsUsed % membership.plan.bonusAfterVisits === 0
-  ) {
-    bonusEarned += 1;
-  }
-
-  await prisma.clientMembership.update({
-    where: { id: membershipId },
-    data: {
-      visitsUsedThisPeriod,
-      totalVisitsUsed,
-      periodStartAt,
-      bonusEarned,
-    },
-  });
-}
-
-export async function getClientActiveMembership(clientId: string, tenantId: string) {
   return prisma.clientMembership.findFirst({
     where: { clientId, tenantId, status: "ACTIVE" },
     include: { plan: true },

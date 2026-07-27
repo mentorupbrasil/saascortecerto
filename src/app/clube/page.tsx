@@ -51,6 +51,23 @@ export default async function ClubePage() {
           </div>
         </div>
 
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+            <p className="text-xs text-zinc-500 uppercase tracking-wide">Membros ativos</p>
+            <p className="text-2xl font-bold text-amber-400 mt-1">{memberships.length}</p>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+            <p className="text-xs text-zinc-500 uppercase tracking-wide">Planos ativos</p>
+            <p className="text-2xl font-bold text-white mt-1">
+              {plans.filter((p) => p.active).length}
+            </p>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+            <p className="text-xs text-zinc-500 uppercase tracking-wide">Clientes elegíveis</p>
+            <p className="text-2xl font-bold text-white mt-1">{clients.length}</p>
+          </div>
+        </div>
+
         <section>
           <h2 className="text-lg font-semibold text-white mb-4">Planos disponíveis</h2>
           <PlansList plans={serializedPlans} />

@@ -1,57 +1,41 @@
 # CorteCerto ✂️
 
-SaaS multi-tenant para gestão de barbearias — agenda, clientes, faturamento e automações.
+SaaS multi-tenant para gestão de barbearias — agenda, clientes, faturamento, clube de assinatura e automações WhatsApp.
 
 ## Stack
 
 - **Next.js 15** (App Router)
-- **PostgreSQL** (Neon)
-- **Prisma ORM**
-- **NextAuth** (login com email/senha)
+- **PostgreSQL** (Neon recommended)
+- **Prisma ORM** with versioned migrations
+- **NextAuth** (email/senha)
 - **Tailwind CSS 4**
+- **Vitest** for unit/integration tests
 
-## Multi-tenant (várias barbearias, dados isolados)
+## Multi-tenant
 
 Cada barbearia é um **Tenant**. Todo dado (clientes, serviços, agendamentos) tem `tenant_id`.
 
-| Papel | O que vê |
-|-------|----------|
-| **SUPER_ADMIN** | Painel admin — cria barbearias e donos |
-| **OWNER** | Tudo da barbearia dele + gerencia equipe |
-| **MANAGER** | Agenda, clientes, serviços, equipe |
-| **BARBER** | Só os próprios agendamentos |
-| **RECEPTIONIST** | Agenda e clientes da barbearia |
-
-Barbearia X **nunca** vê dados da Barbearia Y.
+| Papel | Escopo |
+|-------|--------|
+| **SUPER_ADMIN** | Painel admin — cria barbearias |
+| **OWNER** | Tudo da barbearia + equipe |
+| **MANAGER** | Agenda, clientes, serviços |
+| **BARBER** | Próprios agendamentos |
+| **RECEPTIONIST** | Agenda e clientes |
 
 ## Setup local
 
 ```bash
+cp .env.example .env
+# Edit DATABASE_URL, NEXTAUTH_SECRET, CREDENTIALS_ENCRYPTION_KEY
+
 npm install
-npm run db:setup    # cria tabelas + seed demo
+npm run db:migrate:dev   # first time: apply migrations
+npm run db:seed          # optional demo data
 npm run dev
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000)
-
-## Variáveis de ambiente
-
-Copie `.env.example` para `.env`:
-
-```env
-DATABASE_URL="postgresql://..."
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="gere-um-secret-aleatorio"
-```
-
-## Contas demo (após seed)
-
-| Email | Senha | Papel |
-|-------|-------|-------|
-| admin@cortecerto.com | admin123 | Admin plataforma |
-| joao@barbearia.com | barbearia123 | Dono — Barbearia do João |
-| maria@corteestilo.com | barbearia123 | Dono — Corte & Estilo |
-| carlos@barbearia.com | barbeiro123 | Barbeiro (só vê agenda dele) |
 
 ## Scripts
 
@@ -59,58 +43,56 @@ NEXTAUTH_SECRET="gere-um-secret-aleatorio"
 |---------|-----------|
 | `npm run dev` | Servidor de desenvolvimento |
 | `npm run build` | Build de produção |
-| `npm run db:push` | Sincroniza schema com Neon |
-| `npm run db:seed` | Popula dados demo |
-| `npm run db:setup` | push + seed |
+| `npm run typecheck` | Verificação TypeScript |
+| `npm run lint` | ESLint |
+| `npm run test` | Todos os testes Vitest |
+| `npm run test:unit` | Testes unitários (sem DB) |
+| `npm run test:integration` | Testes de integração (requer `DATABASE_URL`) |
+| `npm run test:e2e` | Placeholder — ver `docs/TESTING.md` |
+| `npm run db:migrate` | `prisma migrate deploy` (produção/CI) |
+| `npm run db:migrate:dev` | Criar/aplicar migrations em dev |
+| `npm run db:seed` | Dados demo |
+| `npm run credentials:migrate` | Criptografa tokens legados em plaintext |
+
+## Segurança
+
+- **Nunca** commite `.env` ou tokens reais.
+- `CREDENTIALS_ENCRYPTION_KEY` é obrigatória em produção — tokens de WhatsApp e Mercado Pago são criptografados com AES-256-GCM.
+- **Rotacione tokens** se algum valor sensível foi exposto (logs, client props, Git). Após rotacionar na Meta/MP, atualize no painel e rode `credentials:migrate` se necessário.
+- DTOs expostos ao cliente usam flags booleanas (`mercadoPagoConfigured`, `whatsappTokenConfigured`) — nunca o token em si.
+- Deploy usa `prisma migrate deploy` — **não** use `db push --accept-data-loss` em produção.
+
+Documentação detalhada: [`docs/SECURITY.md`](docs/SECURITY.md), [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Deploy (Vercel + Neon)
 
-1. Conecte o repo no Vercel
-2. **Framework Preset:** Next.js (não "Other")
-3. **Output Directory:** deixe **vazio** (não use `public`)
-4. Configure as variáveis de ambiente (ver abaixo)
-5. Rode `npm run db:setup` uma vez no Neon (local)
-6. Deploy / Redeploy
+1. Conecte o repo no Vercel (Framework: Next.js)
+2. Configure variáveis de ambiente (ver `.env.example`)
+3. Build command: `prisma migrate deploy && prisma generate && next build` (já em `vercel.json`)
+4. Aplique migrations no Neon antes ou durante o primeiro deploy
+5. Gere `CREDENTIALS_ENCRYPTION_KEY` (64 hex chars) e guarde com segurança
 
-Se aparecer erro *"No Output Directory named public"*, vá em **Settings → General → Build & Development** e apague o campo **Output Directory**.
+Ver [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) para rollback e checklist.
 
-## WhatsApp — cobrança de retorno
+## CI
 
-- Fila automática de clientes que passaram do intervalo (padrão 20 dias)
-- **Envio em massa** com um clique para todos de uma vez
-- Envio individual por cliente
-- Template personalizável: `{nome}`, `{dias}`, `{barbearia}`
-- Histórico de mensagens
-- Cron automático: `GET /api/cron/whatsapp-return` com header `Authorization: Bearer CRON_SECRET`
+Pull requests disparam `.github/workflows/ci.yml`: lint, typecheck, unit tests, build, audit (critical).
 
-Configure na tela **WhatsApp** ou via `.env`:
+## Contas demo (após seed)
 
-```env
-WHATSAPP_DEMO_MODE="true"   # simula envios (sem API Meta)
-# Para produção:
-WHATSAPP_DEMO_MODE="false"
-# + Phone Number ID e Access Token no painel WhatsApp
-```
+| Email | Senha | Papel |
+|-------|-------|-------|
+| admin@cortecerto.com | admin123 | Admin plataforma |
+| joao@barbearia.com | barbearia123 | Dono |
+| carlos@barbearia.com | barbeiro123 | Barbeiro |
 
-## Clube de assinatura
+## Documentação
 
-O dono cria planos flexíveis:
-
-| Tipo | Exemplo |
-|------|---------|
-| Mensal limitado | R$ 120/mês · 4 cortes · seg-sáb |
-| Mensal ilimitado | R$ 200/mês · cortes à vontade |
-| Pacote | R$ 400 · 10 visitas |
-| Fidelidade | A cada 5 cortes → barba grátis |
-
-Inscreva clientes, controle visitas usadas, bônus automático ao concluir atendimento.
-
-## Foto do cliente
-
-Upload JPG/PNG/WebP até 500KB no cadastro do cliente. Armazenado no banco (funciona na Vercel).
-
-## Próximos passos
-
-- [ ] Link público de agendamento (`/agendar/[slug]`)
-- [ ] PIX recorrente para clube
-- [ ] Confirmação e lembrete automático pré-agendamento
+| Doc | Conteúdo |
+|-----|----------|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Visão geral do sistema |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | Baseline de segurança |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploy e rollback |
+| [`docs/DATABASE_MIGRATIONS.md`](docs/DATABASE_MIGRATIONS.md) | Migrations Prisma |
+| [`docs/TESTING.md`](docs/TESTING.md) | Estratégia de testes |
+| [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | MP, WhatsApp, pendências |

@@ -126,6 +126,4 @@ export async function createMercadoPagoPixPayment(options: {
   };
 }
 
-export function isBookingDemoMode() {
-  return process.env.BOOKING_DEMO_MODE === "true" || process.env.SIGNUP_DEMO_MODE === "true";
-}
+export { isBookingDemoMode } from "@/lib/env";

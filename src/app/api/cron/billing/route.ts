@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runBillingCron } from "@/lib/billing-actions";
+import { runBillingCron } from "@/lib/billing/cron";
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
