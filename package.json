@@ -23,7 +23,7 @@
     "db:preflight": "tsx scripts/verify-legacy-preflight.ts",
     "db:setup": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy",
     "credentials:migrate": "tsx scripts/migrate-credentials.ts",
-    "postinstall": "node scripts/run-with-direct-url.cjs npx prisma generate"
+    "postinstall": "node scripts/ensure-direct-url-env.cjs && node scripts/run-with-direct-url.cjs npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

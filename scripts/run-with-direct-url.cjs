@@ -69,6 +69,13 @@ function ensureDirectUrl() {
 
 ensureDirectUrl();
 
+// Also persist for subsequent plain `npx prisma …` invocations in CI.
+try {
+  require("./ensure-direct-url-env.cjs");
+} catch {
+  // best-effort
+}
+
 const argv = process.argv.slice(2);
 if (argv.length === 0) {
   console.error("Usage: node scripts/run-with-direct-url.cjs <command> [args...]");
