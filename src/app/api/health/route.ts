@@ -1,40 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logging/logger";
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store",
+  "X-Robots-Tag": "noindex",
+};
 
 export async function GET() {
-  const checks: Record<string, string> = {
-    database: "unknown",
-    users: "unknown",
-  };
-
   try {
-    if (!process.env.DATABASE_URL) {
-      checks.database = "missing DATABASE_URL";
-      return NextResponse.json({ ok: false, checks }, { status: 500 });
-    }
-
-    if (!process.env.NEXTAUTH_SECRET) {
-      checks.auth = "missing NEXTAUTH_SECRET";
-    }
-
     await prisma.$queryRaw`SELECT 1`;
-    checks.database = "connected";
-
-    const userCount = await prisma.user.count();
-    checks.users = userCount > 0 ? `${userCount} users` : "empty — run db:seed";
-
-    return NextResponse.json({
-      ok: true,
-      checks,
-      env: {
-        hasDatabaseUrl: !!process.env.DATABASE_URL,
-        hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
-        hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
-        nodeEnv: process.env.NODE_ENV,
-      },
+    return NextResponse.json({ ok: true }, { status: 200, headers: NO_STORE_HEADERS });
+  } catch {
+    logger.error("health_check_failed", {
+      message: "Database health check failed",
     });
-  } catch (err) {
-    checks.database = err instanceof Error ? err.message : "connection failed";
-    return NextResponse.json({ ok: false, checks }, { status: 500 });
+    return NextResponse.json({ ok: false }, { status: 503, headers: NO_STORE_HEADERS });
   }
 }
