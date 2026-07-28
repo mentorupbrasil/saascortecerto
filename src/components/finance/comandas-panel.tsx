@@ -416,7 +416,7 @@ export function ComandasPanel({ data }: { data: ComandasData }) {
     <div className="space-y-6">
       {!data.openCashSessionId && (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
-          Caixa fechado — pagamentos em dinheiro não serão lançados no caixa até abrir sessão.
+          Caixa fechado — abra o caixa antes de receber pagamentos em dinheiro.
         </p>
       )}
 

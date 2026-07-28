@@ -43,6 +43,16 @@ type CashData = {
     notes: string | null;
     createdAt: string;
   }[];
+  summary: {
+    openingBalance: number;
+    supply: number;
+    bleed: number;
+    sales: number;
+    refund: number;
+    adjustment: number;
+    expectedBalance: number;
+    movementCount: number;
+  } | null;
 };
 
 const MOVEMENT_LABELS: Record<string, string> = {
@@ -64,24 +74,19 @@ export function CaixaPanel({ data }: { data: CashData }) {
   const [counted, setCounted] = useState("");
 
   const totals = useMemo(() => {
-    let supply = 0;
-    let bleed = 0;
-    let sales = 0;
-    let refund = 0;
-    let adjustment = 0;
-    for (const m of data.movements) {
-      if (m.type === "SUPPLY") supply += m.amount;
-      if (m.type === "BLEED") bleed += m.amount;
-      if (m.type === "SALE") sales += m.amount;
-      if (m.type === "REFUND") refund += m.amount;
-      if (m.type === "ADJUSTMENT") adjustment += m.amount;
+    if (data.summary) {
+      return {
+        supply: data.summary.supply,
+        bleed: data.summary.bleed,
+        sales: data.summary.sales,
+        refund: data.summary.refund,
+        adjustment: data.summary.adjustment,
+        expected: data.summary.expectedBalance,
+      };
     }
-    const opening = data.openSession?.openingBalance ?? 0;
-    // Mirrors calculateExpectedBalance in src/lib/finance/cash.ts:
-    // SUPPLY, SALE and ADJUSTMENT add; BLEED and REFUND subtract.
-    const expected = opening + supply + sales + adjustment - bleed - refund;
-    return { supply, bleed, sales, refund, adjustment, expected };
-  }, [data.movements, data.openSession]);
+    // Fallback if summary missing (should not happen with open session).
+    return { supply: 0, bleed: 0, sales: 0, refund: 0, adjustment: 0, expected: 0 };
+  }, [data.summary]);
 
   const diff =
     counted === ""

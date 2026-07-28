@@ -86,6 +86,74 @@ export async function getOpenCashSession(
   });
 }
 
+export type CashSessionSummary = {
+  openingBalance: Decimal;
+  supply: Decimal;
+  bleed: Decimal;
+  sales: Decimal;
+  refund: Decimal;
+  adjustment: Decimal;
+  expectedBalance: Decimal;
+  movementCount: number;
+};
+
+/** Aggregates ALL movements of a session (not just the recent list). */
+export async function getCashSessionSummary(
+  sessionId: string,
+  tenantId: string
+): Promise<CashSessionSummary> {
+  const session = await prisma.cashSession.findFirst({
+    where: { id: sessionId, tenantId },
+    select: { openingBalance: true },
+  });
+  if (!session) throw new Error("Sessão de caixa não encontrada");
+
+  const movements = await prisma.cashMovement.findMany({
+    where: { sessionId, tenantId },
+    select: { type: true, amount: true },
+  });
+
+  let supply = new Decimal(0);
+  let bleed = new Decimal(0);
+  let sales = new Decimal(0);
+  let refund = new Decimal(0);
+  let adjustment = new Decimal(0);
+
+  for (const m of movements) {
+    const amount = toDecimal(m.amount);
+    switch (m.type) {
+      case "SUPPLY":
+        supply = supply.plus(amount);
+        break;
+      case "BLEED":
+        bleed = bleed.plus(amount);
+        break;
+      case "SALE":
+        sales = sales.plus(amount);
+        break;
+      case "REFUND":
+        refund = refund.plus(amount);
+        break;
+      case "ADJUSTMENT":
+        adjustment = adjustment.plus(amount);
+        break;
+      default:
+        break;
+    }
+  }
+
+  return {
+    openingBalance: toDecimal(session.openingBalance),
+    supply,
+    bleed,
+    sales,
+    refund,
+    adjustment,
+    expectedBalance: calculateExpectedBalance(session.openingBalance, movements),
+    movementCount: movements.length,
+  };
+}
+
 export async function openCashSession(
   ctx: CashSessionContext,
   input: {

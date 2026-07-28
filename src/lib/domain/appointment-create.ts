@@ -355,8 +355,16 @@ export async function rescheduleAppointmentWithConflictGuard(
     if (input.barberId) {
       const barber = await tx.user.findFirst({
         where: { id: input.barberId, tenantId: input.tenantId, active: true },
+        select: { id: true, role: true },
       });
       if (!barber) throw new Error("Profissional inválido");
+      const canServe =
+        barber.role === "OWNER" ||
+        barber.role === "MANAGER" ||
+        barber.role === "BARBER";
+      if (!canServe) {
+        throw new Error("Profissional selecionado não pode atender serviços");
+      }
     }
 
     await tx.$executeRawUnsafe(

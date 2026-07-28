@@ -233,7 +233,26 @@ export async function processBookingMercadoPagoPayment(paymentId: string) {
   return result.appointment.id;
 }
 
-export async function createPublicBookingCheckout(slug: string, formData: FormData) {
+async function enforcePublicBookingCreateRateLimit(input: {
+  tenantId: string;
+  phone: string;
+  ip: string;
+}) {
+  await consumeRateLimit({
+    scope: "public_booking_create_ip",
+    identityParts: [input.ip],
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  await consumeRateLimit({
+    scope: "public_booking_create_phone",
+    identityParts: [input.tenantId, input.phone],
+    limit: 4,
+    windowMs: 60 * 60 * 1000,
+  });
+}
+
+async function createPublicBookingCheckoutInternal(slug: string, formData: FormData) {
   const parsed = publicBookingSchema.parse({
     clientName: formData.get("clientName"),
     clientPhone: formData.get("clientPhone"),
@@ -379,6 +398,25 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
     holderName,
     autoConfirm,
   };
+}
+
+/** Public entrypoint — always rate-limits before creating a checkout. */
+export async function createPublicBookingCheckout(slug: string, formData: FormData) {
+  const tenant = await prisma.tenant.findFirst({
+    where: { slug, active: true },
+    select: { id: true },
+  });
+  if (!tenant) throw new Error("Barbearia não encontrada");
+
+  const ip = await getClientIp();
+  const phone = String(formData.get("clientPhone") || "").replace(/\D/g, "");
+  await enforcePublicBookingCreateRateLimit({
+    tenantId: tenant.id,
+    phone,
+    ip,
+  });
+
+  return createPublicBookingCheckoutInternal(slug, formData);
 }
 
 export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: string) {
@@ -568,22 +606,15 @@ export async function createPublicBooking(slug: string, formData: FormData) {
 
   const ip = await getClientIp();
   const rawPhone = String(formData.get("clientPhone") || "").replace(/\D/g, "");
-  await consumeRateLimit({
-    scope: "public_booking_create_ip",
-    identityParts: [ip],
-    limit: 10,
-    windowMs: 60 * 60 * 1000,
-  });
-  await consumeRateLimit({
-    scope: "public_booking_create_phone",
-    identityParts: [tenant.id, rawPhone],
-    limit: 4,
-    windowMs: 60 * 60 * 1000,
+  await enforcePublicBookingCreateRateLimit({
+    tenantId: tenant.id,
+    phone: rawPhone,
+    ip,
   });
 
   const requirePix = tenant.settings?.bookingRequirePixPayment ?? false;
   if (requirePix) {
-    const checkout = await createPublicBookingCheckout(slug, formData);
+    const checkout = await createPublicBookingCheckoutInternal(slug, formData);
     if ("demoConfirmed" in checkout && checkout.demoConfirmed) {
       return {
         requiresPayment: false as const,

@@ -678,6 +678,19 @@ export async function cancelSale(
 
     const wasClosed = current.status === "CLOSED";
     const completedPayments = current.payments.filter((p) => p.status === "COMPLETED");
+    const hasCompletedPayments = completedPayments.length > 0;
+
+    // Re-check permissions under the row lock — status/payments may have changed.
+    if (wasClosed || hasCompletedPayments) {
+      if (!hasPermission(user, "finance:refund")) {
+        throw new Error("Sem permissão para estornar comanda paga");
+      }
+    } else if (
+      !hasPermission(user, "finance:refund") &&
+      !hasPermission(user, "finance:sell")
+    ) {
+      throw new Error("Sem permissão para cancelar comanda");
+    }
 
     if (wasClosed) {
       for (const item of current.items) {
@@ -826,22 +839,44 @@ export async function getSaleById(tenantId: string, saleId: string) {
   });
 }
 
-export async function getTodaySalesTotal(tenantId: string, timeZone: string) {
+export async function getTodayNetRevenue(tenantId: string, timeZone: string) {
   const { startOfZonedDay, endOfZonedDay } = await import("@/lib/timezone");
   const now = new Date();
-  const sales = await prisma.sale.findMany({
-    where: {
-      tenantId,
-      status: "CLOSED",
-      closedAt: {
-        gte: startOfZonedDay(now, timeZone),
-        lt: endOfZonedDay(now, timeZone),
-      },
-    },
-    select: { total: true },
-  });
+  const from = startOfZonedDay(now, timeZone);
+  const to = endOfZonedDay(now, timeZone);
 
-  return sales.reduce((sum, s) => sum.plus(toDecimal(s.total)), new Decimal(0));
+  const [payments, refunds] = await Promise.all([
+    prisma.salePayment.findMany({
+      where: {
+        tenantId,
+        status: { in: ["COMPLETED", "REFUNDED"] },
+        createdAt: { gte: from, lt: to },
+      },
+      select: { amount: true },
+    }),
+    prisma.saleRefund.findMany({
+      where: {
+        tenantId,
+        createdAt: { gte: from, lt: to },
+      },
+      select: { amount: true },
+    }),
+  ]);
+
+  const gross = payments.reduce(
+    (sum, p) => sum.plus(toDecimal(p.amount)),
+    new Decimal(0)
+  );
+  const refunded = refunds.reduce(
+    (sum, r) => sum.plus(toDecimal(r.amount)),
+    new Decimal(0)
+  );
+  return gross.minus(refunded);
+}
+
+/** @deprecated Prefer getTodayNetRevenue — kept as alias for call sites mid-migration. */
+export async function getTodaySalesTotal(tenantId: string, timeZone: string) {
+  return getTodayNetRevenue(tenantId, timeZone);
 }
 
 export type SerializedSale = {

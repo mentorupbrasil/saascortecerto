@@ -15,6 +15,7 @@ import {
   closeCashSession,
   addCashMovement,
   getOpenCashSession,
+  getCashSessionSummary,
   serializeCashSession,
 } from "@/lib/finance/cash";
 import {
@@ -24,7 +25,7 @@ import {
   cancelSale,
   listSales,
   getSaleById,
-  getTodaySalesTotal,
+  getTodayNetRevenue,
   serializeSale,
 } from "@/lib/finance/sales";
 import {
@@ -221,7 +222,7 @@ export async function getFinanceOverview() {
   const tz = await getTimeZone(user.tenantId);
 
   const [todaySales, openCash, monthExpenses, openSalesCount] = await Promise.all([
-    getTodaySalesTotal(user.tenantId, tz),
+    getTodayNetRevenue(user.tenantId, tz),
     getOpenCashSession(user.tenantId),
     getMonthExpensesTotal(user.tenantId, tz),
     prisma.sale.count({
@@ -254,6 +255,10 @@ export async function getCashPanelData() {
     take: 10,
   });
 
+  const summary = openSession
+    ? await getCashSessionSummary(openSession.id, user.tenantId)
+    : null;
+
   return {
     openSession: openSession ? serializeCashSession(openSession) : null,
     recentSessions: recentSessions.map(serializeCashSession),
@@ -264,6 +269,18 @@ export async function getCashPanelData() {
       notes: m.notes,
       createdAt: m.createdAt.toISOString(),
     })) ?? [],
+    summary: summary
+      ? {
+          openingBalance: Number(summary.openingBalance),
+          supply: Number(summary.supply),
+          bleed: Number(summary.bleed),
+          sales: Number(summary.sales),
+          refund: Number(summary.refund),
+          adjustment: Number(summary.adjustment),
+          expectedBalance: Number(summary.expectedBalance),
+          movementCount: summary.movementCount,
+        }
+      : null,
   };
 }
 
