@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { BrandMark } from "@/components/brand/brand-mark";
-import { brand } from "@/config/brand";
+import { CortzoLockup } from "@/components/brand/brand-mark";
 
 const navLinks = [
   { href: "#funcionalidades", label: "Funcionalidades" },
@@ -41,16 +40,11 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-10">
-        <Link href="/" className="group flex min-w-0 items-center gap-2 sm:gap-3">
-          <BrandMark className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
-          <div className="min-w-0 leading-none">
-            <span className="font-display text-lg tracking-wide text-foreground sm:text-xl">
-              {brand.name}
-            </span>
-            <span className="mt-0.5 hidden text-[10px] uppercase tracking-[0.2em] text-zinc-500 sm:block">
-              Barbearias
-            </span>
-          </div>
+        <Link href="/" className="group min-w-0">
+          <CortzoLockup
+            size={28}
+            productClassName="font-display text-lg tracking-wide sm:text-xl"
+          />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-10">

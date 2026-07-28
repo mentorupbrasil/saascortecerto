@@ -4,6 +4,7 @@ import { LandingHeroPreview } from "@/components/marketing/landing-hero-preview"
 import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { brand } from "@/config/brand";
+import { CortzoLockup } from "@/components/brand/brand-mark";
 import { ArrowRight, Check } from "lucide-react";
 
 const pillars = [
@@ -73,9 +74,14 @@ export function LandingPage() {
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16">
           <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center">
             <div className="max-w-xl order-2 lg:order-1">
-              <p className="font-display text-3xl sm:text-4xl tracking-wide text-foreground mb-3 sm:mb-4">
-                {brand.name}
-              </p>
+              <div className="mb-4 sm:mb-5">
+                <CortzoLockup
+                  size={36}
+                  productClassName="font-display text-3xl sm:text-4xl tracking-wide"
+                  bylineClassName="text-xs"
+                  priority
+                />
+              </div>
 
               <h1 className="font-display text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.5rem] sm:leading-[1.05] tracking-tight text-foreground">
                 {brand.tagline}
@@ -301,14 +307,9 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border py-8 safe-bottom">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--gold)]/30">
-              <span className="font-display text-sm text-[var(--gold)]">{brand.name.charAt(0)}</span>
-            </div>
-            <span className="font-display text-lg text-foreground">{brand.name}</span>
-          </div>
+          <CortzoLockup size={28} productClassName="font-display text-lg" />
           <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">
-            © {new Date().getFullYear()} {brand.legalName} — Gestão para barbearias
+            © {new Date().getFullYear()} {brand.legalName} — {brand.byline}
           </p>
           <Link
             href="/login"

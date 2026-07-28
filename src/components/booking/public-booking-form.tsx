@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { brand } from "@/config/brand";
 
 type PublicBookingData = {
   name: string;
@@ -514,7 +515,7 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
 export function PublicBookingHeader({ tenant }: { tenant: PublicBookingData }) {
   return (
     <div className="mb-8 text-center">
-      <BrandMark className="mx-auto mb-4 h-16 w-16" />
+      <BrandMark className="mx-auto mb-4 h-16 w-auto" size={64} />
       <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
       <p className="mt-1 flex items-center justify-center gap-2 text-sm text-zinc-400">
         <Calendar className="h-4 w-4" />
@@ -524,6 +525,13 @@ export function PublicBookingHeader({ tenant }: { tenant: PublicBookingData }) {
       <p className="mt-1 text-xs text-zinc-600">
         <Scissors className="mr-1 inline h-3 w-3" />
         {tenant.openTime} às {tenant.closeTime}
+      </p>
+      <p className="mt-3 text-[10px] tracking-wide text-zinc-600">
+        via {brand.name} · by{" "}
+        <span className="font-medium text-zinc-500">
+          {brand.parentNameGestor}
+          <span className="text-primary">{brand.parentNamePro}</span>
+        </span>
       </p>
     </div>
   );

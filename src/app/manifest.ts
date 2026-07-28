@@ -15,19 +15,25 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "pt-BR",
     icons: [
       {
-        src: "/icons/icon-192.png",
+        src: brand.logos.icon,
+        sizes: "any",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: brand.logos.icon,
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon-512.png",
+        src: brand.logos.icon,
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icons/icon-maskable-512.png",
+        src: brand.logos.icon,
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
@@ -38,25 +44,25 @@ export default function manifest(): MetadataRoute.Manifest {
         name: "Hoje",
         short_name: "Hoje",
         url: "/dashboard",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [{ src: brand.logos.icon, sizes: "192x192" }],
       },
       {
         name: "Agenda",
         short_name: "Agenda",
         url: "/agenda",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [{ src: brand.logos.icon, sizes: "192x192" }],
       },
       {
         name: "Clientes",
         short_name: "Clientes",
         url: "/clientes",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [{ src: brand.logos.icon, sizes: "192x192" }],
       },
       {
         name: "Comandas",
         short_name: "Comandas",
         url: "/comandas",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+        icons: [{ src: brand.logos.icon, sizes: "192x192" }],
       },
     ],
   };

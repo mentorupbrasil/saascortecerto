@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { BrandMark } from "@/components/brand/brand-mark";
-import { brand } from "@/config/brand";
+import { BrandMark, CortzoLockup } from "@/components/brand/brand-mark";
 import {
   LogOut,
   X,
@@ -112,20 +111,16 @@ function SidebarChrome({
           isCollapsed ? "justify-center gap-1 px-2 py-3" : "gap-2 px-3 py-3"
         )}
       >
-        <BrandMark className="h-9 w-9 shrink-0" />
-        {!isCollapsed && (
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-bold text-foreground">{brand.name}</h1>
-            {user.tenantName && (
-              <p className="truncate text-[11px] text-zinc-500">{user.tenantName}</p>
-            )}
-          </div>
+        {isCollapsed ? (
+          <BrandMark className="h-9 w-auto" size={36} />
+        ) : (
+          <CortzoLockup size={32} productClassName="text-base" />
         )}
         {onNavigate && !isCollapsed && (
           <button
             type="button"
             onClick={onNavigate}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-foreground lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="ml-auto rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-foreground lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Fechar menu"
           >
             <X className="h-4 w-4" />
@@ -135,7 +130,10 @@ function SidebarChrome({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className={cn(
+              "rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center",
+              !isCollapsed && !onNavigate && "ml-auto"
+            )}
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
             title={isCollapsed ? "Expandir" : "Recolher"}
           >

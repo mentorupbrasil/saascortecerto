@@ -30,18 +30,18 @@ export const metadata: Metadata = {
     siteName: brand.name,
     locale: "pt_BR",
     type: "website",
+    images: [{ url: brand.logos.icon }],
   },
   twitter: {
     card: "summary",
     title: brand.title,
     description: brand.description,
+    images: [brand.logos.icon],
   },
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-    ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: brand.logos.icon,
+    shortcut: brand.logos.icon,
+    apple: brand.logos.icon,
   },
   formatDetection: {
     telephone: false,

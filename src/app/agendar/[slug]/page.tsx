@@ -35,6 +35,14 @@ export default async function PublicBookingPage({
           <Link href="/" className="text-zinc-500 hover:text-amber-400">
             {brand.name}
           </Link>
+          <span className="mx-1.5 text-zinc-700">·</span>
+          <span>
+            by{" "}
+            <span className="font-medium text-zinc-500">
+              {brand.parentNameGestor}
+              <span className="text-primary">{brand.parentNamePro}</span>
+            </span>
+          </span>
         </p>
       </div>
     </div>

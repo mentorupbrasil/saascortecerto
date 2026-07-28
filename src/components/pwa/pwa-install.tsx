@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
+import { LogoMark } from "@/components/brand/brand-mark";
 import { Download, Share, X } from "lucide-react";
 
 const DISMISS_KEY = "cortzo.pwa.dismissed";
@@ -161,13 +162,16 @@ export function PwaInstallPrompt() {
     >
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-xl">
         <div className="mb-2 flex items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold text-foreground">Instalar {brand.name}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {iosHint
-                ? "No iPhone/iPad: toque em Compartilhar e depois em “Adicionar à Tela de Início”."
-                : "Acesse a agenda e as comandas como um app, direto da tela inicial."}
-            </p>
+          <div className="flex min-w-0 items-start gap-3">
+            <LogoMark size={36} />
+            <div>
+              <p className="font-semibold text-foreground">Instalar {brand.name}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {iosHint
+                  ? "No iPhone/iPad: toque em Compartilhar e depois em “Adicionar à Tela de Início”."
+                  : "Acesse a agenda e as comandas como um app, direto da tela inicial."}
+              </p>
+            </div>
           </div>
           <button
             type="button"

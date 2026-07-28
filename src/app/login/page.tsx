@@ -66,11 +66,18 @@ export default function LoginPage() {
       <div className="flex flex-1 items-center justify-center pb-8 sm:pb-12 px-1">
         <div className="w-full max-w-md animate-fade-in">
           <div className="mb-6 sm:mb-8 text-center">
-            <Link href="/" className="inline-flex">
-              <BrandMark className="mx-auto mb-4 h-14 w-14 sm:h-16 sm:w-16" />
+            <Link href="/" className="inline-flex flex-col items-center">
+              <BrandMark className="mb-4 h-16 w-auto sm:h-[4.5rem]" size={72} />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{brand.name}</h1>
+              <p className="mt-1 text-xs font-medium tracking-wide text-zinc-500">
+                by{" "}
+                <span className="font-semibold text-foreground/80">
+                  {brand.parentNameGestor}
+                  <span className="text-primary">{brand.parentNamePro}</span>
+                </span>
+              </p>
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{brand.name}</h1>
-            <p className="mt-2 text-zinc-400">{brand.tagline}</p>
+            <p className="mt-3 text-zinc-400">{brand.tagline}</p>
           </div>
 
           <Card>

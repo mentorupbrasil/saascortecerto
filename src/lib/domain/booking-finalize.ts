@@ -66,8 +66,8 @@ export async function notifyBarbershopBooking(options: {
 
   const when = format(options.scheduledAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   const template = options.paid
-    ? `✅ *Agendamento confirmado (PIX pago)!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— ${brand.name}`
-    : `📅 *Novo agendamento online!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— ${brand.name}`;
+    ? `✅ *Agendamento confirmado (PIX pago)!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— ${brand.name} · ${brand.byline}`
+    : `📅 *Novo agendamento online!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— ${brand.name} · ${brand.byline}`;
 
   const message = renderMessageTemplate(template, {
     nome: options.clientName,
