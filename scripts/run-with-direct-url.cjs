@@ -77,6 +77,18 @@ if (argv.length === 0) {
 
 const command = argv[0];
 const args = argv.slice(1);
+
+// Neon/serverless: advisory locks often hang across brief disconnects (P1002).
+// Safe for migrate deploy — Prisma still records applied migrations transactionally.
+const isMigrateDeploy =
+  args.includes("migrate") && args.includes("deploy");
+if (isMigrateDeploy && !process.env.PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK) {
+  process.env.PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK = "1";
+  console.log(
+    "run-with-direct-url: PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 (Neon migrate)"
+  );
+}
+
 const result = spawnSync(command, args, {
   stdio: "inherit",
   env: process.env,
