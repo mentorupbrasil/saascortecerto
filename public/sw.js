@@ -1,4 +1,4 @@
-/* CorteCerto service worker — cache only public shell assets. Never cache APIs or auth data. */
+/* Cortzo service worker — cache only public shell assets. Never cache APIs or auth data. */
 const VERSION = "cc-v1";
 const SHELL = [
   "/offline",

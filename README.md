@@ -1,4 +1,4 @@
-# CorteCerto ✂️
+# Cortzo ✂️
 
 SaaS multi-tenant para gestão de barbearias — agenda, clientes, faturamento, clube de assinatura e automações WhatsApp.
 
@@ -82,7 +82,7 @@ Pull requests disparam `.github/workflows/ci.yml`: lint, typecheck, unit tests, 
 
 | Email | Senha | Papel |
 |-------|-------|-------|
-| admin@cortecerto.com | admin123 | Admin plataforma |
+| admin@demo.cortzo.local | admin123 | Admin plataforma |
 | joao@barbearia.com | barbearia123 | Dono |
 | carlos@barbearia.com | barbeiro123 | Barbeiro |
 

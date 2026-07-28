@@ -29,8 +29,8 @@ The previous single `20260727000000_init_baseline` (full new schema) was **unsaf
 ## Scenario A — empty database
 
 ```bash
-createdb cortecerto_empty_test   # or CREATE DATABASE
-export DATABASE_URL=postgresql://USER:PASS@HOST:5432/cortecerto_empty_test
+createdb cortzo_empty_test   # or CREATE DATABASE
+export DATABASE_URL=postgresql://USER:PASS@HOST:5432/cortzo_empty_test
 npx prisma migrate deploy
 npx tsx scripts/verify-schema.ts
 ```

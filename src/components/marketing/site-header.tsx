@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { brand } from "@/config/brand";
 
 const navLinks = [
   { href: "#funcionalidades", label: "Funcionalidades" },
@@ -44,7 +45,7 @@ export function SiteHeader() {
           <BrandMark className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
           <div className="min-w-0 leading-none">
             <span className="font-display text-lg tracking-wide text-foreground sm:text-xl">
-              CorteCerto
+              {brand.name}
             </span>
             <span className="mt-0.5 hidden text-[10px] uppercase tracking-[0.2em] text-zinc-500 sm:block">
               Barbearias

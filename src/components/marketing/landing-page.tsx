@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/marketing/site-header";
 import { LandingHeroPreview } from "@/components/marketing/landing-hero-preview";
 import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
+import { brand } from "@/config/brand";
 import { ArrowRight, Check } from "lucide-react";
 
 const pillars = [
@@ -72,16 +73,12 @@ export function LandingPage() {
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16">
           <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center">
             <div className="max-w-xl order-2 lg:order-1">
-              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 sm:px-4 py-1.5 text-[10px] sm:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-zinc-400 mb-5 sm:mb-6">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
-                Software para barbearias modernas
+              <p className="font-display text-3xl sm:text-4xl tracking-wide text-foreground mb-3 sm:mb-4">
+                {brand.name}
               </p>
 
               <h1 className="font-display text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.5rem] sm:leading-[1.05] tracking-tight text-foreground">
-                Sua barbearia,
-                <span className="block text-[var(--gold)] italic font-normal mt-1">
-                  organizada e lucrativa.
-                </span>
+                {brand.tagline}
               </h1>
 
               <p className="mt-5 sm:mt-6 text-base sm:text-lg text-zinc-400 leading-relaxed font-light max-w-md">
@@ -306,12 +303,12 @@ export function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 text-center md:text-left">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--gold)]/30">
-              <span className="font-display text-sm text-[var(--gold)]">C</span>
+              <span className="font-display text-sm text-[var(--gold)]">{brand.name.charAt(0)}</span>
             </div>
-            <span className="font-display text-lg text-foreground">CorteCerto</span>
+            <span className="font-display text-lg text-foreground">{brand.name}</span>
           </div>
           <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">
-            © {new Date().getFullYear()} — Gestão premium para barbearias
+            © {new Date().getFullYear()} {brand.legalName} — Gestão para barbearias
           </p>
           <Link
             href="/login"

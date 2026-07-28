@@ -14,6 +14,7 @@ import {
   validatePublicBookingSlot,
 } from "@/lib/booking-checkout";
 import { createAppointmentWithConflictGuard } from "@/lib/domain/appointment-create";
+import { brand } from "@/config/brand";
 
 export type FinalizedBookingResult = {
   checkout: Awaited<ReturnType<typeof loadCheckoutForFinalize>>;
@@ -65,8 +66,8 @@ export async function notifyBarbershopBooking(options: {
 
   const when = format(options.scheduledAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   const template = options.paid
-    ? "✅ *Agendamento confirmado (PIX pago)!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— CorteCerto"
-    : "📅 *Novo agendamento online!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— CorteCerto";
+    ? `✅ *Agendamento confirmado (PIX pago)!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— ${brand.name}`
+    : `📅 *Novo agendamento online!*\n\nCliente: {nome}\nTel: {telefone}\nServiço: {servico}\nHorário: {horario}\nValor: {valor}\n\n— ${brand.name}`;
 
   const message = renderMessageTemplate(template, {
     nome: options.clientName,

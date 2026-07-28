@@ -1,5 +1,7 @@
 import "server-only";
 
+import { brand } from "@/config/brand";
+
 export function getMercadoPagoAccessToken() {
   return process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() || null;
 }
@@ -33,7 +35,7 @@ export async function createMercadoPagoPreference(options: {
       items: [
         {
           id: options.checkoutId,
-          title: `CorteCerto — ${options.planLabel}`,
+          title: `${brand.name} — ${options.planLabel}`,
           description: "Assinatura mensal — 1ª cobrança",
           quantity: 1,
           currency_id: "BRL",
@@ -49,7 +51,7 @@ export async function createMercadoPagoPreference(options: {
       },
       auto_return: "approved",
       notification_url: `${baseUrl}/api/webhooks/mercadopago`,
-      statement_descriptor: "CORTECERTO",
+      statement_descriptor: brand.statementDescriptor,
     }),
   });
 

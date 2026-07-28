@@ -5,6 +5,7 @@ import { getTenantBillingForSession } from "@/lib/billing-actions";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { TenantBillingPanel } from "@/components/billing/tenant-billing-panel";
+import { brand } from "@/config/brand";
 import { Receipt } from "lucide-react";
 
 export default async function FaturamentoPage() {
@@ -25,7 +26,7 @@ export default async function FaturamentoPage() {
             Plano e cobrança
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
-            Assinatura do sistema CorteCerto — faturas da plataforma, separado do financeiro da barbearia.
+            Assinatura do sistema {brand.name} — faturas da plataforma, separado do financeiro da barbearia.
           </p>
         </div>
 

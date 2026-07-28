@@ -1,3 +1,5 @@
+import { brand } from "@/config/brand";
+
 function emvField(id: string, value: string) {
   return `${id}${String(value.length).padStart(2, "0")}${value}`;
 }
@@ -22,7 +24,7 @@ export function generatePixCopiaECola(options: {
   amount: number;
   txId?: string;
 }) {
-  const txId = (options.txId ?? "CORTECERTO")
+  const txId = (options.txId ?? brand.statementDescriptor)
     .replace(/[^a-zA-Z0-9]/g, "")
     .slice(0, 25)
     .toUpperCase();

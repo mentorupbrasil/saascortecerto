@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getPublicBookingPage } from "@/lib/public-booking-actions";
 import { PublicBookingHeader } from "@/components/booking/public-booking-form";
 import { PublicBookingPaymentClient } from "@/components/booking/public-booking-payment";
+import { brand } from "@/config/brand";
 
 export default async function PublicBookingPaymentPage({
   params,
@@ -22,7 +23,7 @@ export default async function PublicBookingPaymentPage({
         <p className="text-center text-xs text-zinc-600 mt-8">
           Agendamento via{" "}
           <Link href="/" className="text-zinc-500 hover:text-amber-400">
-            CorteCerto
+            {brand.name}
           </Link>
         </p>
       </div>

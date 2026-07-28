@@ -1,4 +1,4 @@
-# Security — CorteCerto
+# Security — Cortzo
 
 Baseline audit: [`SECURITY_BASELINE.md`](SECURITY_BASELINE.md)
 

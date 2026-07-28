@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useMobileChrome } from "@/components/mobile/mobile-chrome-context";
+import { brand } from "@/config/brand";
 import { Menu } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -33,7 +34,7 @@ export function MobileTopBar({ action }: { action?: ReactNode }) {
   if (!session?.user || tabBarHidden) return null;
 
   const base = "/" + (pathname.split("/")[1] || "");
-  const title = TITLES[base] || TITLES[pathname] || "CorteCerto";
+  const title = TITLES[base] || TITLES[pathname] || brand.name;
   const tenantName = session.user.tenantName;
 
   return (

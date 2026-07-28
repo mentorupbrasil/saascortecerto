@@ -5,6 +5,7 @@ import {
   PublicBookingForm,
   PublicBookingHeader,
 } from "@/components/booking/public-booking-form";
+import { brand } from "@/config/brand";
 
 export default async function PublicBookingPage({
   params,
@@ -32,7 +33,7 @@ export default async function PublicBookingPage({
         <p className="text-center text-xs text-zinc-600 mt-8">
           Agendamento via{" "}
           <Link href="/" className="text-zinc-500 hover:text-amber-400">
-            CorteCerto
+            {brand.name}
           </Link>
         </p>
       </div>

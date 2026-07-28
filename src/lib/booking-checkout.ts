@@ -9,6 +9,7 @@ import {
   fetchMercadoPagoPayment,
   getMercadoPagoAccessToken,
 } from "@/lib/mercadopago";
+import { brand } from "@/config/brand";
 import { parseISO, startOfDay, endOfDay, addMinutes } from "date-fns";
 
 const CHECKOUT_HOLD_MINUTES = 15;
@@ -208,7 +209,7 @@ export async function createMercadoPagoBookingPayment(options: {
   if (!accessToken) throw new Error("Mercado Pago não configurado");
 
   const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-  const payerEmail = `${options.clientPhone.replace(/\D/g, "").slice(-11)}@agendamento.cortecerto.app`;
+  const payerEmail = `${options.clientPhone.replace(/\D/g, "").slice(-11)}@${brand.bookingPayerEmailHost}`;
 
   return createMercadoPagoPixPayment({
     accessToken,

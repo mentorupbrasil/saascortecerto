@@ -2,7 +2,7 @@ import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, addHours, setHours, setMinutes, startOfDay } from "date-fns";
 
-// This seed creates demo-only accounts/credentials (e.g. admin@cortecerto.com) —
+// This seed creates demo-only accounts/credentials (e.g. admin@demo.cortzo.local) —
 // never run it against a real production database.
 if (process.env.NODE_ENV === "production" || process.env.ALLOW_DEMO_SEED !== "true") {
   throw new Error("Demo seed bloqueado neste ambiente");
@@ -59,10 +59,10 @@ async function main() {
 
   const adminHash = await bcrypt.hash("admin123", 12);
   await prisma.user.upsert({
-    where: { email: "admin@cortecerto.com" },
+    where: { email: "admin@demo.cortzo.local" },
     update: {},
     create: {
-      email: "admin@cortecerto.com",
+      email: "admin@demo.cortzo.local",
       name: "Admin Plataforma",
       passwordHash: adminHash,
       role: Role.SUPER_ADMIN,
@@ -262,7 +262,7 @@ async function main() {
   console.log("✅ Seed completed!");
   console.log("");
   console.log("Contas de acesso:");
-  console.log("  Admin plataforma: admin@cortecerto.com / admin123");
+  console.log("  Admin plataforma: admin@demo.cortzo.local / admin123");
   console.log("  Barbearia João:   joao@barbearia.com / barbearia123");
   console.log("  Corte & Estilo:   maria@corteestilo.com / barbearia123");
   console.log("  Barbeiro Carlos:  carlos@barbearia.com / barbeiro123");

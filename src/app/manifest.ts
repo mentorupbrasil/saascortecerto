@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
+import { brand } from "@/config/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CorteCerto",
-    short_name: "CorteCerto",
-    description:
-      "Gestão para barbearias: agenda, clientes, comandas, caixa e clube de assinatura.",
+    name: brand.name,
+    short_name: brand.name,
+    description: brand.description,
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",

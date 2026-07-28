@@ -1,4 +1,4 @@
-# Testing — CorteCerto
+# Testing — Cortzo
 
 ## Stack
 

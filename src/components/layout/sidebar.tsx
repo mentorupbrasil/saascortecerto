@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { brand } from "@/config/brand";
 import {
   LogOut,
   X,
@@ -39,7 +40,7 @@ export type { BillingAlertProps } from "@/lib/billing-actions";
 
 const SIDEBAR_EXPANDED = 264;
 const SIDEBAR_COLLAPSED = 72;
-const COLLAPSE_KEY = "cortecerto.sidebar.collapsed";
+const COLLAPSE_KEY = "cortzo.sidebar.collapsed";
 
 function NavLink({
   item,
@@ -114,7 +115,7 @@ function SidebarChrome({
         <BrandMark className="h-9 w-9 shrink-0" />
         {!isCollapsed && (
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-bold text-foreground">CorteCerto</h1>
+            <h1 className="truncate text-base font-bold text-foreground">{brand.name}</h1>
             {user.tenantName && (
               <p className="truncate text-[11px] text-zinc-500">{user.tenantName}</p>
             )}

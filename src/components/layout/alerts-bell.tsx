@@ -6,7 +6,7 @@ import { Bell, CheckCheck, Calendar, CreditCard, Globe, Wallet } from "lucide-re
 import { cn } from "@/lib/utils";
 import type { TenantAlert } from "@/lib/alerts";
 
-const READ_KEY = "cortecerto.alerts.read";
+const READ_KEY = "cortzo.alerts.read";
 
 function loadReadIds(): Set<string> {
   try {

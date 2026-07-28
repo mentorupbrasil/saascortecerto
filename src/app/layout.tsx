@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
 import { Outfit, Cormorant_Garamond } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { brand } from "@/config/brand";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -15,14 +16,25 @@ const display = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "CorteCerto — Gestão para Barbearias",
-  description:
-    "Agenda, clientes, WhatsApp de retorno e clube de assinatura. A partir de R$ 39,90/mês. Cada barbearia com ambiente isolado.",
-  applicationName: "CorteCerto",
+  title: brand.title,
+  description: brand.description,
+  applicationName: brand.name,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "CorteCerto",
+    title: brand.name,
+  },
+  openGraph: {
+    title: brand.title,
+    description: brand.description,
+    siteName: brand.name,
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: brand.title,
+    description: brand.description,
   },
   icons: {
     icon: [

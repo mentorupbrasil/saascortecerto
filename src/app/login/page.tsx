@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { brand } from "@/config/brand";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,8 +69,8 @@ export default function LoginPage() {
             <Link href="/" className="inline-flex">
               <BrandMark className="mx-auto mb-4 h-14 w-14 sm:h-16 sm:w-16" />
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">CorteCerto</h1>
-            <p className="mt-2 text-zinc-400">Área do cliente</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{brand.name}</h1>
+            <p className="mt-2 text-zinc-400">{brand.tagline}</p>
           </div>
 
           <Card>

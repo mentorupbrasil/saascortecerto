@@ -1,5 +1,7 @@
 import "server-only";
 
+import { brand } from "@/config/brand";
+
 export type PlatformPixConfig = {
   pixKey: string;
   merchantName: string;
@@ -12,11 +14,13 @@ export function getPlatformPixConfig(): PlatformPixConfig | null {
 
   return {
     pixKey,
-    merchantName: process.env.PLATFORM_PIX_NAME?.trim() || "CorteCerto",
+    // env override recommended in production; falls back to brand default
+    merchantName: process.env.PLATFORM_PIX_NAME?.trim() || brand.name,
     merchantCity: process.env.PLATFORM_PIX_CITY?.trim() || "SAO PAULO",
   };
 }
 
 export function getPlatformSupportEmail() {
-  return process.env.PLATFORM_BILLING_EMAIL?.trim() || "suporte@cortecerto.com";
+  // Placeholder domain — cortzo.com is not registered yet. Override via env in production.
+  return process.env.PLATFORM_BILLING_EMAIL?.trim() || "suporte@example.com";
 }

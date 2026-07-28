@@ -1,4 +1,4 @@
-# Deployment — CorteCerto
+# Deployment — Cortzo
 
 ## Target platform
 

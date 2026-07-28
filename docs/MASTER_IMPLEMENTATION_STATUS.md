@@ -1,4 +1,4 @@
-# Master Implementation Status — CorteCerto
+# Master Implementation Status — Cortzo
 
 Última atualização: 2026-07-27 (rodada P0.1 final)
 

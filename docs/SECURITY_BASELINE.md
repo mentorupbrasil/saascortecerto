@@ -1,7 +1,8 @@
 # Security Baseline — Fase Zero
 
 Data: 2026-07-27  
-Repositório: `mentorupbrasil/saascortecerto`
+Produto: Cortzo  
+Repositório: `mentorupbrasil/saascortecerto` (nome do repositório GitHub — não renomeado nesta fase)
 
 ## 1. Estado inicial do build / lint / types
 

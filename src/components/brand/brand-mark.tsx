@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
+import { brand } from "@/config/brand";
 
-/** Vector brand mark — scissors/cut stylized with Supabase green */
+/** Icon mark — scissors/cut stylized (current visual identity) */
 export function BrandMark({
   className,
-  title = "CorteCerto",
+  title = brand.name,
 }: {
   className?: string;
   title?: string;
@@ -38,5 +39,20 @@ export function BrandMark({
         />
       </svg>
     </span>
+  );
+}
+
+/** Text wordmark — use next to BrandMark until a dedicated logo asset exists */
+export function BrandWordmark({
+  className,
+  as: Tag = "span",
+}: {
+  className?: string;
+  as?: "span" | "h1" | "p";
+}) {
+  return (
+    <Tag className={cn("font-semibold tracking-tight text-foreground", className)}>
+      {brand.name}
+    </Tag>
   );
 }

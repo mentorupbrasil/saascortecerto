@@ -10,6 +10,7 @@ import { createSignupCheckout } from "@/lib/signup-actions";
 import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { maskBrazilianPhone } from "@/lib/client-utils";
+import { brand } from "@/config/brand";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, Eye, EyeOff, Shield, Check } from "lucide-react";
 
@@ -254,8 +255,8 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
                 <Shield className="h-5 w-5 text-green-400 shrink-0" />
                 <p className="text-xs text-zinc-400">
                   Sua barbearia terá um ambiente{" "}
-                  <strong className="text-zinc-300">100% isolado</strong>. Outras barbearias no
-                  CorteCerto não veem seus dados.
+                  <strong className="text-zinc-300">100% isolado</strong>. Outras barbearias no{" "}
+                  {brand.name} não veem seus dados.
                 </p>
               </div>
             </div>

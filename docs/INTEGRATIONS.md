@@ -1,4 +1,4 @@
-# Integrations — CorteCerto
+# Integrations — Cortzo
 
 ## Mercado Pago
 

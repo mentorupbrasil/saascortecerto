@@ -1,8 +1,8 @@
-# Architecture — CorteCerto
+# Architecture — Cortzo
 
 ## Overview
 
-CorteCerto is a multi-tenant SaaS for barbershop management. Each tenant (barbershop) has isolated data scoped by `tenantId`.
+Cortzo is a multi-tenant SaaS for barbershop management. Each tenant (barbershop) has isolated data scoped by `tenantId`.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
