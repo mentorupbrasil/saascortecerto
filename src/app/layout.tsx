@@ -1,5 +1,5 @@
 import "@/app/globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, Cormorant_Garamond } from "next/font/google";
 import { Providers } from "@/components/providers";
 
@@ -18,13 +18,33 @@ export const metadata: Metadata = {
   title: "CorteCerto — Gestão para Barbearias",
   description:
     "Agenda, clientes, WhatsApp de retorno e clube de assinatura. A partir de R$ 39,90/mês. Cada barbearia com ambiente isolado.",
-  icons: { icon: "/favicon.svg" },
+  applicationName: "CorteCerto",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "CorteCerto",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover" as const,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#121212" },
+    { media: "(prefers-color-scheme: light)", color: "#121212" },
+  ],
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
