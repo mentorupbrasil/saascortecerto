@@ -5,151 +5,38 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
-  Calendar,
-  Users,
-  Scissors,
-  LayoutDashboard,
-  Shield,
-  UserCog,
   LogOut,
-  Menu,
   X,
-  MessageCircle,
-  Crown,
-  Receipt,
   AlertTriangle,
-  Wallet,
-  Banknote,
-  ShoppingCart,
-  Package,
-  Percent,
-  Clock,
-  BarChart3,
   ChevronDown,
   PanelLeftClose,
   PanelLeft,
-  type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { isSuperAdmin, isTenantAdmin } from "@/lib/auth-utils";
 import type { UserRole } from "@/lib/auth-utils";
 import type { BillingAlertProps } from "@/lib/billing-actions";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  filterNavGroups,
+  itemIsActive,
+  type NavGroup,
+  type NavItem,
+} from "@/lib/nav-config";
+import {
+  MobileChromeProvider,
+  useMobileChrome,
+} from "@/components/mobile/mobile-chrome-context";
+import { MobileTabBar } from "@/components/mobile/mobile-tab-bar";
+import { MobileTopBar } from "@/components/mobile/mobile-top-bar";
+import { ToastProvider } from "@/components/ui/toast";
 
 export type { BillingAlertProps } from "@/lib/billing-actions";
 
 const SIDEBAR_EXPANDED = 264;
 const SIDEBAR_COLLAPSED = 72;
 const COLLAPSE_KEY = "cortecerto.sidebar.collapsed";
-
-type NavFlags = {
-  adminOnly?: boolean;
-  ownerOnly?: boolean;
-  superAdminOnly?: boolean;
-  financeViewOnly?: boolean;
-  financeSellOnly?: boolean;
-  financeOpsOnly?: boolean;
-  inventoryOnly?: boolean;
-  agendaEditOnly?: boolean;
-};
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-} & NavFlags;
-
-type NavGroup = {
-  id: string;
-  label: string;
-  items: NavItem[];
-};
-
-const navGroups: NavGroup[] = [
-  {
-    id: "principal",
-    label: "Principal",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/agenda", label: "Agenda", icon: Calendar },
-      { href: "/clientes", label: "Clientes", icon: Users },
-      { href: "/comandas", label: "Comandas", icon: ShoppingCart, financeSellOnly: true },
-      { href: "/admin", label: "Admin", icon: Shield, superAdminOnly: true },
-    ],
-  },
-  {
-    id: "relacionamento",
-    label: "Relacionamento",
-    items: [
-      { href: "/lista-espera", label: "Lista de espera", icon: Clock, agendaEditOnly: true },
-      { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: true },
-      { href: "/clube", label: "Clube", icon: Crown, adminOnly: true },
-    ],
-  },
-  {
-    id: "gestao",
-    label: "Gestão",
-    items: [
-      { href: "/servicos", label: "Serviços", icon: Scissors, adminOnly: true },
-      { href: "/equipe", label: "Equipe", icon: UserCog, ownerOnly: true },
-      { href: "/estoque", label: "Estoque", icon: Package, inventoryOnly: true },
-    ],
-  },
-  {
-    id: "financeiro",
-    label: "Financeiro",
-    items: [
-      { href: "/caixa", label: "Caixa", icon: Banknote, financeOpsOnly: true },
-      { href: "/financeiro", label: "Financeiro", icon: Wallet, financeViewOnly: true },
-      { href: "/faturamento", label: "Faturamento", icon: Receipt, adminOnly: true },
-      { href: "/comissoes", label: "Comissões", icon: Percent, financeViewOnly: true },
-      { href: "/relatorios", label: "Relatórios", icon: BarChart3, financeViewOnly: true },
-    ],
-  },
-];
-
-function itemIsActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function filterNavGroups(user: {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  tenantId: string | null;
-}) {
-  const canFinanceView =
-    user.role === "OWNER" || user.role === "MANAGER" || user.role === "SUPER_ADMIN";
-  const canFinanceSell =
-    canFinanceView || user.role === "RECEPTIONIST" || user.role === "BARBER";
-  const canFinanceOps = canFinanceView || user.role === "RECEPTIONIST";
-  const canInventory = canFinanceView || user.role === "RECEPTIONIST";
-  const canAgendaEdit =
-    canFinanceView || user.role === "RECEPTIONIST" || user.role === "BARBER";
-
-  return navGroups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => {
-        if (item.superAdminOnly && !isSuperAdmin(user)) return false;
-        if (item.ownerOnly && !isTenantAdmin(user)) return false;
-        if (item.adminOnly && !isTenantAdmin(user)) return false;
-        if (item.financeViewOnly && !canFinanceView) return false;
-        if (item.financeSellOnly && !canFinanceSell) return false;
-        if (item.financeOpsOnly && !canFinanceOps) return false;
-        if (item.inventoryOnly && !canInventory) return false;
-        if (item.agendaEditOnly && !canAgendaEdit) return false;
-        if (item.href !== "/admin" && isSuperAdmin(user) && !user.tenantId) {
-          return false;
-        }
-        return true;
-      }),
-    }))
-    .filter((group) => group.items.length > 0);
-}
 
 function NavLink({
   item,
@@ -168,8 +55,9 @@ function NavLink({
       href={item.href}
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors min-h-[40px]",
+        "group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
         collapsed ? "justify-center px-2 py-2" : "px-2.5 py-2",
         active
           ? "bg-amber-500/15 text-amber-400"
@@ -235,7 +123,7 @@ function SidebarChrome({
           <button
             type="button"
             onClick={onNavigate}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Fechar menu"
           >
             <X className="h-4 w-4" />
@@ -245,7 +133,7 @@ function SidebarChrome({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
             title={isCollapsed ? "Expandir" : "Recolher"}
           >
@@ -289,7 +177,7 @@ function SidebarChrome({
                   type="button"
                   onClick={() => toggleGroup(group.id)}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors",
+                    "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors min-h-[36px]",
                     hasActive ? "text-amber-500/90" : "text-zinc-500 hover:text-zinc-300"
                   )}
                   aria-expanded={isOpen}
@@ -338,24 +226,19 @@ function SidebarChrome({
           onClick={() => signOut({ callbackUrl: "/login" })}
           title={isCollapsed ? "Sair" : undefined}
           className={cn(
-            "group relative flex w-full items-center gap-3 rounded-lg text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-red-400 min-h-[40px]",
+            "group relative flex w-full items-center gap-3 rounded-lg text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-red-400 min-h-[44px]",
             isCollapsed ? "justify-center px-2 py-2" : "px-2.5 py-2"
           )}
         >
           <LogOut className="h-[18px] w-[18px] shrink-0" />
           {!isCollapsed && <span>Sair</span>}
-          {isCollapsed && (
-            <span className="pointer-events-none absolute left-full z-50 ml-2 hidden whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-white shadow-lg group-hover:block">
-              Sair
-            </span>
-          )}
         </button>
       </div>
     </>
   );
 }
 
-export function Sidebar({
+function SidebarInner({
   collapsed,
   onCollapsedChange,
 }: {
@@ -364,10 +247,10 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { moreOpen, setMoreOpen } = useMobileChrome();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  const closeMobile = useCallback(() => setMobileOpen(false), []);
+  const closeMobile = useCallback(() => setMoreOpen(false), [setMoreOpen]);
 
   const user = session?.user
     ? {
@@ -382,20 +265,20 @@ export function Sidebar({
 
   const filteredGroups = useMemo(
     () => (user ? filterNavGroups(user) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- role/tenant drive permissions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user?.id, user?.role, user?.tenantId]
   );
 
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    setMoreOpen(false);
+  }, [pathname, setMoreOpen]);
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    document.body.style.overflow = moreOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [mobileOpen]);
+  }, [moreOpen]);
 
   useEffect(() => {
     setOpenGroups((prev) => {
@@ -425,16 +308,7 @@ export function Sidebar({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-40 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 p-2.5 text-white safe-top lg:hidden"
-        aria-label="Abrir menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-
-      {mobileOpen && (
+      {moreOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
           onClick={closeMobile}
@@ -445,9 +319,9 @@ export function Sidebar({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex h-dvh w-[min(100vw-3rem,264px)] flex-col border-r border-sidebar-border bg-sidebar transition-transform lg:hidden safe-top",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          moreOpen ? "translate-x-0" : "-translate-x-full"
         )}
-        aria-hidden={!mobileOpen}
+        aria-hidden={!moreOpen}
       >
         <SidebarChrome
           {...chromeProps}
@@ -469,6 +343,18 @@ export function Sidebar({
         />
       </aside>
     </>
+  );
+}
+
+export function Sidebar({
+  collapsed,
+  onCollapsedChange,
+}: {
+  collapsed: boolean;
+  onCollapsedChange: (value: boolean) => void;
+}) {
+  return (
+    <SidebarInner collapsed={collapsed} onCollapsedChange={onCollapsedChange} />
   );
 }
 
@@ -501,22 +387,30 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-background">
-      <Sidebar collapsed={collapsed} onCollapsedChange={handleCollapsedChange} />
-      <main
-        className={cn(
-          "min-h-dvh transition-[padding] duration-200",
-          collapsed ? "lg:pl-[72px]" : "lg:pl-[264px]"
-        )}
-      >
-        <div className="mx-auto max-w-5xl px-4 py-5 pt-[4.5rem] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-16 lg:px-8 lg:pt-8">
-          {billingAlert?.message && pathname !== "/faturamento" && (
-            <BillingAlertBanner alert={billingAlert} />
-          )}
-          {children}
+    <MobileChromeProvider>
+      <ToastProvider>
+        <div className="min-h-dvh overflow-x-hidden bg-background">
+          <Sidebar collapsed={collapsed} onCollapsedChange={handleCollapsedChange} />
+          <MobileTopBar />
+          <main
+            className={cn(
+              "min-h-dvh transition-[padding] duration-200",
+              collapsed ? "lg:pl-[72px]" : "lg:pl-[264px]"
+            )}
+          >
+            <div
+              className="mx-auto max-w-5xl px-4 py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pt-6 lg:px-8 lg:pt-8 lg:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            >
+              {billingAlert?.message && pathname !== "/faturamento" && (
+                <BillingAlertBanner alert={billingAlert} />
+              )}
+              {children}
+            </div>
+          </main>
+          <MobileTabBar />
         </div>
-      </main>
-    </div>
+      </ToastProvider>
+    </MobileChromeProvider>
   );
 }
 
@@ -547,7 +441,7 @@ function BillingAlertBanner({ alert }: { alert: BillingAlertProps }) {
       {alert.invoiceId && (
         <Link
           href="/faturamento"
-          className="shrink-0 rounded-lg bg-white/10 px-4 py-2 text-center text-sm font-medium transition-colors hover:bg-white/20"
+          className="shrink-0 rounded-lg bg-white/10 px-4 py-2 text-center text-sm font-medium transition-colors hover:bg-white/20 min-h-[44px] flex items-center justify-center"
         >
           Ver plano e cobrança
         </Link>

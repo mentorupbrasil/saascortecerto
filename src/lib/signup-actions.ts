@@ -147,6 +147,6 @@ export async function confirmSignupPixPayment(checkoutId: string) {
   }
 
   throw new Error(
-    "Pagamento PIX manual aguarda confirmação. Configure MERCADOPAGO_ACCESS_TOKEN para liberação automática após pagamento."
+    "Pagamento PIX aguarda confirmação. Se já pagou, aguarde a liberação ou fale com o suporte."
   );
 }

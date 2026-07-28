@@ -95,13 +95,6 @@ export default function LoginPage() {
               Assinar agora
             </Link>
           </p>
-
-          <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-xs text-zinc-500">
-            <p className="font-medium text-zinc-400 mb-2">Contas demo:</p>
-            <p>Admin: admin@cortecerto.com / admin123</p>
-            <p>Barbearia: joao@barbearia.com / barbearia123</p>
-            <p>Barbeiro: carlos@barbearia.com / barbeiro123</p>
-          </div>
         </div>
       </div>
     </div>

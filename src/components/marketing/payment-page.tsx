@@ -122,8 +122,8 @@ export function PaymentPageClient({ checkoutId }: { checkoutId: string }) {
             </>
           ) : (
             <p className="text-sm text-amber-300">
-              Configure MERCADOPAGO_ACCESS_TOKEN ou PLATFORM_PIX_KEY para pagamentos online.
-              Entre em contato: {checkout.supportEmail}
+              O pagamento online está temporariamente indisponível. Entre em contato:{" "}
+              {checkout.supportEmail}
             </p>
           )}
 
