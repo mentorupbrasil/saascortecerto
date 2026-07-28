@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { formatPhone } from "@/lib/utils";
 import { formatTime } from "@/lib/date-format";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { buildWhatsAppUrl } from "@/lib/client-utils";
 import { createComandaAction } from "@/lib/finance-actions";
 import {
   type CalendarAppointment,

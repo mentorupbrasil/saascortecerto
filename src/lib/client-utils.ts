@@ -1,5 +1,3 @@
-import { daysSince } from "@/lib/whatsapp";
-
 export function maskBrazilianPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length === 0) return "";
@@ -9,6 +7,16 @@ export function maskBrazilianPhone(value: string): string {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+export function daysSince(date: Date): number {
+  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+export function buildWhatsAppUrl(phone: string, message: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const e164 = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${e164}?text=${encodeURIComponent(message)}`;
 }
 
 export function isClientOverdue(

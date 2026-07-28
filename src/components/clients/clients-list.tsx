@@ -19,8 +19,7 @@ import { PageHeader, EmptyState, FixedActionBar } from "@/components/ui/page-chr
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { formatPhone } from "@/lib/utils";
-import { isClientOverdue } from "@/lib/client-utils";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { isClientOverdue, buildWhatsAppUrl } from "@/lib/client-utils";
 import { createComandaAction } from "@/lib/finance-actions";
 import { serializeClientForForm } from "@/lib/serialize";
 import { format } from "date-fns";
