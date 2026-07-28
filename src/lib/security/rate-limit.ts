@@ -26,14 +26,19 @@ function resolveSecret(): string {
   const explicit = process.env.RATE_LIMIT_SECRET?.trim();
   if (explicit) return explicit;
 
+  // Prefer a dedicated secret, but NEXTAUTH_SECRET is an acceptable
+  // production fallback (still a strong server secret — not the insecure
+  // DEV_FALLBACK string).
+  const authSecret = process.env.NEXTAUTH_SECRET?.trim();
+  if (authSecret) return authSecret;
+
   if (process.env.NODE_ENV === "production") {
     throw new Error(
       "Configuração de segurança ausente. Tente novamente mais tarde."
     );
   }
 
-  const authSecret = process.env.NEXTAUTH_SECRET?.trim();
-  return authSecret || DEV_FALLBACK_SECRET;
+  return DEV_FALLBACK_SECRET;
 }
 
 function hashIdentity(identityParts: Array<string | null | undefined>): string {
