@@ -100,7 +100,7 @@
 
   /*
    * Remap dark-first utilities to the light Supabase palette so existing
-   * zinc-*/text-foreground classnames remain readable without a mass rewrite.
+  * zinc/text-foreground classnames remain readable without a mass rewrite.
    */
   /*
    * Remap dark-first utilities onto the light Supabase palette.
