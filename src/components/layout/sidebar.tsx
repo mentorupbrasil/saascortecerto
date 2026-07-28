@@ -220,7 +220,7 @@ function SidebarChrome({
           isCollapsed ? "justify-center gap-1 px-2 py-3" : "gap-2 px-3 py-3"
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-base font-bold text-black">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-base font-bold text-zinc-950">
           ✂️
         </div>
         {!isCollapsed && (
@@ -444,7 +444,7 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-dvh w-[min(100vw-3rem,264px)] flex-col border-r border-zinc-800 bg-zinc-950 transition-transform lg:hidden safe-top",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-[min(100vw-3rem,264px)] flex-col border-r border-sidebar-border bg-sidebar transition-transform lg:hidden safe-top",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         aria-hidden={!mobileOpen}
@@ -458,7 +458,7 @@ export function Sidebar({
       </aside>
 
       <aside
-        className="fixed inset-y-0 left-0 z-30 hidden h-dvh flex-col border-r border-zinc-800 bg-zinc-950 transition-[width] duration-200 lg:flex"
+        className="fixed inset-y-0 left-0 z-30 hidden h-dvh flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:flex"
         style={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED }}
       >
         <SidebarChrome
@@ -501,7 +501,7 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-zinc-950">
+    <div className="min-h-dvh overflow-x-hidden bg-background">
       <Sidebar collapsed={collapsed} onCollapsedChange={handleCollapsedChange} />
       <main
         className={cn(

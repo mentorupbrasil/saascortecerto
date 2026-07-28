@@ -1,11 +1,11 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond } from "next/font/google";
+import { Outfit, Cormorant_Garamond } from "next/font/google";
 import { Providers } from "@/components/providers";
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-outfit",
 });
 
 const display = Cormorant_Garamond({
@@ -33,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${display.variable}`}>
-      <body className="font-sans antialiased">
+    <html lang="pt-BR" className={`dark ${outfit.variable} ${display.variable}`}>
+      <body className="bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

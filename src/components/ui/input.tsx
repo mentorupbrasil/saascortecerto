@@ -9,7 +9,7 @@ export const Input = forwardRef<
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-zinc-300">
+        <label htmlFor={inputId} className="block text-sm font-medium text-muted-foreground">
           {label}
         </label>
       )}
@@ -17,8 +17,8 @@ export const Input = forwardRef<
         ref={ref}
         id={inputId}
         className={cn(
-          "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500",
-          error && "border-red-500",
+          "w-full rounded-xl border border-border bg-input px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring",
+          error && "border-destructive",
           className
         )}
         {...props}
@@ -37,7 +37,7 @@ export const Select = forwardRef<
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-zinc-300">
+        <label htmlFor={selectId} className="block text-sm font-medium text-muted-foreground">
           {label}
         </label>
       )}
@@ -45,7 +45,7 @@ export const Select = forwardRef<
         ref={ref}
         id={selectId}
         className={cn(
-          "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500",
+          "w-full rounded-xl border border-border bg-input px-4 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring",
           className
         )}
         {...props}
@@ -65,7 +65,7 @@ export const Textarea = forwardRef<
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={textareaId} className="block text-sm font-medium text-zinc-300">
+        <label htmlFor={textareaId} className="block text-sm font-medium text-muted-foreground">
           {label}
         </label>
       )}
@@ -73,7 +73,7 @@ export const Textarea = forwardRef<
         ref={ref}
         id={textareaId}
         className={cn(
-          "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 min-h-[80px] resize-y",
+          "w-full min-h-[80px] resize-y rounded-xl border border-border bg-input px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring",
           className
         )}
         {...props}
