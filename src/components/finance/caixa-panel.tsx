@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, StatCard } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { useToast } from "@/components/ui/toast";
+import { EmptyState } from "@/components/ui/page-chrome";
 import {
   openCashAction,
   closeCashAction,
@@ -50,61 +53,50 @@ const MOVEMENT_LABELS: Record<string, string> = {
   REFUND: "Estorno",
 };
 
+type SheetKind = "open" | "supply" | "bleed" | "close" | null;
+
 export function CaixaPanel({ data }: { data: CashData }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<SheetKind>(null);
+  const [counted, setCounted] = useState("");
 
-  function openCash(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const balance = Number(fd.get("openingBalance"));
+  const totals = useMemo(() => {
+    let supply = 0;
+    let bleed = 0;
+    let sales = 0;
+    let refund = 0;
+    for (const m of data.movements) {
+      if (m.type === "SUPPLY") supply += m.amount;
+      if (m.type === "BLEED") bleed += m.amount;
+      if (m.type === "SALE") sales += m.amount;
+      if (m.type === "REFUND") refund += m.amount;
+    }
+    const opening = data.openSession?.openingBalance ?? 0;
+    const expected = opening + supply + sales - bleed - refund;
+    return { supply, bleed, sales, refund, expected };
+  }, [data.movements, data.openSession]);
+
+  const diff =
+    counted === ""
+      ? null
+      : Number(counted) - totals.expected;
+
+  function run(action: () => Promise<unknown>, successMsg: string) {
     startTransition(async () => {
       try {
         setError(null);
-        await openCashAction(balance, String(fd.get("notes") || ""));
+        await action();
+        setSheet(null);
+        setCounted("");
+        toast.success(successMsg);
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao abrir caixa");
-      }
-    });
-  }
-
-  function closeCash(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!data.openSession) return;
-    const fd = new FormData(e.currentTarget);
-    startTransition(async () => {
-      try {
-        setError(null);
-        await closeCashAction(
-          data.openSession!.id,
-          Number(fd.get("closingBalance")),
-          String(fd.get("notes") || "")
-        );
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao fechar caixa");
-      }
-    });
-  }
-
-  function addMovement(type: "SUPPLY" | "BLEED", e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!data.openSession) return;
-    const fd = new FormData(e.currentTarget);
-    startTransition(async () => {
-      try {
-        setError(null);
-        await addCashMovementAction(
-          data.openSession!.id,
-          type,
-          Number(fd.get("amount")),
-          String(fd.get("notes") || "")
-        );
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro na movimentação");
+        const msg = err instanceof Error ? err.message : "Erro na operação";
+        setError(msg);
+        toast.error(msg);
       }
     });
   }
@@ -118,68 +110,81 @@ export function CaixaPanel({ data }: { data: CashData }) {
       )}
 
       {!data.openSession ? (
-        <Card>
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-amber-400" />
-            Abrir caixa
-          </h2>
-          <form onSubmit={openCash} className="space-y-4 max-w-md">
-            <div>
-              <label className="text-sm text-zinc-400">Saldo inicial (R$)</label>
-              <Input name="openingBalance" type="number" step="0.01" min="0" required defaultValue="0" />
-            </div>
-            <div>
-              <label className="text-sm text-zinc-400">Observações</label>
-              <Input name="notes" placeholder="Opcional" />
-            </div>
-            <Button type="submit" disabled={pending}>
+        <EmptyState
+          title="Caixa fechado"
+          description="Abra o caixa para registrar vendas em dinheiro, suprimentos e sangrias."
+          icon={<Banknote className="h-8 w-8" />}
+          action={
+            <Button className="min-h-[44px]" onClick={() => setSheet("open")}>
               Abrir caixa
             </Button>
-          </form>
-        </Card>
+          }
+        />
       ) : (
         <>
-          <StatCard
-            label="Caixa aberto"
-            value={formatCurrency(data.openSession.openingBalance)}
-            accent
-            icon={<Banknote className="h-6 w-6 text-amber-400" />}
-          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <StatCard
+              label="Saldo inicial"
+              value={formatCurrency(data.openSession.openingBalance)}
+              accent
+              icon={<Banknote className="h-6 w-6 text-amber-400" />}
+            />
+            <StatCard
+              label="Saldo esperado"
+              value={formatCurrency(totals.expected)}
+              icon={<Banknote className="h-6 w-6 text-zinc-500" />}
+            />
+          </div>
+
           <Card>
-            <p className="text-sm text-zinc-400">
-              Operador: <span className="text-white">{data.openSession.operatorName}</span>
-              {data.openSession.locationName && (
-                <> · {data.openSession.locationName}</>
-              )}
+            <p className="text-sm text-zinc-300">
+              Operador: <span className="text-white font-medium">{data.openSession.operatorName}</span>
             </p>
             <p className="text-xs text-zinc-500 mt-1">
-              Aberto em {format(new Date(data.openSession.openedAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+              Aberto em{" "}
+              {format(new Date(data.openSession.openedAt), "dd/MM/yyyy HH:mm", {
+                locale: ptBR,
+              })}
+              {data.openSession.locationName ? ` · ${data.openSession.locationName}` : ""}
             </p>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg bg-zinc-900 px-3 py-2">
+                <p className="text-xs text-zinc-500">Vendas dinheiro</p>
+                <p className="font-medium text-white">{formatCurrency(totals.sales)}</p>
+              </div>
+              <div className="rounded-lg bg-zinc-900 px-3 py-2">
+                <p className="text-xs text-zinc-500">Suprimentos</p>
+                <p className="font-medium text-green-400">{formatCurrency(totals.supply)}</p>
+              </div>
+              <div className="rounded-lg bg-zinc-900 px-3 py-2">
+                <p className="text-xs text-zinc-500">Sangrias</p>
+                <p className="font-medium text-red-400">{formatCurrency(totals.bleed)}</p>
+              </div>
+              <div className="rounded-lg bg-zinc-900 px-3 py-2">
+                <p className="text-xs text-zinc-500">Estornos</p>
+                <p className="font-medium text-orange-300">{formatCurrency(totals.refund)}</p>
+              </div>
+            </div>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                <ArrowDownCircle className="h-4 w-4 text-green-400" />
-                Suprimento
-              </h3>
-              <form onSubmit={(e) => addMovement("SUPPLY", e)} className="space-y-3">
-                <Input name="amount" type="number" step="0.01" min="0.01" placeholder="Valor" required />
-                <Input name="notes" placeholder="Observação" />
-                <Button type="submit" size="sm" disabled={pending}>Registrar</Button>
-              </form>
-            </Card>
-            <Card>
-              <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                <ArrowUpCircle className="h-4 w-4 text-red-400" />
-                Sangria
-              </h3>
-              <form onSubmit={(e) => addMovement("BLEED", e)} className="space-y-3">
-                <Input name="amount" type="number" step="0.01" min="0.01" placeholder="Valor" required />
-                <Input name="notes" placeholder="Observação" />
-                <Button type="submit" size="sm" variant="secondary" disabled={pending}>Registrar</Button>
-              </form>
-            </Card>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button
+              className="min-h-[44px]"
+              variant="secondary"
+              onClick={() => setSheet("supply")}
+            >
+              <ArrowDownCircle className="h-4 w-4" /> Registrar suprimento
+            </Button>
+            <Button
+              className="min-h-[44px]"
+              variant="secondary"
+              onClick={() => setSheet("bleed")}
+            >
+              <ArrowUpCircle className="h-4 w-4" /> Registrar sangria
+            </Button>
+            <Button className="min-h-[44px]" onClick={() => setSheet("close")}>
+              Fechar caixa
+            </Button>
           </div>
 
           {data.movements.length > 0 && (
@@ -187,7 +192,10 @@ export function CaixaPanel({ data }: { data: CashData }) {
               <h3 className="text-sm font-medium text-white mb-3">Movimentações</h3>
               <div className="space-y-2">
                 {data.movements.map((m) => (
-                  <div key={m.id} className="flex justify-between rounded-lg bg-zinc-900 px-3 py-2 text-sm">
+                  <div
+                    key={m.id}
+                    className="flex justify-between rounded-lg bg-zinc-900 px-3 py-2.5 text-sm min-h-[44px] items-center"
+                  >
                     <span className="text-zinc-300">{MOVEMENT_LABELS[m.type] ?? m.type}</span>
                     <span className="text-white font-medium">{formatCurrency(m.amount)}</span>
                   </div>
@@ -195,23 +203,6 @@ export function CaixaPanel({ data }: { data: CashData }) {
               </div>
             </Card>
           )}
-
-          <Card className="border-amber-500/20">
-            <h3 className="text-lg font-semibold text-white mb-4">Fechar caixa</h3>
-            <form onSubmit={closeCash} className="space-y-4 max-w-md">
-              <div>
-                <label className="text-sm text-zinc-400">Saldo contado (R$)</label>
-                <Input name="closingBalance" type="number" step="0.01" min="0" required />
-              </div>
-              <div>
-                <label className="text-sm text-zinc-400">Observações</label>
-                <Input name="notes" placeholder="Opcional" />
-              </div>
-              <Button type="submit" disabled={pending} className="bg-amber-500 text-black hover:bg-amber-400">
-                Fechar caixa
-              </Button>
-            </form>
-          </Card>
         </>
       )}
 
@@ -222,7 +213,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
             <p className="text-sm text-zinc-600 text-center py-4">Nenhuma sessão registrada</p>
           )}
           {data.recentSessions.map((s) => (
-            <div key={s.id} className="rounded-lg bg-zinc-900 px-3 py-2 text-sm">
+            <div key={s.id} className="rounded-lg bg-zinc-900 px-3 py-2.5 text-sm">
               <div className="flex justify-between">
                 <span className={s.status === "OPEN" ? "text-green-400" : "text-zinc-400"}>
                   {s.status === "OPEN" ? "Aberto" : "Fechado"}
@@ -230,7 +221,8 @@ export function CaixaPanel({ data }: { data: CashData }) {
                 <span className="text-white">{formatCurrency(s.openingBalance)}</span>
               </div>
               <p className="text-xs text-zinc-500 mt-1">
-                {s.operatorName} · {format(new Date(s.openedAt), "dd/MM HH:mm", { locale: ptBR })}
+                {s.operatorName} ·{" "}
+                {format(new Date(s.openedAt), "dd/MM HH:mm", { locale: ptBR })}
               </p>
             </div>
           ))}
@@ -240,6 +232,165 @@ export function CaixaPanel({ data }: { data: CashData }) {
       <Link href="/financeiro" className="text-sm text-amber-400 hover:text-amber-300">
         ← Voltar ao financeiro
       </Link>
+
+      <ResponsiveDialog
+        open={sheet === "open"}
+        onOpenChange={(o) => !o && setSheet(null)}
+        title="Abrir caixa"
+        mobileVariant="sheet"
+        footer={
+          <Button
+            form="cash-open-form"
+            type="submit"
+            className="w-full min-h-[44px]"
+            disabled={pending}
+          >
+            {pending ? "Abrindo..." : "Confirmar abertura"}
+          </Button>
+        }
+      >
+        <form
+          id="cash-open-form"
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            run(
+              () =>
+                openCashAction(Number(fd.get("openingBalance")), String(fd.get("notes") || "")),
+              "Caixa aberto"
+            );
+          }}
+        >
+          <Input
+            name="openingBalance"
+            label="Saldo inicial (R$)"
+            type="number"
+            step="0.01"
+            min="0"
+            required
+            defaultValue="0"
+          />
+          <Input name="notes" label="Observações" placeholder="Opcional" />
+        </form>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={sheet === "supply" || sheet === "bleed"}
+        onOpenChange={(o) => !o && setSheet(null)}
+        title={sheet === "supply" ? "Registrar suprimento" : "Registrar sangria"}
+        mobileVariant="sheet"
+        footer={
+          <Button
+            form="cash-move-form"
+            type="submit"
+            className="w-full min-h-[44px]"
+            disabled={pending}
+          >
+            {pending ? "Salvando..." : "Confirmar"}
+          </Button>
+        }
+      >
+        <form
+          id="cash-move-form"
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!data.openSession || (sheet !== "supply" && sheet !== "bleed")) return;
+            const fd = new FormData(e.currentTarget);
+            const type = sheet === "supply" ? "SUPPLY" : "BLEED";
+            run(
+              () =>
+                addCashMovementAction(
+                  data.openSession!.id,
+                  type,
+                  Number(fd.get("amount")),
+                  String(fd.get("notes") || "")
+                ),
+              type === "SUPPLY" ? "Suprimento registrado" : "Sangria registrada"
+            );
+          }}
+        >
+          <Input
+            name="amount"
+            label="Valor (R$)"
+            type="number"
+            step="0.01"
+            min="0.01"
+            required
+          />
+          <Input name="notes" label="Observação" placeholder="Opcional" />
+        </form>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={sheet === "close"}
+        onOpenChange={(o) => !o && setSheet(null)}
+        title="Fechar caixa"
+        description="Confira o saldo esperado e informe o valor contado."
+        mobileVariant="sheet"
+        footer={
+          <Button
+            form="cash-close-form"
+            type="submit"
+            className="w-full min-h-[44px]"
+            disabled={pending}
+          >
+            {pending ? "Fechando..." : "Confirmar fechamento"}
+          </Button>
+        }
+      >
+        <form
+          id="cash-close-form"
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!data.openSession) return;
+            const fd = new FormData(e.currentTarget);
+            run(
+              () =>
+                closeCashAction(
+                  data.openSession!.id,
+                  Number(fd.get("closingBalance")),
+                  String(fd.get("notes") || "")
+                ),
+              "Caixa fechado"
+            );
+          }}
+        >
+          <div className="rounded-xl bg-zinc-900 px-3 py-3 text-sm">
+            <p className="text-zinc-500">Saldo esperado</p>
+            <p className="text-lg font-bold text-amber-400">
+              {formatCurrency(totals.expected)}
+            </p>
+          </div>
+          <Input
+            name="closingBalance"
+            label="Saldo contado (R$)"
+            type="number"
+            step="0.01"
+            min="0"
+            required
+            value={counted}
+            onChange={(e) => setCounted(e.target.value)}
+          />
+          {diff !== null && !Number.isNaN(diff) && (
+            <p
+              className={
+                diff === 0
+                  ? "text-sm text-green-400"
+                  : diff > 0
+                    ? "text-sm text-amber-300"
+                    : "text-sm text-red-400"
+              }
+            >
+              Diferença: {formatCurrency(diff)}{" "}
+              {diff === 0 ? "(bateu)" : diff > 0 ? "(sobra)" : "(falta)"}
+            </p>
+          )}
+          <Input name="notes" label="Observações" placeholder="Opcional" />
+        </form>
+      </ResponsiveDialog>
     </div>
   );
 }

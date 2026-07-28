@@ -3,15 +3,7 @@
 import Link from "next/link";
 import { Card, StatCard } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import {
-  Wallet,
-  Banknote,
-  ShoppingCart,
-  Package,
-  Percent,
-  Receipt,
-  TrendingDown,
-} from "lucide-react";
+import { Wallet, Banknote, ShoppingCart, TrendingDown, Receipt } from "lucide-react";
 
 type FinanceOverview = {
   todaySales: number;
@@ -25,14 +17,9 @@ type FinanceOverview = {
   openSalesCount: number;
 };
 
-const quickLinks = [
-  { href: "/caixa", label: "Caixa", icon: Banknote, desc: "Abrir/fechar sessão" },
-  { href: "/comandas", label: "Comandas", icon: ShoppingCart, desc: "Vendas do dia" },
-  { href: "/estoque", label: "Estoque", icon: Package, desc: "Produtos e alertas" },
-  { href: "/comissoes", label: "Comissões", icon: Percent, desc: "Regras e lançamentos" },
-];
-
 export function FinanceiroOverview({ data }: { data: FinanceOverview }) {
+  const estimatedProfit = data.todaySales - data.monthExpenses;
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -48,7 +35,7 @@ export function FinanceiroOverview({ data }: { data: FinanceOverview }) {
           icon={<TrendingDown className="h-6 w-6 text-zinc-500" />}
         />
         <StatCard
-          label="Caixa"
+          label="Situação do caixa"
           value={data.openCash ? "Aberto" : "Fechado"}
           icon={<Banknote className="h-6 w-6 text-zinc-500" />}
         />
@@ -59,6 +46,20 @@ export function FinanceiroOverview({ data }: { data: FinanceOverview }) {
         />
       </div>
 
+      <Card>
+        <p className="text-sm text-zinc-500">Lucro estimado (vendas hoje − despesas do mês)</p>
+        <p
+          className={`mt-1 text-2xl font-bold ${
+            estimatedProfit >= 0 ? "text-amber-400" : "text-red-400"
+          }`}
+        >
+          {formatCurrency(estimatedProfit)}
+        </p>
+        <p className="mt-2 text-xs text-zinc-600">
+          Indicativo rápido para o dia — não substitui o fechamento contábil.
+        </p>
+      </Card>
+
       {data.openCash && (
         <Card className="border-green-500/20 bg-green-500/5">
           <p className="text-sm text-green-300">
@@ -67,44 +68,28 @@ export function FinanceiroOverview({ data }: { data: FinanceOverview }) {
             {" · "}
             {data.openCash.operatorName}
           </p>
-          <Link href="/caixa" className="text-xs text-green-400 hover:text-green-300 mt-2 inline-block">
+          <Link
+            href="/caixa"
+            className="mt-2 inline-flex min-h-[44px] items-center text-sm text-green-400 hover:text-green-300"
+          >
             Gerenciar caixa →
           </Link>
         </Card>
       )}
 
-      <div>
-        <h2 className="text-lg font-semibold text-white mb-4">Operacional</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {quickLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <Link key={link.href} href={link.href}>
-                <Card hover className="h-full">
-                  <div className="flex items-start gap-3">
-                    <Icon className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-white">{link.label}</p>
-                      <p className="text-sm text-zinc-500">{link.desc}</p>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
       <Card className="border-zinc-700/50">
         <div className="flex items-start gap-3">
-          <Receipt className="h-5 w-5 text-zinc-500 shrink-0 mt-0.5" />
+          <Receipt className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
           <div>
-            <p className="text-sm font-medium text-zinc-300">Assinatura do sistema</p>
-            <p className="text-xs text-zinc-500 mt-1">
-              Faturas do CorteCerto (plano SaaS) ficam em Plano e cobrança — separado do financeiro da barbearia.
+            <p className="font-medium text-white">Plano e cobrança SaaS</p>
+            <p className="text-sm text-zinc-500">
+              Assinatura da plataforma e faturas ficam em Faturamento.
             </p>
-            <Link href="/faturamento" className="text-xs text-amber-400 hover:text-amber-300 mt-2 inline-block">
-              Plano e cobrança →
+            <Link
+              href="/faturamento"
+              className="mt-2 inline-flex min-h-[44px] items-center text-sm text-amber-400 hover:text-amber-300"
+            >
+              Abrir faturamento →
             </Link>
           </div>
         </div>

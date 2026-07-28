@@ -181,18 +181,24 @@ export function ClientFormModal({
   return (
     <>
       {trigger && isValidElement(trigger) ? (
-        cloneElement(trigger as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
-          onClick: (e: React.MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            (trigger.props as { onClick?: (e: React.MouseEvent) => void }).onClick?.(e);
-            setOpen(true);
-          },
-          className: cn(
-            (trigger.props as { className?: string }).className,
-            className
-          ),
-        })
+        cloneElement(
+          trigger as React.ReactElement<{
+            onClick?: (e: React.MouseEvent) => void;
+            className?: string;
+          }>,
+          {
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              (trigger.props as { onClick?: (e: React.MouseEvent) => void }).onClick?.(e);
+              setOpen(true);
+            },
+            className: cn(
+              (trigger.props as { className?: string }).className,
+              className
+            ),
+          }
+        )
       ) : edit ? (
         <button
           type="button"
