@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
-import { addDays, addMinutes, setHours, setMinutes, startOfDay } from "date-fns";
+import { addDays, addMinutes } from "date-fns";
 import { createHash } from "crypto";
 import type { User } from "@prisma/client";
 
@@ -72,12 +72,28 @@ async function asAuthenticatedUser(
   return authUser as AuthenticatedUser & { tenantId: string };
 }
 
+/** Wall-clock slot in America/Sao_Paulo (tenant factory default), CI-safe (UTC runners). */
 function futureWeekdaySlot(hour = 10, minute = 0, daysAhead = 14): Date {
-  let d = addDays(new Date(), daysAhead);
-  while (d.getDay() === 0 || d.getDay() === 6) {
-    d = addDays(d, 1);
+  for (let offset = daysAhead; offset < daysAhead + 14; offset++) {
+    const probe = addDays(new Date(), offset);
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      weekday: "short",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(probe);
+    const weekday = parts.find((p) => p.type === "weekday")?.value;
+    if (weekday === "Sat" || weekday === "Sun") continue;
+    const y = parts.find((p) => p.type === "year")!.value;
+    const m = parts.find((p) => p.type === "month")!.value;
+    const day = parts.find((p) => p.type === "day")!.value;
+    const hh = String(hour).padStart(2, "0");
+    const mm = String(minute).padStart(2, "0");
+    // Brazil currently observes UTC-3 year-round (no DST).
+    return new Date(`${y}-${m}-${day}T${hh}:${mm}:00-03:00`);
   }
-  return setMinutes(setHours(startOfDay(d), hour), minute);
+  throw new Error("Não foi possível encontrar um dia útil para o slot de teste");
 }
 
 async function setupTenant(slug: string) {
