@@ -16,6 +16,7 @@ import {
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { UserRole } from "@/lib/auth-utils";
 import type { BillingAlertProps } from "@/lib/billing-actions";
+import type { TenantAlert } from "@/lib/alerts";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,6 +33,7 @@ import {
 import { MobileTabBar } from "@/components/mobile/mobile-tab-bar";
 import { MobileTopBar } from "@/components/mobile/mobile-top-bar";
 import { ToastProvider } from "@/components/ui/toast";
+import { AlertsBell } from "@/components/layout/alerts-bell";
 
 export type { BillingAlertProps } from "@/lib/billing-actions";
 
@@ -360,9 +362,11 @@ export function Sidebar({
 export function AppShell({
   children,
   billingAlert,
+  alerts = [],
 }: {
   children: React.ReactNode;
   billingAlert?: BillingAlertProps | null;
+  alerts?: TenantAlert[];
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -390,7 +394,7 @@ export function AppShell({
       <ToastProvider>
         <div className="min-h-dvh overflow-x-hidden bg-background">
           <Sidebar collapsed={collapsed} onCollapsedChange={handleCollapsedChange} />
-          <MobileTopBar />
+          <MobileTopBar action={<AlertsBell alerts={alerts} />} />
           <main
             className={cn(
               "min-h-dvh transition-[padding] duration-200",
@@ -400,6 +404,9 @@ export function AppShell({
             <div
               className="mx-auto max-w-5xl px-4 py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pt-6 lg:px-8 lg:pt-8 lg:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
             >
+              <div className="mb-4 hidden justify-end lg:flex">
+                <AlertsBell alerts={alerts} />
+              </div>
               {billingAlert?.message && pathname !== "/faturamento" && (
                 <BillingAlertBanner alert={billingAlert} />
               )}

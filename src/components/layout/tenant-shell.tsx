@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin } from "@/lib/auth-utils";
 import { ensureTenantIsActive } from "@/lib/billing/cron";
 import { getTenantBillingForSession } from "@/lib/billing-actions";
+import { getTenantAlertsForSession } from "@/lib/alerts";
 import { AppShell } from "@/components/layout/sidebar";
 import type { BillingAlertProps } from "@/lib/billing-actions";
 
@@ -20,6 +21,8 @@ export async function TenantAppShell({ children }: { children: React.ReactNode }
   }
 
   const billing = await getTenantBillingForSession();
+  const alerts = await getTenantAlertsForSession({ billing });
+
   const billingAlert: BillingAlertProps | null = billing?.openInvoice
     ? {
         level: billing.alertLevel,
@@ -38,5 +41,9 @@ export async function TenantAppShell({ children }: { children: React.ReactNode }
         }
       : null;
 
-  return <AppShell billingAlert={billingAlert}>{children}</AppShell>;
+  return (
+    <AppShell billingAlert={billingAlert} alerts={alerts}>
+      {children}
+    </AppShell>
+  );
 }
