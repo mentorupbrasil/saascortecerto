@@ -97,7 +97,7 @@ export function WhatsAppPlanBanner({ plan }: { plan: Plan }) {
           )}
           {plan === "FREE" && (
             <p className="text-xs text-amber-400 mt-2">
-              Faça upgrade para Pro ou Completo para usar retorno por WhatsApp.
+              Faça upgrade para Básico ou Pro para usar retorno por WhatsApp.
             </p>
           )}
         </div>
@@ -299,7 +299,7 @@ function ConfigTab({
     return (
       <EmptyState
         title="Upgrade necessário"
-        description="Faça upgrade para Pro ou Completo para configurar retorno por WhatsApp."
+        description="Faça upgrade para Básico ou Pro para configurar retorno por WhatsApp."
         icon={<Settings className="h-8 w-8" />}
       />
     );

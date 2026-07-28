@@ -1,39 +1,73 @@
 import Link from "next/link";
+import {
+  ArrowRight,
+  BarChart3,
+  Calendar,
+  Check,
+  ShieldCheck,
+  Settings2,
+  Share2,
+  Sparkles,
+  UserPlus,
+  Users,
+} from "lucide-react";
+
 import { SiteHeader } from "@/components/marketing/site-header";
-import { LandingHeroPreview } from "@/components/marketing/landing-hero-preview";
-import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
+import { GlowyWavesHero } from "@/components/marketing/glowy-waves-hero";
+import { CortzoDashboardMockup } from "@/components/marketing/cortzo-dashboard-mockup";
+import { SectionShell } from "@/components/marketing/landing/section-shell";
+import { Reveal, RevealGroup, RevealItem } from "@/components/marketing/landing/reveal";
+import {
+  formatPlanPrice,
+  PLAN_LABELS,
+  PLAN_MARKETING_FEATURES,
+  PLAN_SEAT_LIMITS,
+} from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { brand } from "@/config/brand";
 import { CortzoLockup } from "@/components/brand/brand-mark";
-import { ArrowRight, Check } from "lucide-react";
 
-const pillars = [
+const benefits = [
   {
-    num: "01",
-    title: "Agenda que vende horário",
-    desc: "Grade semanal clara e link público para o cliente escolher e reservar sozinho — ideal para grupos de WhatsApp.",
+    icon: Calendar,
+    title: "Agenda organizada",
+    description: "Visualize horários, profissionais e serviços sem confusão.",
   },
   {
-    num: "02",
-    title: "Clientes que voltam",
-    desc: "Histórico completo, alertas de quem sumiu e mensagens de retorno prontas para enviar.",
+    icon: Users,
+    title: "Clientes mais próximos",
+    description: "Tenha histórico e informações importantes para melhorar o atendimento.",
   },
   {
-    num: "03",
-    title: "Operação sob controle",
-    desc: "Equipe com permissões, serviços editáveis, clube de assinatura e faturamento do dia na palma da mão.",
+    icon: BarChart3,
+    title: "Gestão sob controle",
+    description: "Acompanhe a operação da barbearia em um painel simples e profissional.",
   },
 ];
 
-const capabilities = [
-  "Agenda visual semanal",
-  "Link de agendamento online",
-  "Cadastro e histórico de clientes",
-  "Retorno via WhatsApp",
-  "Clube de assinatura",
-  "Gestão de equipe",
-  "Ambiente isolado por barbearia",
+const trustItems = [
+  "Ambiente exclusivo por barbearia",
+  "Suporte humano",
   "Ativação automática após pagamento",
+  "Cancele quando quiser",
+];
+
+const howItWorks = [
+  {
+    icon: UserPlus,
+    step: "Crie sua conta",
+    detail: "Escolha o plano ideal e cadastre sua barbearia em poucos minutos.",
+  },
+  {
+    icon: Settings2,
+    step: "Configure em minutos",
+    detail: "Cadastre serviços, horários e equipe — pronto para usar no mesmo dia.",
+  },
+  {
+    icon: Share2,
+    step: "Compartilhe o link",
+    detail: "Clientes agendam sozinhos enquanto você foca no atendimento.",
+  },
 ];
 
 const faqs = [
@@ -46,8 +80,8 @@ const faqs = [
     a: "Você compartilha o link da sua barbearia. O cliente escolhe serviço, vê horários livres e confirma. Você recebe aviso do novo agendamento.",
   },
   {
-    q: "Qual a diferença entre Pro e Completo?",
-    a: `Pro (${formatPlanPrice("PRO")}/mês): alertas e WhatsApp manual com mensagem pronta. Completo (${formatPlanPrice("CLUBE")}/mês): inclui disparo automático via API.`,
+    q: `Qual a diferença entre ${PLAN_LABELS.PRO} e ${PLAN_LABELS.CLUBE}?`,
+    a: `${PLAN_LABELS.PRO} (${formatPlanPrice("PRO")}/mês): até ${PLAN_SEAT_LIMITS.PRO} acessos de equipe e o essencial para organizar a barbearia. ${PLAN_LABELS.CLUBE} (${formatPlanPrice("CLUBE")}/mês): até ${PLAN_SEAT_LIMITS.CLUBE} acessos, relatórios completos e recursos avançados.`,
   },
   {
     q: "Preciso instalar algo?",
@@ -63,257 +97,173 @@ export function LandingPage() {
   const supportEmail = getPlatformSupportEmail();
 
   return (
-    <div className="min-h-screen bg-background text-foreground landing-grain overflow-x-hidden">
+    <div className="landing min-h-screen overflow-x-hidden bg-background text-foreground">
       <SiteHeader />
 
-      {/* Hero */}
-      <section className="relative pt-14 sm:pt-16 overflow-hidden">
-        <div className="landing-glow absolute inset-0 pointer-events-none" />
-        <div className="absolute top-32 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[400px] landing-grid-lines opacity-20 sm:opacity-30 pointer-events-none" />
+      <GlowyWavesHero
+        badge="Gestão completa para barbearias"
+        title="Agenda, clientes e gestão"
+        titleHighlight="em um só lugar"
+        description="Organize horários, clientes, equipe e resultados da sua barbearia em uma plataforma simples, moderna e profissional."
+        pills={["Agenda online", "Gestão de clientes", "Controle da equipe"]}
+        primaryCta={{ label: `Começar por ${formatPlanPrice("PRO")}`, href: "/assinar?plan=PRO" }}
+        secondaryCta={{ label: "Conhecer os recursos", href: "#recursos" }}
+      >
+        <CortzoDashboardMockup />
+      </GlowyWavesHero>
 
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 pt-8 pb-12 sm:pt-10 sm:pb-14 lg:pt-12 lg:pb-16">
-          <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center">
-            <div className="max-w-xl order-2 lg:order-1">
-              <div className="mb-4 sm:mb-5">
-                <CortzoLockup
-                  size={36}
-                  productClassName="font-display text-3xl sm:text-4xl tracking-wide"
-                  bylineClassName="text-xs"
-                  priority
-                />
-              </div>
-
-              <h1 className="font-display text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.5rem] sm:leading-[1.05] tracking-tight text-foreground">
-                {brand.tagline}
-              </h1>
-
-              <p className="mt-5 sm:mt-6 text-base sm:text-lg text-zinc-400 leading-relaxed font-light max-w-md">
-                Agenda, clientes, retorno no WhatsApp e link para o cliente marcar sozinho — em
-                uma plataforma elegante, feita para quem leva a barbearia a sério.
-              </p>
-
-              <div className="mt-6 sm:mt-8 flex flex-col gap-3">
-                <Link
-                  href="/assinar"
-                  className="group inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-[var(--gold)] px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm font-semibold uppercase tracking-[0.06em] sm:tracking-[0.08em] text-[#0a0a0a] transition-all hover:bg-[#5fd49a] hover:shadow-[0_0_40px_-8px_rgba(114,227,173,0.55)] min-h-[48px]"
-                >
-                  Começar — {formatPlanPrice("PRO")}/mês
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex w-full sm:w-auto items-center justify-center rounded-full border border-border px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.08em] text-zinc-300 transition-colors hover:border-border hover:text-foreground min-h-[48px]"
-                >
-                  Já sou cliente
-                </Link>
-              </div>
-
-              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-x-6 text-[11px] sm:text-[12px] uppercase tracking-[0.12em] sm:tracking-[0.15em] text-zinc-600">
-                <span>Sem planilha</span>
-                <span className="hidden sm:inline">·</span>
-                <span>Dados isolados</span>
-                <span className="hidden sm:inline">·</span>
-                <span>Suporte humano</span>
-              </div>
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <LandingHeroPreview />
-            </div>
-          </div>
+      {/* Trust bar */}
+      <section className="border-b border-border bg-background py-8">
+        <div className="section flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {trustItems.map((item) => (
+            <span
+              key={item}
+              className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
+              {item}
+            </span>
+          ))}
         </div>
       </section>
 
-      {/* Pillars */}
-      <section id="funcionalidades" className="border-t border-border py-12 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
-          <div className="max-w-2xl mb-8 sm:mb-10">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--gold)] mb-3 sm:mb-4">
-              Funcionalidades
-            </p>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-foreground leading-tight">
-              Tudo o essencial.
-              <span className="text-zinc-500"> Nada supérfluo.</span>
-            </h2>
-          </div>
+      {/* Benefits */}
+      <SectionShell
+        id="recursos"
+        eyebrow="Recursos"
+        title="Tudo o que sua barbearia precisa, sem complicação"
+        description="Recursos pensados para o dia a dia de quem administra uma barbearia — do balcão à agenda online."
+      >
+        <RevealGroup className="grid gap-5 sm:grid-cols-1 lg:grid-cols-3">
+          {benefits.map((benefit) => (
+            <RevealItem key={benefit.title}>
+              <div className="card-elevated card-interactive h-full p-6 lg:p-8">
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                  <benefit.icon className="h-5 w-5 text-primary" aria-hidden />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{benefit.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {benefit.description}
+                </p>
+              </div>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </SectionShell>
 
-          <div className="grid sm:grid-cols-1 lg:grid-cols-3 gap-px bg-white/[0.06] rounded-xl sm:rounded-2xl overflow-hidden">
-            {pillars.map((p) => (
-              <div
-                key={p.num}
-                className="bg-background p-6 lg:p-8 group hover:bg-card transition-colors"
-              >
-                <span className="font-display text-4xl text-foreground/[0.06] group-hover:text-[var(--gold)]/20 transition-colors">
-                  {p.num}
+      {/* How it works */}
+      <SectionShell
+        id="como-funciona"
+        eyebrow="Como funciona"
+        title="Do cadastro ao primeiro corte agendado em minutos"
+        description="Sem consultoria cara, sem implementação demorada. Você assina, paga online e recebe acesso imediato ao painel da sua barbearia."
+        tone="muted"
+      >
+        <div className="grid gap-6 md:grid-cols-3">
+          {howItWorks.map((item, index) => (
+            <div key={item.step} className="card-elevated relative p-6 lg:p-8">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                  <item.icon className="h-5 w-5 text-primary" aria-hidden />
+                </div>
+                <span className="text-3xl font-bold text-foreground/[0.08]">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <h3 className="font-display text-xl text-foreground mt-3 mb-2">{p.title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{p.desc}</p>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
-            {capabilities.map((cap) => (
-              <div
-                key={cap}
-                className="flex items-center gap-3 rounded-xl border border-border bg-white/[0.02] px-4 py-3.5"
-              >
-                <Check className="h-3.5 w-3.5 text-[var(--gold)] shrink-0" strokeWidth={2} />
-                <span className="text-sm text-zinc-400">{cap}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Process */}
-      <section className="border-t border-border py-12 sm:py-14 lg:py-16 bg-muted">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
-          <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 items-center">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--gold)] mb-4">
-                Como funciona
-              </p>
-              <h2 className="font-display text-3xl lg:text-4xl text-foreground leading-tight mb-4">
-                Do cadastro ao primeiro corte agendado em minutos.
-              </h2>
-              <p className="text-zinc-500 leading-relaxed">
-                Sem consultoria cara, sem implementação demorada. Você assina, paga online e
-                recebe acesso imediato ao painel da sua barbearia.
-              </p>
+              <h3 className="text-base font-semibold text-foreground">{item.step}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
             </div>
-            <ol className="space-y-6">
-              {[
-                { step: "Assine o plano", detail: "Pro ou Completo — escolha o que combina com você." },
-                { step: "Configure em 10 min", detail: "Serviços, horários e equipe. Pronto para usar." },
-                { step: "Compartilhe o link", detail: "Clientes agendam sozinhos; você foca no atendimento." },
-              ].map((item, i) => (
-                <li key={item.step} className="flex gap-6">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--gold)]/30 text-sm font-medium text-[var(--gold)]">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="font-medium text-foreground">{item.step}</p>
-                    <p className="text-sm text-zinc-500 mt-1">{item.detail}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+          ))}
         </div>
-      </section>
+      </SectionShell>
 
       {/* Pricing */}
-      <section id="planos" className="border-t border-border py-12 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--gold)] mb-4">Planos</p>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-foreground">
-              Investimento claro. Retorno diário.
-            </h2>
-            <p className="mt-4 text-zinc-500">
-              Preço fixo mensal. Cancele quando quiser.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <PricingCard
-              plan="PRO"
-              tagline={PLAN_WHATSAPP_DESCRIPTION.PRO}
-              features={[
-                "Agenda, clientes e serviços",
-                "Link público de agendamento",
-                "Clube de assinatura",
-                "Dashboard e equipe",
-                "Ambiente exclusivo",
-              ]}
-            />
-            <PricingCard
-              plan="CLUBE"
-              featured
-              tagline={PLAN_WHATSAPP_DESCRIPTION.CLUBE}
-              features={[
-                "Tudo do plano Pro",
-                "Disparo automático WhatsApp",
-                "Cron diário de retorno",
-                "Ideal para alto volume",
-                "Ambiente exclusivo",
-              ]}
-            />
-          </div>
+      <SectionShell
+        id="planos"
+        eyebrow="Planos"
+        title="Investimento claro. Retorno diário."
+        description="Preço fixo mensal, sem taxa de adesão. Cancele quando quiser."
+      >
+        <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
+          <PricingCard plan="PRO" badge="Para começar" />
+          <PricingCard plan="CLUBE" badge="Mais escolhido" featured />
         </div>
-      </section>
+      </SectionShell>
 
       {/* FAQ */}
-      <section id="faq" className="border-t border-border py-12 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-10">
-          <div className="text-center mb-10">
-            <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--gold)] mb-4">Dúvidas</p>
-            <h2 className="font-display text-3xl sm:text-4xl text-foreground">Perguntas frequentes</h2>
-          </div>
-          <div className="divide-y divide-white/[0.06]">
-            {faqs.map((faq) => (
-              <details key={faq.q} className="group py-5">
-                <summary className="cursor-pointer list-none flex justify-between items-start gap-4 font-medium text-foreground hover:text-[var(--gold)] transition-colors">
-                  {faq.q}
-                  <span className="text-zinc-600 group-open:rotate-45 transition-transform text-xl shrink-0 leading-none">
-                    +
-                  </span>
-                </summary>
-                <p className="mt-4 text-sm text-zinc-500 leading-relaxed pr-8">{faq.a}</p>
-              </details>
-            ))}
-          </div>
+      <SectionShell
+        id="faq"
+        eyebrow="Dúvidas"
+        title="Perguntas frequentes"
+        className="border-b-0"
+      >
+        <div className="mx-auto max-w-3xl space-y-3">
+          {faqs.map((faq) => (
+            <details
+              key={faq.q}
+              className="group card-elevated overflow-hidden p-0 open:border-primary/30"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-medium text-foreground transition-colors hover:text-primary">
+                {faq.q}
+                <Sparkles className="h-4 w-4 shrink-0 text-primary opacity-0 transition-opacity group-open:opacity-100" aria-hidden />
+              </summary>
+              <p className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
+            </details>
+          ))}
         </div>
-      </section>
+      </SectionShell>
 
-      {/* CTA */}
-      <section id="contato" className="border-t border-border py-12 sm:py-14 lg:py-16 safe-bottom">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
-          <div className="relative overflow-hidden rounded-3xl border border-brand/30 bg-gradient-to-br from-muted to-card px-6 py-10 lg:px-12 lg:py-12 text-center">
-            <div className="absolute inset-0 landing-glow opacity-50" />
-            <div className="relative">
-              <h2 className="font-display text-3xl lg:text-4xl text-foreground max-w-xl mx-auto leading-tight">
-                Pronto para elevar o nível da sua barbearia?
-              </h2>
-              <p className="mt-4 text-zinc-500 max-w-md mx-auto">
-                Dúvidas? Escreva para{" "}
-                <a
-                  href={`mailto:${supportEmail}`}
-                  className="text-[var(--gold)] hover:underline"
-                >
-                  {supportEmail}
-                </a>
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href="/assinar"
-                  className="inline-flex items-center justify-center rounded-full bg-[var(--gold)] px-10 py-4 text-sm font-semibold uppercase tracking-[0.08em] text-[#0a0a0a] hover:bg-[#5fd49a] transition-colors"
-                >
-                  Assinar agora
-                </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-full border border-border px-10 py-4 text-sm uppercase tracking-[0.08em] text-zinc-300 hover:text-foreground transition-colors"
-                >
-                  Entrar
-                </Link>
+      {/* Final CTA */}
+      <section className="border-b border-border py-16 md:py-20 lg:py-24">
+        <div className="section">
+          <Reveal>
+            <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-graphite px-6 py-10 text-center text-white shadow-[0_28px_72px_-24px_rgba(0,0,0,0.4)] sm:px-10 sm:py-12 lg:px-14 lg:py-14">
+              <div className="pointer-events-none absolute inset-0 bg-noise opacity-[0.12]" aria-hidden />
+              <div
+                className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"
+                aria-hidden
+              />
+              <div className="relative mx-auto max-w-2xl">
+                <h2 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+                  Pronto para elevar o nível da sua barbearia?
+                </h2>
+                <p className="text-pretty mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
+                  Dúvidas? Escreva para{" "}
+                  <a href={`mailto:${supportEmail}`} className="font-medium text-primary hover:underline">
+                    {supportEmail}
+                  </a>
+                </p>
+                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Link
+                    href="/assinar?plan=PRO"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+                  >
+                    Assinar agora
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="inline-flex h-12 items-center justify-center rounded-full border border-white/25 bg-white/5 px-8 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+                  >
+                    Entrar
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8 safe-bottom">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 text-center md:text-left">
-          <CortzoLockup size={28} productClassName="font-display text-lg" />
-          <p className="text-xs text-zinc-600 uppercase tracking-[0.15em]">
+      <footer className="safe-bottom py-8">
+        <div className="section flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:gap-6 sm:text-left">
+          <CortzoLockup size={28} productClassName="text-lg" />
+          <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
             © {new Date().getFullYear()} {brand.legalName} — {brand.byline}
           </p>
           <Link
             href="/login"
-            className="text-xs uppercase tracking-[0.15em] text-zinc-500 hover:text-[var(--gold)] transition-colors"
+            className="text-xs uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-primary"
           >
             Área do cliente
           </Link>
@@ -325,48 +275,59 @@ export function LandingPage() {
 
 function PricingCard({
   plan,
+  badge,
   featured,
-  tagline,
-  features,
 }: {
   plan: "PRO" | "CLUBE";
+  badge: string;
   featured?: boolean;
-  tagline: string;
-  features: string[];
 }) {
+  const seats = PLAN_SEAT_LIMITS[plan];
+
   return (
     <div
       className={`relative flex flex-col rounded-2xl p-6 lg:p-8 ${
         featured
-          ? "border-2 border-[var(--gold)]/40 bg-[var(--gold)]/[0.04] shadow-[0_0_60px_-20px_rgba(201,169,98,0.25)]"
-          : "border border-border bg-card"
+          ? "border-2 border-primary bg-primary/[0.04] shadow-[0_0_60px_-20px_rgba(62,207,142,0.35)]"
+          : "card-elevated"
       }`}
     >
-      {featured && (
-        <span className="absolute -top-3 left-8 rounded-full bg-[var(--gold)] px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#0a0a0a]">
-          Recomendado
-        </span>
-      )}
-      <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">{PLAN_LABELS[plan]}</p>
-      <p className="font-display text-5xl text-foreground mt-3">
-        {formatPlanPrice(plan)}
-        <span className="text-lg font-sans font-normal text-zinc-600">/mês</span>
+      <span
+        className={`absolute -top-3 left-8 rounded-full px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+          featured
+            ? "bg-primary text-primary-foreground"
+            : "border border-border bg-card text-muted-foreground"
+        }`}
+      >
+        {badge}
+      </span>
+
+      <p className="text-sm font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+        {PLAN_LABELS[plan]}
       </p>
-      <p className="text-sm text-zinc-500 mt-2 pb-6 border-b border-border">{tagline}</p>
-      <ul className="mt-6 space-y-3 flex-1">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-3 text-sm text-zinc-400">
-            <Check className="h-4 w-4 text-[var(--gold)] shrink-0 mt-0.5" strokeWidth={1.5} />
-            {f}
+      <p className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+        {formatPlanPrice(plan)}
+        <span className="text-base font-medium text-muted-foreground">/mês</span>
+      </p>
+      <p className="mt-2 border-b border-border pb-6 text-sm text-muted-foreground">
+        Até {seats} {seats === 1 ? "acesso de equipe" : "acessos de equipe"}
+      </p>
+
+      <ul className="mt-6 flex-1 space-y-3">
+        {PLAN_MARKETING_FEATURES[plan].map((feature) => (
+          <li key={feature} className="flex items-start gap-3 text-sm text-foreground/90">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
+            {feature}
           </li>
         ))}
       </ul>
+
       <Link
         href={`/assinar?plan=${plan}`}
-        className={`mt-8 flex w-full items-center justify-center rounded-full py-3.5 sm:py-4 text-xs sm:text-sm font-semibold uppercase tracking-[0.08em] transition-all min-h-[48px] ${
+        className={`mt-8 flex min-h-[48px] w-full items-center justify-center rounded-full text-sm font-semibold transition-colors ${
           featured
-            ? "bg-[var(--gold)] text-[#0a0a0a] hover:bg-[#5fd49a]"
-            : "border border-border text-foreground hover:border-[var(--gold)]/40 hover:text-[var(--gold)]"
+            ? "bg-primary text-primary-foreground hover:bg-primary-hover"
+            : "border border-border text-foreground hover:border-primary/40 hover:text-primary"
         }`}
       >
         Escolher {PLAN_LABELS[plan]}

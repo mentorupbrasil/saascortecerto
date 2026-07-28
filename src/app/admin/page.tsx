@@ -43,8 +43,8 @@ export default async function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Admin Plataforma</h1>
             <p className="text-sm text-zinc-400">
-              Faturamento do SaaS · Pro {formatPlanPrice("PRO")}/mês (manual) · Completo{" "}
-              {formatPlanPrice("CLUBE")}/mês (automático)
+              Faturamento do SaaS · {formatPlanPrice("PRO")}/mês (Básico) ·{" "}
+              {formatPlanPrice("CLUBE")}/mês (Pro)
             </p>
           </div>
           <TenantFormModal />

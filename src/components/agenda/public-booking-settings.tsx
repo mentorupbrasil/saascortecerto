@@ -125,7 +125,7 @@ export function PublicBookingSettings({
         </div>
 
         <p className="text-xs text-zinc-500">
-          Plano Completo: aviso automático via API. Plano Pro: registro + link WhatsApp no histórico.
+          Plano Pro: aviso automático via API. Plano Básico: registro + link WhatsApp no histórico.
         </p>
 
         {error && (

@@ -4,24 +4,17 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { CortzoLockup } from "@/components/brand/brand-mark";
+import { ThemeToggle } from "@/components/marketing/theme-toggle";
 
 const navLinks = [
-  { href: "#funcionalidades", label: "Funcionalidades" },
+  { href: "#recursos", label: "Recursos" },
+  { href: "#como-funciona", label: "Como funciona" },
   { href: "#planos", label: "Planos" },
   { href: "#faq", label: "Dúvidas" },
-  { href: "#contato", label: "Contato" },
 ];
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -31,51 +24,42 @@ export function SiteHeader() {
   }, [open]);
 
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-500 safe-top",
-        scrolled
-          ? "border-b border-border bg-background/80 backdrop-blur-xl shadow-[0_1px_0_0_rgba(201,169,98,0.08)]"
-          : "bg-transparent"
-      )}
-    >
-      <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-10">
+    <header className="glass safe-top sticky top-0 z-50 h-16 border-b border-border/60">
+      <div className="section flex h-16 items-center justify-between">
         <Link href="/" className="group min-w-0">
-          <CortzoLockup
-            size={28}
-            productClassName="font-display text-lg tracking-wide sm:text-xl"
-          />
+          <CortzoLockup size={30} productClassName="text-lg tracking-tight" />
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-10">
+        <nav className="hidden lg:flex items-center gap-8">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-[13px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-[var(--gold)]"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-3">
+          <ThemeToggle compact />
           <Link
             href="/login"
-            className="text-[13px] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-foreground px-2 py-2"
+            className="px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Entrar
           </Link>
           <Link
-            href="/assinar"
-            className="inline-flex items-center justify-center rounded-full border border-[var(--gold)]/40 bg-[var(--gold)]/10 px-6 py-2.5 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--gold)] transition-all hover:bg-[var(--gold)] hover:text-[#0a0a0a]"
+            href="/assinar?plan=PRO"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
           >
-            Assinar
+            Começar agora
           </Link>
         </div>
 
         <button
-          className="lg:hidden text-zinc-400 p-2 -mr-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="lg:hidden -mr-2 flex min-h-[44px] min-w-[44px] items-center justify-center p-2 text-muted-foreground"
           onClick={() => setOpen(!open)}
           aria-label={open ? "Fechar menu" : "Abrir menu"}
           aria-expanded={open}
@@ -91,31 +75,42 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur-xl px-4 py-5 space-y-1 safe-bottom max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="block py-3.5 text-sm uppercase tracking-widest text-zinc-300 min-h-[44px] flex items-center"
-            >
-              {link.label}
-            </a>
-          ))}
-          <div className="pt-4 flex flex-col gap-3 border-t border-border">
+        <div
+          className={cn(
+            "glass lg:hidden border-t border-border/60 px-6 py-5 safe-bottom",
+            "max-h-[calc(100dvh-4rem)] overflow-y-auto"
+          )}
+        >
+          <div className="space-y-1">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="flex min-h-[44px] items-center py-3 text-sm font-medium text-foreground"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-4">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tema</span>
+            <ThemeToggle />
+          </div>
+          <div className="mt-4 flex flex-col gap-3 border-t border-border/60 pt-4">
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="text-center py-3 text-sm text-zinc-300"
+              className="text-center py-3 text-sm font-medium text-muted-foreground"
             >
               Entrar
             </Link>
             <Link
-              href="/assinar"
+              href="/assinar?plan=PRO"
               onClick={() => setOpen(false)}
-              className="text-center rounded-full bg-[var(--gold)] py-3 text-sm font-medium text-[#0a0a0a]"
+              className="rounded-full bg-primary py-3 text-center text-sm font-semibold text-primary-foreground"
             >
-              Assinar agora
+              Começar agora
             </Link>
           </div>
         </div>

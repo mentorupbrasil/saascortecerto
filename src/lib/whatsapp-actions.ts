@@ -34,7 +34,7 @@ async function assertAutoWhatsApp(tenantId: string) {
   const plan = await getTenantPlan(tenantId);
   if (!canUseAutoWhatsApp(plan)) {
     throw new Error(
-      "Disparo automático disponível no plano Completo (R$ 59,90/mês). No plano Pro, use o botão para abrir o WhatsApp manualmente."
+      "Disparo automático disponível no plano Pro. No plano Básico, use o botão para abrir o WhatsApp manualmente."
     );
   }
 }

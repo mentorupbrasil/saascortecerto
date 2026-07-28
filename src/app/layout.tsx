@@ -65,7 +65,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${outfit.variable} ${display.variable}`}>
+    <html
+      lang="pt-BR"
+      className={`${outfit.variable} ${display.variable}`}
+      suppressHydrationWarning
+    >
       <body className="bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
