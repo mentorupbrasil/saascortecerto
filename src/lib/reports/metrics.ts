@@ -144,14 +144,21 @@ async function buildMetricsForRange(
   const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
   const timeZone = getTenantTimezone(settings?.timeZone);
 
-  const [payments, appointments, newClients, barberCount] = await Promise.all([
+  const [payments, refunds, appointments, newClients, barberCount] = await Promise.all([
     prisma.salePayment.findMany({
       where: {
         tenantId,
-        status: "COMPLETED",
+        status: { in: ["COMPLETED", "REFUNDED"] },
         createdAt: { gte: from, lte: to },
       },
       select: { amount: true, method: true },
+    }),
+    prisma.saleRefund.findMany({
+      where: {
+        tenantId,
+        createdAt: { gte: from, lte: to },
+      },
+      select: { amount: true, payment: { select: { method: true } } },
     }),
     prisma.appointment.findMany({
       where: {
@@ -175,10 +182,21 @@ async function buildMetricsForRange(
     }),
   ]);
 
-  const revenueTotal = payments.reduce((s, p) => s + Number(p.amount), 0);
+  // Net revenue = payments completed (or later refunded) with createdAt in range,
+  // minus refunds issued in range — refunds affect the period they happened in,
+  // not the original payment's period.
+  const grossRevenue = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const refundedTotal = refunds.reduce((s, r) => s + Number(r.amount), 0);
+  const revenueTotal = grossRevenue - refundedTotal;
+
   const byMethod: Record<string, number> = {};
   for (const p of payments) {
     byMethod[p.method] = (byMethod[p.method] ?? 0) + Number(p.amount);
+  }
+  for (const r of refunds) {
+    const method = r.payment?.method;
+    if (!method) continue;
+    byMethod[method] = (byMethod[method] ?? 0) - Number(r.amount);
   }
 
   const completed = appointments.filter((a) => a.status === "COMPLETED");
@@ -353,7 +371,7 @@ export function metricsToCsv(metrics: ReportMetrics): string {
     ["Métrica", "Valor"],
     ["Período início", metrics.period.from],
     ["Período fim", metrics.period.to],
-    ["Receita (SalePayment COMPLETED)", metrics.revenue.total.toFixed(2)],
+    ["Receita líquida (pagamentos - estornos)", metrics.revenue.total.toFixed(2)],
     ["Pagamentos", String(metrics.revenue.paymentCount)],
     ["Taxa ocupação", `${(metrics.occupancy.rate * 100).toFixed(1)}%`],
     ["Minutos agendados", String(metrics.occupancy.bookedMinutes)],

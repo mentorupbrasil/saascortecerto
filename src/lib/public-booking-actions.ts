@@ -27,6 +27,8 @@ import {
   validateApprovedMercadoPagoPayment,
 } from "@/lib/domain/payment-validation";
 import { logger } from "@/lib/logging/logger";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-ip";
 
 const publicBookingSchema = z.object({
   clientName: z.string().min(2),
@@ -125,6 +127,14 @@ export async function getPublicAvailableSlots(
 ) {
   const tenant = await getPublicBookingPage(slug);
   if (!tenant) throw new Error("Barbearia não encontrada");
+
+  const ip = await getClientIp();
+  await consumeRateLimit({
+    scope: "public_slots_query",
+    identityParts: [ip, tenant.id],
+    limit: 120,
+    windowMs: 60 * 60 * 1000,
+  });
 
   const service = tenant.services.find((s) => s.id === serviceId);
   if (!service) throw new Error("Serviço não encontrado");
@@ -515,6 +525,14 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
 }
 
 export async function reportPublicBookingPaid(slug: string, checkoutId: string) {
+  const ip = await getClientIp();
+  await consumeRateLimit({
+    scope: "public_booking_paid_report",
+    identityParts: [ip, checkoutId],
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+
   const checkout = await prisma.publicBookingCheckout.findFirst({
     where: { id: checkoutId, tenant: { slug } },
     include: { tenant: { include: { settings: true } } },
@@ -547,6 +565,21 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   });
 
   if (!tenant) throw new Error("Barbearia não encontrada");
+
+  const ip = await getClientIp();
+  const rawPhone = String(formData.get("clientPhone") || "").replace(/\D/g, "");
+  await consumeRateLimit({
+    scope: "public_booking_create_ip",
+    identityParts: [ip],
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  await consumeRateLimit({
+    scope: "public_booking_create_phone",
+    identityParts: [tenant.id, rawPhone],
+    limit: 4,
+    windowMs: 60 * 60 * 1000,
+  });
 
   const requirePix = tenant.settings?.bookingRequirePixPayment ?? false;
   if (requirePix) {

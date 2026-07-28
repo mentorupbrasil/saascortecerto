@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import type { UserRole } from "@/lib/auth-utils";
 import { prisma } from "./prisma";
+import { consumeRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/security/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -17,11 +18,26 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const email = credentials.email.toLowerCase().trim();
+        const forwardedFor = req?.headers?.["x-forwarded-for"];
+        const ip = (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor)
+          ?.split(",")[0]
+          ?.trim() || "unknown";
+
+        await consumeRateLimit({
+          scope: "login",
+          identityParts: [ip, email],
+          limit: 8,
+          windowMs: 15 * 60 * 1000,
+        }).catch((err) => {
+          throw new Error(err instanceof Error ? err.message : RATE_LIMIT_MESSAGE);
+        });
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
+          where: { email },
           include: { tenant: { select: { id: true, name: true, active: true } } },
         });
 

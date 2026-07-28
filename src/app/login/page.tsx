@@ -37,7 +37,11 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Email ou senha incorretos");
+      setError(
+        result.error.startsWith("Muitas tentativas")
+          ? result.error
+          : "Email ou senha incorretos"
+      );
       return;
     }
 

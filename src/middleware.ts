@@ -61,7 +61,9 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      // Waitlist offer confirmation is a public link sent via WhatsApp — no login required.
+      authorized: ({ token, req }) =>
+        req.nextUrl.pathname.startsWith("/lista-espera/confirmar") ? true : !!token,
     },
   }
 );

@@ -6,6 +6,11 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
+    // One process, one file at a time — shared Neon DB + TRUNCATE cannot run in parallel.
+    pool: "forks",
+    fileParallelism: false,
+    testTimeout: 45_000,
+    hookTimeout: 60_000,
   },
   resolve: {
     alias: {

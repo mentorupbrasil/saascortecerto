@@ -15,6 +15,8 @@ import { z } from "zod";
 import type { Plan } from "@prisma/client";
 import { addHours } from "date-fns";
 import { slugify } from "@/lib/utils";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-ip";
 
 const signupSchema = z.object({
   barbershopName: z.string().min(2),
@@ -26,6 +28,14 @@ const signupSchema = z.object({
 });
 
 export async function createSignupCheckout(formData: FormData) {
+  const ip = await getClientIp();
+  await consumeRateLimit({
+    scope: "signup",
+    identityParts: [ip],
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+
   const parsed = signupSchema.parse({
     barbershopName: formData.get("barbershopName"),
     ownerName: formData.get("ownerName"),

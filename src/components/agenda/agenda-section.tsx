@@ -47,6 +47,7 @@ export function AgendaSection({
 
   const handleReschedule = useCallback((apt: CalendarAppointment) => {
     setReschedulePrefill({
+      appointmentId: apt.id,
       clientName: apt.clientName,
       clientPhone: apt.clientPhone ?? "",
       serviceId: apt.serviceId,

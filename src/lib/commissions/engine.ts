@@ -93,12 +93,58 @@ export async function createCommissionEntryForSaleItem(
         saleItemId,
         amount,
         periodKey,
+        kind: "EARNED",
       },
     });
   } catch (err) {
     if (isUniqueConstraintError(err)) {
       const existing = await db.commissionEntry.findFirst({
-        where: { saleItemId },
+        where: { saleItemId, kind: "EARNED" },
+      });
+      if (existing) return existing;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Reverses a previously earned commission for a sale item (e.g. on sale cancellation).
+ * Idempotent: if no EARNED entry exists, returns null; if a REVERSAL already exists,
+ * returns it instead of creating a duplicate.
+ */
+export async function reverseCommissionForSaleItem(
+  tenantId: string,
+  saleItemId: string,
+  timeZone?: string | null,
+  db: DbClient = prisma
+) {
+  const earned = await db.commissionEntry.findFirst({
+    where: { tenantId, saleItemId, kind: "EARNED" },
+  });
+  if (!earned) return null;
+
+  const existingReversal = await db.commissionEntry.findFirst({
+    where: { reversesEntryId: earned.id },
+  });
+  if (existingReversal) return existingReversal;
+
+  try {
+    return await db.commissionEntry.create({
+      data: {
+        tenantId,
+        ruleId: earned.ruleId,
+        barberId: earned.barberId,
+        saleItemId,
+        amount: toDecimal(earned.amount).neg(),
+        periodKey: earned.periodKey,
+        kind: "REVERSAL",
+        reversesEntryId: earned.id,
+      },
+    });
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      const existing = await db.commissionEntry.findFirst({
+        where: { reversesEntryId: earned.id },
       });
       if (existing) return existing;
     }

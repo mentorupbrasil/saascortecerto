@@ -2,6 +2,12 @@ import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, addHours, setHours, setMinutes, startOfDay } from "date-fns";
 
+// This seed creates demo-only accounts/credentials (e.g. admin@cortecerto.com) —
+// never run it against a real production database.
+if (process.env.NODE_ENV === "production" || process.env.ALLOW_DEMO_SEED !== "true") {
+  throw new Error("Demo seed bloqueado neste ambiente");
+}
+
 const prisma = new PrismaClient();
 
 const DEFAULT_SERVICES = [

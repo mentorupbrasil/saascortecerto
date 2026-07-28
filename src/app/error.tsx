@@ -10,7 +10,9 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    // Only the digest is logged client-side — never the message/stack, which
+    // may contain internal details. Full details are captured server-side.
+    console.error("client_error_boundary", error.digest);
   }, [error]);
 
   return (
@@ -18,12 +20,9 @@ export default function Error({
       <div className="max-w-md rounded-2xl border border-red-500/30 bg-zinc-900 p-6 text-center">
         <p className="text-4xl mb-4">⚠️</p>
         <h1 className="text-xl font-bold text-foreground mb-2">Algo deu errado</h1>
-        <p className="text-sm text-zinc-400 mb-4">
-          Erro no servidor. Verifique se o banco Neon está sincronizado e as variáveis
-          de ambiente na Vercel.
-        </p>
-        <p className="text-xs text-zinc-600 mb-4 font-mono break-all">
-          {error.message || error.digest}
+        <p className="text-sm text-zinc-400 mb-6">
+          Não foi possível concluir esta operação. Tente novamente. Se o problema continuar,
+          entre em contato com o suporte.
         </p>
         <div className="flex gap-3 justify-center">
           <button
@@ -32,13 +31,6 @@ export default function Error({
           >
             Tentar de novo
           </button>
-          <a
-            href="/api/health"
-            target="_blank"
-            className="rounded-xl bg-zinc-800 px-4 py-2 text-sm text-zinc-300"
-          >
-            Ver diagnóstico
-          </a>
         </div>
       </div>
     </div>

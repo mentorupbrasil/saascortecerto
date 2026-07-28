@@ -244,6 +244,11 @@ enum FiscalDocumentStatus {
   CANCELLED
 }
 
+enum CommissionEntryKind {
+  EARNED
+  REVERSAL
+}
+
 model Tenant {
   id           String   @id @default(cuid())
   name         String
@@ -281,6 +286,7 @@ model Tenant {
   sales                 Sale[]
   saleItems             SaleItem[]
   salePayments          SalePayment[]
+  salePaymentBatches    SalePaymentBatch[]
   saleRefunds           SaleRefund[]
   expenseCategories     ExpenseCategory[]
   expenses              Expense[]
@@ -345,25 +351,27 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  appointments        Appointment[]           @relation("BarberAppointments")
-  locationAccess      UserLocationAccess[]
-  barberSchedules     BarberSchedule[]
-  barberTimeOffs      BarberTimeOff[]
-  serviceBarbers      ServiceBarber[]
-  appointmentHistory  AppointmentHistory[]    @relation("AppointmentHistoryActor")
-  confirmedBookings   PublicBookingCheckout[] @relation("ConfirmedByUser")
-  waitlistEntries     WaitlistEntry[]
-  cashSessions        CashSession[]           @relation("CashSessionOperator")
-  cashMovements       CashMovement[]          @relation("CashMovementCreator")
-  sales               Sale[]                  @relation("SaleOperator")
-  saleItems           SaleItem[]              @relation("SaleItemBarber")
-  saleRefunds         SaleRefund[]            @relation("SaleRefundUser")
-  expenses            Expense[]               @relation("ExpenseCreator")
-  commissionRules     CommissionRule[]
-  commissionEntries   CommissionEntry[]
-  clientFavorites     ClientFavorite[]
-  permissionOverrides PermissionOverride[]
-  auditLogs           AuditLog[]              @relation("AuditLogActor")
+  appointments           Appointment[]           @relation("BarberAppointments")
+  locationAccess         UserLocationAccess[]
+  barberSchedules        BarberSchedule[]
+  barberTimeOffs         BarberTimeOff[]
+  serviceBarbers         ServiceBarber[]
+  appointmentHistory     AppointmentHistory[]    @relation("AppointmentHistoryActor")
+  confirmedBookings      PublicBookingCheckout[] @relation("ConfirmedByUser")
+  waitlistEntries        WaitlistEntry[]
+  cashSessions           CashSession[]           @relation("CashSessionOperator")
+  cashMovements          CashMovement[]          @relation("CashMovementCreator")
+  sales                  Sale[]                  @relation("SaleOperator")
+  defaultBarberSales     Sale[]                  @relation("SaleDefaultBarber")
+  saleItems              SaleItem[]              @relation("SaleItemBarber")
+  saleRefunds            SaleRefund[]            @relation("SaleRefundUser")
+  expenses               Expense[]               @relation("ExpenseCreator")
+  commissionRules        CommissionRule[]
+  commissionEntries      CommissionEntry[]
+  clientFavorites        ClientFavorite[]
+  permissionOverrides    PermissionOverride[]
+  auditLogs              AuditLog[]              @relation("AuditLogActor")
+  offeredWaitlistEntries WaitlistEntry[]         @relation("WaitlistOfferedBarber")
 
   @@index([tenantId])
 }
@@ -788,10 +796,15 @@ model WaitlistEntry {
   status             WaitlistStatus @default(PENDING)
   offerExpiresAt     DateTime?
   offeredSlotAt      DateTime?
+  offeredBarberId    String?
+  offeredBarber      User?          @relation("WaitlistOfferedBarber", fields: [offeredBarberId], references: [id], onDelete: SetNull)
+  offerTokenHash     String?
+  offerTokenUsedAt   DateTime?
   createdAt          DateTime       @default(now())
 
   appointments Appointment[]
 
+  @@unique([offerTokenHash])
   @@index([tenantId, status])
   @@index([tenantId, serviceId])
   @@index([clientId])
@@ -863,32 +876,35 @@ model CashMovement {
 }
 
 model Sale {
-  id             String       @id @default(cuid())
-  tenantId       String
-  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  status         SaleStatus   @default(DRAFT)
-  appointmentId  String?
-  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  clientId       String?
-  client         Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  locationId     String?
-  location       Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  cashSessionId  String?
-  cashSession    CashSession? @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
-  operatorUserId String
-  operatorUser   User         @relation("SaleOperator", fields: [operatorUserId], references: [id], onDelete: Restrict)
-  subtotal       Decimal      @default(0) @db.Decimal(12, 2)
-  discount       Decimal      @default(0) @db.Decimal(12, 2)
-  surcharge      Decimal      @default(0) @db.Decimal(12, 2)
-  tip            Decimal      @default(0) @db.Decimal(12, 2)
-  total          Decimal      @default(0) @db.Decimal(12, 2)
-  notes          String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  closedAt       DateTime?
+  id              String       @id @default(cuid())
+  tenantId        String
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status          SaleStatus   @default(DRAFT)
+  appointmentId   String?
+  appointment     Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  clientId        String?
+  client          Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  locationId      String?
+  location        Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  cashSessionId   String?
+  cashSession     CashSession? @relation(fields: [cashSessionId], references: [id], onDelete: SetNull)
+  operatorUserId  String
+  operatorUser    User         @relation("SaleOperator", fields: [operatorUserId], references: [id], onDelete: Restrict)
+  defaultBarberId String?
+  defaultBarber   User?        @relation("SaleDefaultBarber", fields: [defaultBarberId], references: [id], onDelete: SetNull)
+  subtotal        Decimal      @default(0) @db.Decimal(12, 2)
+  discount        Decimal      @default(0) @db.Decimal(12, 2)
+  surcharge       Decimal      @default(0) @db.Decimal(12, 2)
+  tip             Decimal      @default(0) @db.Decimal(12, 2)
+  total           Decimal      @default(0) @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  closedAt        DateTime?
 
   items           SaleItem[]
   payments        SalePayment[]
+  paymentBatches  SalePaymentBatch[]
   refunds         SaleRefund[]
   fiscalDocuments FiscalDocument[]
 
@@ -896,6 +912,22 @@ model Sale {
   @@index([tenantId, createdAt])
   @@index([clientId])
   @@index([appointmentId])
+}
+
+model SalePaymentBatch {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  saleId         String
+  sale           Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  idempotencyKey String
+  payloadHash    String
+  createdAt      DateTime @default(now())
+
+  payments SalePayment[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([saleId])
 }
 
 model SaleItem {
@@ -937,6 +969,8 @@ model SalePayment {
   status      SalePaymentStatus @default(PENDING)
   providerRef String?
   source      SalePaymentSource @default(PENDING)
+  batchId     String?
+  batch       SalePaymentBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
   createdAt   DateTime          @default(now())
 
   refunds SaleRefund[]
@@ -959,6 +993,7 @@ model SaleRefund {
   refundedByUser   User?        @relation("SaleRefundUser", fields: [refundedByUserId], references: [id], onDelete: SetNull)
   createdAt        DateTime     @default(now())
 
+  @@unique([paymentId])
   @@index([tenantId])
   @@index([saleId])
 }
@@ -1027,20 +1062,24 @@ model CommissionRule {
 }
 
 model CommissionEntry {
-  id         String          @id @default(cuid())
-  tenantId   String
-  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ruleId     String?
-  rule       CommissionRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
-  barberId   String
-  barber     User            @relation(fields: [barberId], references: [id], onDelete: Restrict)
-  saleItemId String?
-  saleItem   SaleItem?       @relation(fields: [saleItemId], references: [id], onDelete: SetNull)
-  amount     Decimal         @db.Decimal(12, 2)
-  periodKey  String
-  createdAt  DateTime        @default(now())
+  id              String              @id @default(cuid())
+  tenantId        String
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ruleId          String?
+  rule            CommissionRule?     @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  barberId        String
+  barber          User                @relation(fields: [barberId], references: [id], onDelete: Restrict)
+  saleItemId      String?
+  saleItem        SaleItem?           @relation(fields: [saleItemId], references: [id], onDelete: SetNull)
+  amount          Decimal             @db.Decimal(12, 2)
+  periodKey       String
+  kind            CommissionEntryKind @default(EARNED)
+  reversesEntryId String?             @unique
+  reversesEntry   CommissionEntry?    @relation("CommissionReversal", fields: [reversesEntryId], references: [id], onDelete: SetNull)
+  reversedBy      CommissionEntry?    @relation("CommissionReversal")
+  createdAt       DateTime            @default(now())
 
-  @@unique([saleItemId])
+  @@unique([saleItemId, kind])
   @@index([tenantId, periodKey])
   @@index([barberId, periodKey])
 }
@@ -1384,4 +1423,16 @@ model PermissionOverride {
 
   @@unique([tenantId, userId, permission])
   @@index([tenantId, userId])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  scope       String
+  keyHash     String
+  windowStart DateTime
+  count       Int      @default(0)
+  expiresAt   DateTime
+
+  @@unique([scope, keyHash, windowStart])
+  @@index([expiresAt])
 }

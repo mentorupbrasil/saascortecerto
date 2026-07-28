@@ -20,6 +20,8 @@ export type AuditAction =
   | "membership.changed"
   | "client.exported"
   | "client.anonymized"
+  | "client.photo_uploaded"
+  | "client.photo_removed"
   | "integration.updated";
 
 export async function writeAuditLog(input: {

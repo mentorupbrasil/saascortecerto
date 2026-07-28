@@ -85,16 +85,18 @@ export function WaitlistPanel({
   const [offerDate, setOfferDate] = useState(new Date().toISOString().slice(0, 10));
   const [offerTime, setOfferTime] = useState("10:00");
   const [offerHours, setOfferHours] = useState("2");
+  const [offerBarberId, setOfferBarberId] = useState("");
+  const [offerResult, setOfferResult] = useState<{ waUrl: string } | null>(null);
   const router = useRouter();
   const toast = useToast();
   const dayOptions = useMemo(() => nextDays(14), []);
 
   const offerEntry = entries.find((e) => e.id === offerId) ?? null;
-  const offerPreview = useMemo(() => {
+
+  function buildOfferMessage(confirmUrl: string) {
     if (!offerEntry) return "";
-    const when = `${offerDate} ${offerTime}`;
-    return `Olá ${offerEntry.clientName}! Temos uma vaga para ${offerEntry.service.name} em ${format(new Date(`${offerDate}T${offerTime}`), "dd/MM 'às' HH:mm", { locale: ptBR })}. Responda para confirmar.`;
-  }, [offerEntry, offerDate, offerTime]);
+    return `Olá ${offerEntry.clientName}! Temos uma vaga para ${offerEntry.service.name} em ${format(new Date(`${offerDate}T${offerTime}`), "dd/MM 'às' HH:mm", { locale: ptBR })}. Confirme pelo link: ${confirmUrl}`;
+  }
 
   function toggleDate(value: string) {
     setSelectedDates((prev) =>
@@ -141,18 +143,34 @@ export function WaitlistPanel({
 
   function handleOfferSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!offerId) return;
+    if (!offerId || !offerEntry) return;
     const slotAt = new Date(`${offerDate}T${offerTime}:00`).toISOString();
     startTransition(async () => {
       try {
-        await offerWaitlistSlotAction(offerId, slotAt);
-        setOfferId(null);
+        const result = await offerWaitlistSlotAction(offerId, slotAt, {
+          barberId: offerBarberId || null,
+          offerHours: Number(offerHours) || undefined,
+        });
+        const baseUrl =
+          typeof window !== "undefined"
+            ? window.location.origin
+            : (process.env.NEXT_PUBLIC_APP_URL ?? "");
+        const confirmUrl = `${baseUrl}${result?.confirmPath ?? ""}`;
+        const message = buildOfferMessage(confirmUrl);
+        const waUrl = `https://wa.me/55${offerEntry.clientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+        setOfferResult({ waUrl });
         toast.success("Vaga oferecida");
         router.refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Erro ao oferecer vaga");
       }
     });
+  }
+
+  function closeOfferDialog() {
+    setOfferId(null);
+    setOfferResult(null);
+    setOfferBarberId("");
   }
 
   return (
@@ -402,21 +420,21 @@ export function WaitlistPanel({
 
       <ResponsiveDialog
         open={!!offerId}
-        onOpenChange={(o) => !o && setOfferId(null)}
+        onOpenChange={(o) => !o && closeOfferDialog()}
         title="Oferecer vaga"
         mobileVariant="sheet"
         footer={
-          <div className="flex flex-col gap-2">
-            {offerEntry && (
-              <a
-                href={`https://wa.me/55${offerEntry.clientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(offerPreview)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-border bg-secondary text-sm font-medium"
-              >
-                <MessageCircle className="h-4 w-4" /> Abrir WhatsApp
-              </a>
-            )}
+          offerResult ? (
+            <a
+              href={offerResult.waUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={closeOfferDialog}
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-amber-500 text-sm font-medium text-black"
+            >
+              <MessageCircle className="h-4 w-4" /> Enviar link pelo WhatsApp
+            </a>
+          ) : (
             <Button
               form="waitlist-offer"
               type="submit"
@@ -425,49 +443,57 @@ export function WaitlistPanel({
             >
               {pending ? "Enviando..." : "Confirmar oferta"}
             </Button>
-          </div>
+          )
         }
       >
-        <form id="waitlist-offer" onSubmit={handleOfferSubmit} className="space-y-3">
-          <Input
-            type="date"
-            label="Data"
-            value={offerDate}
-            onChange={(e) => setOfferDate(e.target.value)}
-            required
-          />
-          <Input
-            type="time"
-            label="Horário"
-            value={offerTime}
-            onChange={(e) => setOfferTime(e.target.value)}
-            required
-          />
-          <div>
-            <label className="mb-1.5 block text-sm text-muted-foreground">Profissional</label>
-            <select className="w-full min-h-[44px] rounded-xl border border-border bg-input px-3 text-sm">
-              <option value="">
-                {offerEntry?.barber?.name ?? "Qualquer / o da preferência"}
-              </option>
-              {formOptions.barbers.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
+        {offerResult ? (
+          <p className="rounded-xl bg-green-500/10 px-3 py-3 text-sm text-green-300">
+            Vaga oferecida! Envie o link de confirmação pelo WhatsApp para o cliente reservar o
+            horário.
+          </p>
+        ) : (
+          <form id="waitlist-offer" onSubmit={handleOfferSubmit} className="space-y-3">
+            <Input
+              type="date"
+              label="Data"
+              value={offerDate}
+              onChange={(e) => setOfferDate(e.target.value)}
+              required
+            />
+            <Input
+              type="time"
+              label="Horário"
+              value={offerTime}
+              onChange={(e) => setOfferTime(e.target.value)}
+              required
+            />
+            <div>
+              <label className="mb-1.5 block text-sm text-muted-foreground">Profissional</label>
+              <select
+                value={offerBarberId}
+                onChange={(e) => setOfferBarberId(e.target.value)}
+                className="w-full min-h-[44px] rounded-xl border border-border bg-input px-3 text-sm"
+              >
+                <option value="">
+                  {offerEntry?.barber?.name ?? "Qualquer / o da preferência"}
                 </option>
-              ))}
-            </select>
-          </div>
-          <Input
-            type="number"
-            min={1}
-            label="Validade da oferta (horas)"
-            value={offerHours}
-            onChange={(e) => setOfferHours(e.target.value)}
-          />
-          <div className="rounded-xl bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
-            <p className="mb-1 text-xs text-zinc-500">Preview da mensagem</p>
-            {offerPreview}
-          </div>
-        </form>
+                {formOptions.barbers.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Input
+              type="number"
+              min={1}
+              max={24}
+              label="Validade da oferta (horas)"
+              value={offerHours}
+              onChange={(e) => setOfferHours(e.target.value)}
+            />
+          </form>
+        )}
       </ResponsiveDialog>
 
       <ConfirmDialog

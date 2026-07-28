@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   createComandaAction,
   addComandaItemAction,
-  addComandaPaymentAction,
+  recordComandaPaymentsAction,
   cancelComandaAction,
   getComandaDetail,
 } from "@/lib/finance-actions";
@@ -264,6 +264,7 @@ export function ComandasPanel({ data }: { data: ComandasData }) {
       try {
         const result = await createComandaAction({
           clientId: newDraft.clientId || undefined,
+          defaultBarberId: newDraft.barberId || undefined,
         });
         if (newDraft.barberId) {
           setDefaultBarberBySale((prev) => ({
@@ -340,20 +341,23 @@ export function ComandasPanel({ data }: { data: ComandasData }) {
 
     const totalPaying = toSubmit.reduce((s, p) => s + p.amount, 0);
     const alreadyPaid = paidTotal(detail.payments);
-    if (alreadyPaid + totalPaying < detail.total) {
-      toast.error(`Faltam ${formatCurrency(detail.total - alreadyPaid - totalPaying)} para fechar`);
+    const remaining = detail.total - alreadyPaid;
+    if (totalPaying < remaining) {
+      toast.error(`Faltam ${formatCurrency(remaining - totalPaying)} para fechar`);
+      return;
+    }
+    if (totalPaying > remaining) {
+      toast.error(`Valor excede o saldo restante em ${formatCurrency(totalPaying - remaining)}`);
       return;
     }
 
     startTransition(async () => {
       try {
-        for (const payment of toSubmit) {
-          await addComandaPaymentAction(
-            selectedId,
-            payment.method,
-            payment.amount
-          );
-        }
+        await recordComandaPaymentsAction({
+          saleId: selectedId,
+          payments: toSubmit,
+          idempotencyKey: crypto.randomUUID(),
+        });
         setChargeOpen(false);
         setPendingPayments([]);
         setChargeAmount("");

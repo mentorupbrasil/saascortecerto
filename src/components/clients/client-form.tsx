@@ -105,11 +105,16 @@ export function ClientFormModal({
       setDirty(true);
       return;
     }
-    await fetch("/api/upload/client-photo", {
+    const res = await fetch("/api/upload/client-photo", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId: client.id }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "Erro ao remover foto");
+      return;
+    }
     setPreview(null);
     setPhotoFile(null);
     setDirty(true);

@@ -1,100 +1,103 @@
 /**
- * Rate limiting — Upstash-ready interface with in-memory fallback for dev.
+ * Persistent rate limiting backed by PostgreSQL (RateLimitBucket).
  *
- * Production: swap `InMemoryRateLimiter` for `@upstash/ratelimit` + Redis.
- * Example:
- *   import { Ratelimit } from "@upstash/ratelimit";
- *   import { Redis } from "@upstash/redis";
- *   const limiter = new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(10, "1 m") });
+ * Identities (IP, phone, email, etc.) are never stored in plaintext — only
+ * an HMAC-SHA256 hash of the normalized identity, keyed by a server secret.
+ * Fixed-window counters: one row per (scope, identity hash, window start).
  */
+import "server-only";
+import { createHmac } from "crypto";
+import { prisma } from "@/lib/prisma";
 
-export type RateLimitResult = {
-  success: boolean;
-  limit: number;
-  remaining: number;
-  resetAt: number;
-};
+export const RATE_LIMIT_MESSAGE =
+  "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
 
-export interface RateLimiter {
-  check(key: string): Promise<RateLimitResult>;
-}
-
-type Bucket = { count: number; resetAt: number };
-
-class InMemoryRateLimiter implements RateLimiter {
-  private buckets = new Map<string, Bucket>();
-
-  constructor(
-    private readonly limit: number,
-    private readonly windowMs: number
-  ) {}
-
-  async check(key: string): Promise<RateLimitResult> {
-    const now = Date.now();
-    const existing = this.buckets.get(key);
-
-    if (!existing || existing.resetAt <= now) {
-      const resetAt = now + this.windowMs;
-      this.buckets.set(key, { count: 1, resetAt });
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit - 1,
-        resetAt,
-      };
-    }
-
-    if (existing.count >= this.limit) {
-      return {
-        success: false,
-        limit: this.limit,
-        remaining: 0,
-        resetAt: existing.resetAt,
-      };
-    }
-
-    existing.count += 1;
-    return {
-      success: true,
-      limit: this.limit,
-      remaining: this.limit - existing.count,
-      resetAt: existing.resetAt,
-    };
+export class RateLimitError extends Error {
+  constructor(message: string = RATE_LIMIT_MESSAGE) {
+    super(message);
+    this.name = "RateLimitError";
   }
 }
 
-const isProduction = process.env.NODE_ENV === "production";
+/** Only used outside production when neither RATE_LIMIT_SECRET nor NEXTAUTH_SECRET is set (local dev/tests). */
+const DEV_FALLBACK_SECRET = "dev-only-insecure-rate-limit-secret-do-not-use-in-production";
 
-/**
- * Default limiter: 60 requests per minute per key.
- * In production, replace with Upstash Redis for durable cross-instance limits.
- */
-export function createRateLimiter(options?: {
-  limit?: number;
-  windowMs?: number;
-}): RateLimiter {
-  const limit = options?.limit ?? 60;
-  const windowMs = options?.windowMs ?? 60_000;
+function resolveSecret(): string {
+  const explicit = process.env.RATE_LIMIT_SECRET?.trim();
+  if (explicit) return explicit;
 
-  if (isProduction) {
-    // TODO: wire Upstash when UPSTASH_REDIS_REST_URL is configured
-    console.warn(
-      "[rate-limit] Using in-memory limiter in production — configure Upstash for durable limits."
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Configuração de segurança ausente. Tente novamente mais tarde."
     );
   }
 
-  return new InMemoryRateLimiter(limit, windowMs);
+  const authSecret = process.env.NEXTAUTH_SECRET?.trim();
+  return authSecret || DEV_FALLBACK_SECRET;
 }
 
-export const defaultRateLimiter = createRateLimiter();
+function hashIdentity(identityParts: Array<string | null | undefined>): string {
+  const secret = resolveSecret();
+  const normalized = identityParts
+    .map((part) => (part ?? "").trim().toLowerCase())
+    .join("|");
+  return createHmac("sha256", secret).update(normalized).digest("hex");
+}
 
-export async function rateLimitOrThrow(
-  key: string,
-  limiter: RateLimiter = defaultRateLimiter
-): Promise<RateLimitResult> {
-  const result = await limiter.check(key);
-  if (!result.success) {
-    throw new Error("Too many requests");
+export type ConsumeRateLimitInput = {
+  /** Logical bucket, e.g. "login", "signup", "public_booking_create" */
+  scope: string;
+  /** Parts combined and hashed to form the rate-limit identity (never stored raw) */
+  identityParts: Array<string | null | undefined>;
+  limit: number;
+  windowMs: number;
+};
+
+/**
+ * Increments the counter for this (scope, identity, window) and throws
+ * RateLimitError once the limit is exceeded within the current fixed
+ * window. Safe under concurrency: the increment is a single atomic
+ * upsert backed by the bucket's unique constraint.
+ */
+export async function consumeRateLimit(input: ConsumeRateLimitInput): Promise<void> {
+  const keyHash = hashIdentity(input.identityParts);
+  const windowStart = new Date(
+    Math.floor(Date.now() / input.windowMs) * input.windowMs
+  );
+  const expiresAt = new Date(windowStart.getTime() + input.windowMs);
+
+  const bucket = await prisma.rateLimitBucket.upsert({
+    where: {
+      scope_keyHash_windowStart: {
+        scope: input.scope,
+        keyHash,
+        windowStart,
+      },
+    },
+    create: {
+      scope: input.scope,
+      keyHash,
+      windowStart,
+      count: 1,
+      expiresAt,
+    },
+    update: { count: { increment: 1 } },
+  });
+
+  // Opportunistic cleanup — no dedicated cron for this low-stakes table.
+  if (Math.random() < 0.01) {
+    cleanupExpiredRateLimits().catch(() => {});
   }
-  return result;
+
+  if (bucket.count > input.limit) {
+    throw new RateLimitError();
+  }
+}
+
+/** Deletes expired buckets. Safe to call from a cron job or ad hoc. */
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  const result = await prisma.rateLimitBucket.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+  return result.count;
 }

@@ -7,7 +7,7 @@ import { Input, Select, Textarea } from "@/components/ui/input";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { FixedActionBar } from "@/components/ui/page-chrome";
 import { useToast } from "@/components/ui/toast";
-import { createAppointment } from "@/lib/actions";
+import { createAppointment, rescheduleAppointmentAction } from "@/lib/actions";
 import { formatPhone } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -31,6 +31,7 @@ type Service = {
 type Barber = { id: string; name: string };
 
 export type ReschedulePrefill = {
+  appointmentId: string;
   clientName: string;
   clientPhone: string;
   serviceId?: string;
@@ -156,6 +157,27 @@ export function NewAppointmentModal({
 
   function handleSubmit() {
     setError("");
+
+    if (isReschedule && prefill?.appointmentId) {
+      startTransition(async () => {
+        try {
+          await rescheduleAppointmentAction({
+            appointmentId: prefill.appointmentId,
+            scheduledAt: form.scheduledAt,
+            barberId: form.barberId || null,
+          });
+          toast.success("Horário reagendado");
+          setOpen(false);
+          router.refresh();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Erro ao reagendar";
+          setError(msg);
+          toast.error(msg);
+        }
+      });
+      return;
+    }
+
     const fd = new FormData();
     fd.set("clientName", form.clientName);
     fd.set("clientPhone", form.clientPhone);
@@ -168,7 +190,7 @@ export function NewAppointmentModal({
     startTransition(async () => {
       try {
         await createAppointment(fd);
-        toast.success(isReschedule ? "Novo horário criado" : "Agendamento criado");
+        toast.success("Agendamento criado");
         setOpen(false);
         router.refresh();
       } catch (err) {
@@ -297,8 +319,7 @@ export function NewAppointmentModal({
 
         {isReschedule && step >= 4 && (
           <p className="mb-4 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
-            Crie um novo horário para {prefill?.clientName}. O horário anterior permanece até
-            ser cancelado.
+            Reagendando o horário de {prefill?.clientName}.
           </p>
         )}
 

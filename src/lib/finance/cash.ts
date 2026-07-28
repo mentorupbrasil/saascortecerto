@@ -145,22 +145,34 @@ export async function openCashSession(
   return session;
 }
 
-async function computeExpectedBalance(sessionId: string): Promise<Decimal> {
-  const session = await prisma.cashSession.findUniqueOrThrow({
-    where: { id: sessionId },
-    include: { movements: true },
-  });
-
-  let balance = toDecimal(session.openingBalance);
-  for (const m of session.movements) {
+/**
+ * Balance convention: OPENING is the base; SUPPLY, SALE and ADJUSTMENT add to
+ * the drawer (ADJUSTMENT is treated as a positive supply-like correction —
+ * amounts are always stored positive); BLEED and REFUND subtract.
+ */
+export function calculateExpectedBalance(
+  openingBalance: number | string | Decimal,
+  movements: Array<{ type: CashMovementType; amount: number | string | Decimal }>
+): Decimal {
+  let balance = toDecimal(openingBalance);
+  for (const m of movements) {
     const amount = toDecimal(m.amount);
-    if (m.type === "BLEED") {
+    if (m.type === "BLEED" || m.type === "REFUND") {
       balance = balance.minus(amount);
     } else {
       balance = balance.plus(amount);
     }
   }
   return balance;
+}
+
+export async function computeExpectedBalance(sessionId: string): Promise<Decimal> {
+  const session = await prisma.cashSession.findUniqueOrThrow({
+    where: { id: sessionId },
+    include: { movements: true },
+  });
+
+  return calculateExpectedBalance(session.openingBalance, session.movements);
 }
 
 export async function closeCashSession(

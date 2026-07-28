@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
@@ -19,7 +20,7 @@ import {
 import {
   createSale,
   addSaleItem,
-  addSalePayment,
+  recordSalePaymentsAndClose,
   cancelSale,
   listSales,
   getSaleById,
@@ -91,6 +92,7 @@ const createComandaSchema = z
   .object({
     clientId: z.string().optional(),
     appointmentId: z.string().optional(),
+    defaultBarberId: z.string().optional(),
   })
   .strict();
 
@@ -111,6 +113,21 @@ const addComandaPaymentSchema = z
     saleId: z.string().min(1),
     method: z.enum(["PIX", "CASH", "CARD"]),
     amount: z.coerce.number().positive(),
+  })
+  .strict();
+
+const recordComandaPaymentsSchema = z
+  .object({
+    saleId: z.string().min(1),
+    payments: z
+      .array(
+        z.object({
+          method: z.enum(["PIX", "CASH", "CARD"]),
+          amount: z.coerce.number().positive(),
+        })
+      )
+      .min(1),
+    idempotencyKey: z.string().min(1),
   })
   .strict();
 
@@ -339,6 +356,7 @@ export async function getComandasPanelData() {
 export async function createComandaAction(input: {
   clientId?: string;
   appointmentId?: string;
+  defaultBarberId?: string;
 }) {
   const parsed = createComandaSchema.parse(input);
   const ctx = await financeCtx();
@@ -376,6 +394,12 @@ export async function addComandaItemAction(
   return { success: true };
 }
 
+/**
+ * Backwards-compatible single-payment entrypoint. Delegates to
+ * recordSalePaymentsAndClose with a freshly generated idempotency key, so it
+ * only succeeds when the amount exactly matches the comanda's outstanding
+ * balance. For split payments, use recordComandaPaymentsAction instead.
+ */
 export async function addComandaPaymentAction(
   saleId: string,
   method: PaymentMethod,
@@ -386,9 +410,28 @@ export async function addComandaPaymentAction(
   if (!hasPermission(ctx.user, "finance:sell")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para registrar pagamentos");
   }
-  await addSalePayment(ctx, parsed.saleId, {
-    method: parsed.method,
-    amount: parsed.amount,
+  await recordSalePaymentsAndClose(ctx, parsed.saleId, {
+    payments: [{ method: parsed.method, amount: parsed.amount }],
+    idempotencyKey: randomUUID(),
+  });
+  revalidateFinance();
+  return { success: true };
+}
+
+/** Records one or more payments (e.g. a split charge) and closes the comanda atomically. */
+export async function recordComandaPaymentsAction(input: {
+  saleId: string;
+  payments: Array<{ method: PaymentMethod; amount: number }>;
+  idempotencyKey: string;
+}) {
+  const parsed = recordComandaPaymentsSchema.parse(input);
+  const ctx = await financeCtx();
+  if (!hasPermission(ctx.user, "finance:sell")) {
+    throw new AuthError("FORBIDDEN", "Sem permissão para registrar pagamentos");
+  }
+  await recordSalePaymentsAndClose(ctx, parsed.saleId, {
+    payments: parsed.payments,
+    idempotencyKey: parsed.idempotencyKey,
   });
   revalidateFinance();
   return { success: true };
@@ -414,6 +457,7 @@ export async function getComandaDetail(saleId: string) {
   if (!sale) return null;
   return {
     ...serializeSale(sale),
+    defaultBarberId: sale.defaultBarberId,
     items: sale.items.map((i) => ({
       id: i.id,
       kind: i.kind,

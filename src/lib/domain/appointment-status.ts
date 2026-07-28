@@ -3,6 +3,8 @@ import type { AppointmentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   appointmentScopeFilter,
+  AuthError,
+  hasPermission,
   requireTenantUser,
   type AuthenticatedUser,
 } from "@/lib/authz";
@@ -26,6 +28,16 @@ export function canTransitionAppointment(
   return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+type LockedAppointmentRow = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  scheduledAt: Date;
+  status: AppointmentStatus;
+  membershipId: string | null;
+  barberId: string | null;
+};
+
 export async function updateAppointmentStatusSecure(
   appointmentId: string,
   nextStatus: AppointmentStatus,
@@ -34,39 +46,46 @@ export async function updateAppointmentStatusSecure(
   const user = actor ?? (await requireTenantUser());
   const tenantId = user.tenantId!;
   const scope = appointmentScopeFilter(user);
+  const scopeBarberId = "barberId" in scope ? (scope as { barberId: string }).barberId : null;
+
+  const requiredPermission = nextStatus === "CANCELLED" ? "agenda:cancel" : "agenda:edit";
+  if (!hasPermission(user, requiredPermission)) {
+    throw new AuthError(
+      "FORBIDDEN",
+      nextStatus === "CANCELLED"
+        ? "Sem permissão para cancelar agendamentos"
+        : "Sem permissão para editar agendamentos"
+    );
+  }
 
   const result = await prisma.$transaction(async (tx) => {
-    const apt = await tx.appointment.findFirst({
-      where: { id: appointmentId, tenantId, ...scope },
-    });
+    // Lock the appointment row for the duration of the transaction so
+    // concurrent status changes / completions on the same row serialize.
+    const rows = await tx.$queryRaw<LockedAppointmentRow[]>`
+      SELECT id, "tenantId", "clientId", "scheduledAt", status, "membershipId", "barberId"
+      FROM "Appointment"
+      WHERE id = ${appointmentId} AND "tenantId" = ${tenantId}
+      FOR UPDATE
+    `;
+    const apt = rows[0];
     if (!apt) {
+      throw new Error("Agendamento não encontrado");
+    }
+    if (scopeBarberId && apt.barberId !== scopeBarberId) {
       throw new Error("Agendamento não encontrado");
     }
 
     if (!canTransitionAppointment(apt.status, nextStatus)) {
-      throw new Error(
-        `Transição inválida: ${apt.status} → ${nextStatus}`
-      );
+      throw new Error(`Transição inválida: ${apt.status} → ${nextStatus}`);
     }
 
-    const updated = await tx.appointment.updateMany({
-      where: {
-        id: appointmentId,
-        tenantId,
-        status: apt.status, // optimistic concurrency on status
-        ...scope,
-      },
+    await tx.appointment.update({
+      where: { id: appointmentId },
       data: {
         status: nextStatus,
         ...(nextStatus === "COMPLETED" ? { completedAt: new Date() } : {}),
-        ...(nextStatus === "CONFIRMED" ? {} : {}),
-        ...(nextStatus === "CANCELLED" ? {} : {}),
       },
     });
-
-    if (updated.count !== 1) {
-      throw new Error("Agendamento não foi alterado (conflito ou estado inválido)");
-    }
 
     await tx.appointmentHistory.create({
       data: {
@@ -86,9 +105,16 @@ export async function updateAppointmentStatusSecure(
 
       let membershipId = apt.membershipId;
       if (!membershipId) {
-        const active = await tx.clientMembership.findFirst({
-          where: { clientId: apt.clientId, tenantId, status: "ACTIVE" },
-        });
+        // Lock the candidate active membership too, so two appointments for
+        // the same client can't both claim the last remaining visit.
+        const activeRows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM "ClientMembership"
+          WHERE "clientId" = ${apt.clientId} AND "tenantId" = ${tenantId} AND status = 'ACTIVE'
+          ORDER BY "createdAt" ASC
+          LIMIT 1
+          FOR UPDATE
+        `;
+        const active = activeRows[0];
         if (active) {
           membershipId = active.id;
           await tx.appointment.update({
@@ -99,27 +125,19 @@ export async function updateAppointmentStatusSecure(
       }
 
       if (membershipId) {
-        // redemption uses its own idempotency; call outside nested tx if needed
-        // but recordMembershipVisit uses prisma root — invoke after commit via flag
+        // Runs inside this same transaction: if the membership is invalid or
+        // out of balance, this throws and the whole completion rolls back.
+        await recordMembershipVisit(membershipId, {
+          appointmentId: apt.id,
+          tenantId,
+          visitDate: apt.scheduledAt,
+          db: tx,
+        });
       }
-
-      return { apt, membershipId, previousStatus: apt.status, completed: true as const };
     }
 
-    return {
-      apt,
-      membershipId: null as string | null,
-      previousStatus: apt.status,
-      completed: false as const,
-    };
-  });
-
-  if (result.completed && result.membershipId) {
-    await recordMembershipVisit(result.membershipId, {
-      appointmentId: result.apt.id,
-      tenantId,
-    });
-  }
+    return { previousStatus: apt.status };
+  }, { maxWait: 15_000, timeout: 30_000 });
 
   await writeAuditLog({
     tenantId,

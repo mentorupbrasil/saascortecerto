@@ -18,9 +18,10 @@
     "db:migrate": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy",
     "db:migrate:dev": "node scripts/run-with-direct-url.cjs npx prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo": "tsx prisma/seed.ts",
     "db:verify": "tsx scripts/verify-schema.ts",
     "db:preflight": "tsx scripts/verify-legacy-preflight.ts",
-    "db:setup": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy && tsx prisma/seed.ts",
+    "db:setup": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy",
     "credentials:migrate": "tsx scripts/migrate-credentials.ts",
     "postinstall": "node scripts/run-with-direct-url.cjs npx prisma generate"
   },

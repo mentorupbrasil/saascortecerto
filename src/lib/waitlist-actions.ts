@@ -70,7 +70,11 @@ export async function joinWaitlistAction(formData: FormData) {
   }
 }
 
-export async function offerWaitlistSlotAction(entryId: string, slotAtIso: string) {
+export async function offerWaitlistSlotAction(
+  entryId: string,
+  slotAtIso: string,
+  options?: { barberId?: string | null; offerHours?: number }
+) {
   try {
     const user = await requireTenantUser();
     await requirePermission("agenda:edit");
@@ -80,9 +84,13 @@ export async function offerWaitlistSlotAction(entryId: string, slotAtIso: string
       throw new Error("Horário inválido");
     }
 
-    await offerSlot(entryId, slotAt, { tenantId: user.tenantId });
+    const { token } = await offerSlot(entryId, slotAt, {
+      tenantId: user.tenantId,
+      barberId: options?.barberId ?? null,
+      offerHours: options?.offerHours,
+    });
     revalidatePath(WAITLIST_PATH);
-    return { success: true };
+    return { success: true, confirmPath: `/lista-espera/confirmar/${token}` };
   } catch (err) {
     handleAuthError(err);
   }

@@ -163,6 +163,39 @@ export async function updateAppointmentStatus(id: string, status: AppointmentSta
   return { success: true };
 }
 
+export async function rescheduleAppointmentAction(input: {
+  appointmentId: string;
+  scheduledAt: string;
+  barberId?: string | null;
+}) {
+  const user = await requireTenantUser();
+  await requirePermission("agenda:edit");
+  const tenantId = user.tenantId;
+
+  const scheduledAt = parseISO(input.scheduledAt);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw new Error("Data e hora inválidas");
+  }
+
+  const barberId =
+    user.role === "BARBER" ? user.id : input.barberId?.trim() || null;
+
+  const { rescheduleAppointmentWithConflictGuard } = await import(
+    "@/lib/domain/appointment-create"
+  );
+  await rescheduleAppointmentWithConflictGuard({
+    tenantId,
+    appointmentId: input.appointmentId,
+    scheduledAt,
+    barberId,
+    actorUserId: user.id,
+    scopeFilter: appointmentScopeFilter(user),
+  });
+
+  revalidateDashboard();
+  return { success: true };
+}
+
 export async function deleteAppointment(id: string) {
   const user = await requireTenantAdmin();
   const tenantId = user.tenantId;

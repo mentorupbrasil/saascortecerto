@@ -765,7 +765,7 @@ describe("cross-tenant isolation & concurrency (PostgreSQL)", () => {
 
     expect(
       await prisma.cashMovement.count({
-        where: { idempotencyKey: `sale-close:${sale.id}` },
+        where: { idempotencyKey: `sale-close-cash:${sale.id}` },
       })
     ).toBe(1);
   });

@@ -68,15 +68,19 @@ export function CaixaPanel({ data }: { data: CashData }) {
     let bleed = 0;
     let sales = 0;
     let refund = 0;
+    let adjustment = 0;
     for (const m of data.movements) {
       if (m.type === "SUPPLY") supply += m.amount;
       if (m.type === "BLEED") bleed += m.amount;
       if (m.type === "SALE") sales += m.amount;
       if (m.type === "REFUND") refund += m.amount;
+      if (m.type === "ADJUSTMENT") adjustment += m.amount;
     }
     const opening = data.openSession?.openingBalance ?? 0;
-    const expected = opening + supply + sales - bleed - refund;
-    return { supply, bleed, sales, refund, expected };
+    // Mirrors calculateExpectedBalance in src/lib/finance/cash.ts:
+    // SUPPLY, SALE and ADJUSTMENT add; BLEED and REFUND subtract.
+    const expected = opening + supply + sales + adjustment - bleed - refund;
+    return { supply, bleed, sales, refund, adjustment, expected };
   }, [data.movements, data.openSession]);
 
   const diff =
