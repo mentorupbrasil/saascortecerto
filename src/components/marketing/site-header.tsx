@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 const navLinks = [
   { href: "#funcionalidades", label: "Funcionalidades" },
@@ -39,16 +40,13 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-10">
-        <Link href="/" className="group flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center shrink-0">
-            <div className="absolute inset-0 rounded-full bg-[var(--gold-muted)] blur-md opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--gold)]/30 bg-[#0c0c0c]">
-              <span className="font-display text-lg text-[var(--gold)]">C</span>
-            </div>
-          </div>
-          <div className="leading-none min-w-0">
-            <span className="font-display text-lg sm:text-xl tracking-wide text-white">CorteCerto</span>
-            <span className="hidden sm:block text-[10px] uppercase tracking-[0.2em] text-zinc-500 mt-0.5">
+        <Link href="/" className="group flex min-w-0 items-center gap-2 sm:gap-3">
+          <BrandMark className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+          <div className="min-w-0 leading-none">
+            <span className="font-display text-lg tracking-wide text-white sm:text-xl">
+              CorteCerto
+            </span>
+            <span className="mt-0.5 hidden text-[10px] uppercase tracking-[0.2em] text-zinc-500 sm:block">
               Barbearias
             </span>
           </div>

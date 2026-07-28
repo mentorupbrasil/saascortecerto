@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand/brand-mark";
 import {
   LogOut,
   X,
@@ -108,9 +109,7 @@ function SidebarChrome({
           isCollapsed ? "justify-center gap-1 px-2 py-3" : "gap-2 px-3 py-3"
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-base font-bold text-zinc-950">
-          ✂️
-        </div>
+        <BrandMark className="h-9 w-9 shrink-0" />
         {!isCollapsed && (
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-bold text-white">CorteCerto</h1>

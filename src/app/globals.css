@@ -47,8 +47,11 @@
   --letter-spacing: 0.025em;
   --success: #10b981;
   --danger: #ca3214;
-  --gold: #72e3ad;
-  --gold-muted: #72e3ad33;
+  --brand: #72e3ad;
+  --brand-foreground: #1e2723;
+  --brand-muted: #72e3ad33;
+  --gold: var(--brand);
+  --gold-muted: var(--brand-muted);
   --card-hover: #ededed;
 }
 
@@ -87,8 +90,11 @@
   --sidebar-ring: #4ade80;
   --success: #2dd4bf;
   --danger: #f87171;
-  --gold: #4ade80;
-  --gold-muted: #4ade8033;
+  --brand: #4ade80;
+  --brand-foreground: #1e2723;
+  --brand-muted: #4ade8033;
+  --gold: var(--brand);
+  --gold-muted: var(--brand-muted);
   --card-hover: #1f1f1f;
 }
 
@@ -158,6 +164,10 @@
   --color-amber-700: #004d2e;
   --color-amber-800: #003822;
   --color-amber-900: #002416;
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
 }
 
 body {
