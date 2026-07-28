@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "vercel-build": "prisma migrate deploy && prisma generate && next build",
+    "build": "node scripts/run-with-direct-url.cjs npx prisma generate && next build",
+    "vercel-build": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy && node scripts/run-with-direct-url.cjs npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -13,16 +13,16 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "echo \"E2E requires Playwright + DATABASE_URL; see docs/TESTING.md\"",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate deploy",
-    "db:migrate:dev": "prisma migrate dev",
+    "db:generate": "node scripts/run-with-direct-url.cjs npx prisma generate",
+    "db:push": "node scripts/run-with-direct-url.cjs npx prisma db push",
+    "db:migrate": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy",
+    "db:migrate:dev": "node scripts/run-with-direct-url.cjs npx prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:verify": "tsx scripts/verify-schema.ts",
     "db:preflight": "tsx scripts/verify-legacy-preflight.ts",
-    "db:setup": "prisma migrate deploy && tsx prisma/seed.ts",
+    "db:setup": "node scripts/run-with-direct-url.cjs npx prisma migrate deploy && tsx prisma/seed.ts",
     "credentials:migrate": "tsx scripts/migrate-credentials.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "node scripts/run-with-direct-url.cjs npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
