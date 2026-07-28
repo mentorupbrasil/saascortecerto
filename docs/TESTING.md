@@ -65,15 +65,18 @@ npm run test:e2e   # prints setup instructions
 
 ## CI
 
-`.github/workflows/ci.yml` runs on pull requests:
+`.github/workflows/ci.yml` runs on pull requests / pushes to main:
 
 1. `npm ci`
-2. `prisma generate`
-3. `npm run lint`
-4. `npm run typecheck`
-5. `npm run test:unit`
-6. `npm run build` (dummy env vars)
-7. `npm audit --audit-level=critical` (continue-on-error)
+2. `npm audit --omit=dev --audit-level=critical` (fails the job; no continue-on-error)
+3. `prisma generate`
+4. `prisma migrate deploy` (empty database scenario)
+5. `npm run lint`
+6. `npm run typecheck`
+7. `npm run test:unit` / `test:integration`
+8. `npm run build`
+9. `npm run db:verify`
+10. Parallel job `legacy-migrate`: baseline SQL → seed → resolve → deploy → verify → Location backfill
 
 ## Writing new tests
 

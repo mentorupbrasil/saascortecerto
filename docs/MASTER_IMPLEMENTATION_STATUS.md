@@ -1,36 +1,42 @@
 # Master Implementation Status — CorteCerto
 
-Última atualização: 2026-07-27 (rodada P0)
+Última atualização: 2026-07-27 (rodada P0.1 final)
 
 Legenda: `pending` | `in_progress` | `done` | `partial` | `blocked`
 
 | Item | Status | Notas |
 |------|--------|-------|
-| Migrations legado + forward | done | `20260727100000_legacy_baseline` + `20260727100001_expand_operational_schema`; verify OK empty+legacy |
-| CI workflow real | done | `.github/workflows/ci.yml` com Postgres service; **status remoto ainda não confirmado** (sem push nesta rodada) |
-| Testes integração PG | done | 12 testes reais, 0 todo/skip |
-| HMAC Mercado Pago | done | `createHmac("sha256", secret)` oficial |
-| Validação pagamento (status/BRL/valor/ref) | done | `payment-validation.ts` + uniqueness payment ID |
-| Webhook idempotência | done | P2002 only; PROCESSING/PROCESSED/FAILED + reclaim |
-| Concorrência agenda unificada | done | advisory lock int4; excludeCheckoutId; todos fluxos via atomic create |
-| AuthZ Server Actions (DB) | done | mutações usam `@/lib/authz` |
-| Integridade financeira | done | close idempotente; stock no close; Zod strict; refund perm |
-| Clube resgate regras | partial | valida ACTIVE/expiry/limits/weekdays + redemption atômica; allowlists serviço/profissional/unidade **não existem no schema** |
-| E2E | pending | script ainda é placeholder `echo` |
-| Build remoto GitHub/Vercel | blocked | não validado nesta rodada (sem push) |
+| Preflight produção + backup Neon | blocked | `DATABASE_URL` local ≠ produção; backup não confirmado → migrate prod **não executada** |
+| Scripts preflight/verify seguros | done | `db:preflight`, `db:verify` via `execFileSync` (sem URL em shell string) |
+| Migrations legado + forward + lease | done | baseline + expand + `20260728000000_webhook_event_lease` |
+| Webhook event key + lease | done | notificationId / payloadHash; lease 10min; reclaim condicional; só P2002 |
+| Testes webhook (11) + cross-tenant actions | done | integração real PG; sem todo/skip |
+| CI empty + legacy migrate | done | `quality` + `legacy-migrate`; audit critical sem continue-on-error |
+| Vercel `npm ci` | done | `vercel.json` installCommand |
+| Critical deps (`next-auth`) | done | 4.24.15 |
+| High deps (postcss/sharp via Next) | partial | overrides tentados; residual se Next pin incompatível |
+| E2E | pending | script ainda placeholder |
+| Build remoto GitHub/Vercel | blocked | sem push nesta rodada |
+| Migração produção P3005 | blocked | aguarda URL prod + backup Neon + `BACKUP_CONFIRMED=1` |
 
-## Validação local P0 (PostgreSQL 16 descartável)
+## Validação local P0.1
 
 | Comando | Resultado |
 |---------|-----------|
-| migrate empty | ✅ |
-| migrate legacy + dados | ✅ (tenant/cliente preservados; Location backfill; Sale existe) |
-| verify-schema empty/legacy | ✅ |
-| test:unit | ✅ 42 |
-| test:integration | ✅ 12 |
-| lint / typecheck / build | ver relatório final da sessão |
+| migrate empty | ✅ 3 migrations |
+| migrate legacy + dados | ✅ resolve baseline → deploy → verify; Location=1; Appointment=1 preservado |
+| test:unit | ✅ 47 |
+| test:integration | ✅ 28 |
+| lint | ✅ (warnings unused-vars pré-existentes) |
+| typecheck | ✅ |
+| build | ✅ |
+| npm audit --omit=dev | ✅ 0 |
+| npm audit (com dev) | ⚠ 9 high só em eslint/minimatch (dev); sem critical |
 
 ## Confirmações
 
-- Push: **não realizado nesta rodada P0**
-- `db push --accept-data-loss`: **não usado**
+- Push: **não realizado nesta rodada P0.1**
+- `db push` / `migrate reset` / `audit fix --force`: **não usados**
+- Produção: **pending** até backup + preflight READY
+- Versões: `next@15.5.22`, `next-auth@4.24.15`, overrides `postcss@8.5.23` + `sharp@0.35.3`
+

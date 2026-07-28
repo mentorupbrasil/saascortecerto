@@ -227,8 +227,12 @@ export async function finalizeBookingFromVerifiedPayment(
     paid: true,
   });
 
-  revalidatePath("/agenda");
-  revalidatePath("/dashboard");
+  try {
+    revalidatePath("/agenda");
+    revalidatePath("/dashboard");
+  } catch {
+    // Outside Next request context (webhooks/tests) revalidate is unavailable
+  }
 
   return { checkout, appointment, client, service, phone };
 }

@@ -1,8 +1,10 @@
 /**
  * Compares live DB schema to prisma/schema.prisma via prisma migrate diff.
  * Exit 1 on drift. Requires DATABASE_URL.
+ * Uses execFileSync with argv array — never interpolates DATABASE_URL into a shell string.
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -10,18 +12,34 @@ if (!url) {
   process.exit(1);
 }
 
+const prismaCli = path.join(
+  process.cwd(),
+  "node_modules",
+  "prisma",
+  "build",
+  "index.js"
+);
+
 try {
-  const diff = execSync(
-    `npx prisma migrate diff --from-url "${url}" --to-schema-datamodel prisma/schema.prisma --script`,
-    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+  const diff = execFileSync(
+    process.execPath,
+    [
+      prismaCli,
+      "migrate",
+      "diff",
+      "--from-url",
+      url,
+      "--to-schema-datamodel",
+      "prisma/schema.prisma",
+      "--script",
+    ],
+    {
+      encoding: "utf8",
+      env: { ...process.env, DATABASE_URL: url },
+      stdio: ["ignore", "pipe", "pipe"],
+    }
   ).trim();
 
-  if (!diff || diff === "-- This is an empty migration." || diff.length < 5) {
-    console.log("Schema verification OK: no drift");
-    process.exit(0);
-  }
-
-  // Empty migrations sometimes print only comments
   const meaningful = diff
     .split("\n")
     .map((l) => l.trim())
@@ -37,6 +55,11 @@ try {
   process.exit(1);
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
+  const stderr =
+    err && typeof err === "object" && "stderr" in err
+      ? String((err as { stderr?: Buffer | string }).stderr ?? "")
+      : "";
   console.error("Schema verification failed:", message);
+  if (stderr) console.error(stderr);
   process.exit(1);
 }

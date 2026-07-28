@@ -635,15 +635,19 @@ model AuditLog {
 }
 
 model ProcessedWebhookEvent {
-  id          String   @id @default(cuid())
-  provider    String
-  eventKey    String
-  payloadHash String?
-  processedAt DateTime @default(now())
-  status      String   @default("PROCESSING") // PROCESSING | PROCESSED | FAILED
-  result      String?
+  id           String    @id @default(cuid())
+  provider     String
+  eventKey     String
+  payloadHash  String?
+  status       String    @default("PROCESSING") // PROCESSING | PROCESSED | FAILED
+  result       String?
+  attemptCount Int       @default(1)
+  lockedAt     DateTime  @default(now())
+  processedAt  DateTime?
+  lastError    String?
 
   @@unique([provider, eventKey])
+  @@index([status, lockedAt])
   @@index([processedAt])
 }
 

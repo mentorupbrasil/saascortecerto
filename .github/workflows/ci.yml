@@ -50,10 +50,13 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Production dependency audit (critical)
+        run: npm audit --omit=dev --audit-level=critical
+
       - name: Prisma generate
         run: npx prisma generate
 
-      - name: Migrate deploy
+      - name: Migrate deploy (empty database)
         run: npx prisma migrate deploy
 
       - name: Lint
@@ -74,4 +77,71 @@ jobs:
         run: npm run build
 
       - name: Verify schema drift
-        run: npx tsx scripts/verify-schema.ts
+        run: npm run db:verify
+
+  legacy-migrate:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: legacy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d legacy_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/legacy_test
+      NEXTAUTH_SECRET: ci-nextauth-secret-min-16-chars
+      CREDENTIALS_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      NODE_ENV: test
+      CI: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Apply legacy schema SQL only (no migration registry)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          PGPASSWORD=ci psql -h localhost -U ci -d legacy_test -v ON_ERROR_STOP=1 \
+            -f prisma/migrations/20260727100000_legacy_baseline/migration.sql
+
+      - name: Seed legacy sample data
+        run: |
+          PGPASSWORD=ci psql -h localhost -U ci -d legacy_test -v ON_ERROR_STOP=1 \
+            -f scripts/legacy-seed.sql
+
+      - name: Mark legacy baseline as applied
+        run: npx prisma migrate resolve --applied 20260727100000_legacy_baseline
+
+      - name: Deploy forward migrations
+        run: npx prisma migrate deploy
+
+      - name: Verify schema
+        run: npm run db:verify
+
+      - name: Confirm data preserved and Location backfill
+        run: |
+          PGPASSWORD=ci psql -h localhost -U ci -d legacy_test -v ON_ERROR_STOP=1 -c "SELECT COUNT(*) AS tenants FROM \"Tenant\" WHERE id='tenant_legacy_1';" | grep -q '1'
+          PGPASSWORD=ci psql -h localhost -U ci -d legacy_test -v ON_ERROR_STOP=1 -c "SELECT COUNT(*) AS clients FROM \"Client\" WHERE id='client_legacy_1';" | grep -q '1'
+          PGPASSWORD=ci psql -h localhost -U ci -d legacy_test -v ON_ERROR_STOP=1 -c "SELECT COUNT(*) AS appointments FROM \"Appointment\" WHERE id='appt_legacy_1';" | grep -q '1'
+          PGPASSWORD=ci psql -h localhost -U ci -d legacy_test -v ON_ERROR_STOP=1 -c "SELECT COUNT(*) AS locations FROM \"Location\" WHERE \"isPrimary\"=true;" | grep -q '1'

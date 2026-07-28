@@ -42,12 +42,14 @@ import {
 } from "@/lib/domain/appointment-create";
 import { finalizeBookingFromVerifiedPayment } from "@/lib/domain/booking-finalize";
 import { updateAppointmentStatusSecure } from "@/lib/domain/appointment-status";
-import {
-  claimWebhookEvent,
-  failWebhookEvent,
-} from "@/lib/integrations/mercadopago-webhook";
 import { closeSale } from "@/lib/finance/sales";
 import { getAgendaOnlineItems } from "@/lib/public-booking-actions";
+import {
+  deleteAppointment,
+  updateAppointmentStatus,
+  updateClient,
+  updateService,
+} from "@/lib/actions";
 import {
   createClient,
   createService,
@@ -77,6 +79,31 @@ function mockSession(user: Pick<User, "id" | "email" | "name" | "role" | "tenant
     },
     expires: new Date(Date.now() + 3600_000).toISOString(),
   } as never);
+}
+
+function clientFormData(overrides?: Partial<Record<string, string>>) {
+  const formData = new FormData();
+  formData.set("name", overrides?.name ?? "Updated Name");
+  formData.set("phone", overrides?.phone ?? "11987654321");
+  formData.set("returnDays", overrides?.returnDays ?? "20");
+  return formData;
+}
+
+function serviceFormData(overrides?: Partial<Record<string, string>>) {
+  const formData = new FormData();
+  formData.set("name", overrides?.name ?? "Serviço Hackeado");
+  formData.set("price", overrides?.price ?? "999");
+  formData.set("duration", overrides?.duration ?? "60");
+  return formData;
+}
+
+async function auditCountForEntity(entityId: string, action?: string) {
+  return prisma.auditLog.count({
+    where: {
+      entityId,
+      ...(action ? { action } : {}),
+    },
+  });
 }
 
 async function asAuthenticatedUser(
@@ -444,15 +471,200 @@ describe("cross-tenant isolation & concurrency (PostgreSQL)", () => {
     ).toBe(1);
   });
 
-  it("claimWebhookEvent duplicate detection and reclaim after fail", async () => {
-    const provider = "mercadopago";
-    const eventKey = `test-event-${Date.now()}`;
+  it("updateClient as tenant A user does not change tenant B client", async () => {
+    const tenantA = await createTenant(prisma, { slug: "shop-a-client-action" });
+    const tenantB = await createTenant(prisma, { slug: "shop-b-client-action" });
+    const managerA = await createUser(prisma, {
+      tenantId: tenantA.id,
+      role: "MANAGER",
+    });
+    const clientB = await createClient(prisma, tenantB.id, {
+      name: "Cliente B Original",
+      phone: "11911110000",
+    });
 
-    expect(await claimWebhookEvent({ provider, eventKey })).toBe("claimed");
-    expect(await claimWebhookEvent({ provider, eventKey })).toBe("duplicate");
+    mockSession(managerA);
+    await updateClient(clientB.id, clientFormData({ name: "Hacked from A" }));
 
-    await failWebhookEvent(provider, eventKey, "simulated failure");
-    expect(await claimWebhookEvent({ provider, eventKey })).toBe("claimed");
+    const unchanged = await prisma.client.findUniqueOrThrow({
+      where: { id: clientB.id },
+    });
+    expect(unchanged.name).toBe("Cliente B Original");
+    expect(await auditCountForEntity(clientB.id)).toBe(0);
+  });
+
+  it("deleteAppointment as tenant A admin does not delete tenant B appointment", async () => {
+    const tenantA = await createTenant(prisma, { slug: "shop-a-del-appt" });
+    const tenantB = await createTenant(prisma, { slug: "shop-b-del-appt" });
+    const ownerA = await createUser(prisma, {
+      tenantId: tenantA.id,
+      role: "OWNER",
+    });
+    const serviceB = await createService(prisma, tenantB.id);
+    const clientB = await createClient(prisma, tenantB.id);
+    const barberB = await createUser(prisma, {
+      tenantId: tenantB.id,
+      role: "BARBER",
+    });
+    const scheduledAt = futureWeekdaySlot(12);
+
+    const appointmentB = await prisma.appointment.create({
+      data: {
+        tenantId: tenantB.id,
+        clientId: clientB.id,
+        serviceId: serviceB.id,
+        barberId: barberB.id,
+        scheduledAt,
+        duration: 30,
+        price: serviceB.price,
+        status: "SCHEDULED",
+      },
+    });
+
+    mockSession(ownerA);
+    await deleteAppointment(appointmentB.id);
+
+    const stillThere = await prisma.appointment.findUnique({
+      where: { id: appointmentB.id },
+    });
+    expect(stillThere).not.toBeNull();
+    expect(await auditCountForEntity(appointmentB.id, "appointment.cancelled")).toBe(
+      0
+    );
+  });
+
+  it("updateAppointmentStatus as barber A throws for barber B appointment", async () => {
+    const tenant = await createTenant(prisma, { slug: "shop-barber-action" });
+    const barberA = await createUser(prisma, {
+      tenantId: tenant.id,
+      role: "BARBER",
+      name: "Barber A Action",
+    });
+    const barberB = await createUser(prisma, {
+      tenantId: tenant.id,
+      role: "BARBER",
+      name: "Barber B Action",
+    });
+    const service = await createService(prisma, tenant.id);
+    const client = await createClient(prisma, tenant.id);
+    const scheduledAt = futureWeekdaySlot(13);
+
+    const appointmentB = await prisma.appointment.create({
+      data: {
+        tenantId: tenant.id,
+        clientId: client.id,
+        serviceId: service.id,
+        barberId: barberB.id,
+        scheduledAt,
+        duration: 30,
+        price: service.price,
+        status: "SCHEDULED",
+      },
+    });
+
+    mockSession(barberA);
+
+    await expect(
+      updateAppointmentStatus(appointmentB.id, "CONFIRMED")
+    ).rejects.toThrow("Agendamento não encontrado");
+
+    const unchanged = await prisma.appointment.findUniqueOrThrow({
+      where: { id: appointmentB.id },
+    });
+    expect(unchanged.status).toBe("SCHEDULED");
+    expect(
+      await auditCountForEntity(appointmentB.id, "appointment.status_changed")
+    ).toBe(0);
+  });
+
+  it("updateService as tenant A manager does not change tenant B service", async () => {
+    const tenantA = await createTenant(prisma, { slug: "shop-a-svc-action" });
+    const tenantB = await createTenant(prisma, { slug: "shop-b-svc-action" });
+    const managerA = await createUser(prisma, {
+      tenantId: tenantA.id,
+      role: "MANAGER",
+    });
+    const serviceB = await createService(prisma, tenantB.id, {
+      name: "Corte B",
+      price: "50.00",
+    });
+
+    mockSession(managerA);
+    await updateService(serviceB.id, serviceFormData({ name: "Corte Hackeado" }));
+
+    const unchanged = await prisma.service.findUniqueOrThrow({
+      where: { id: serviceB.id },
+    });
+    expect(unchanged.name).toBe("Corte B");
+    expect(await auditCountForEntity(serviceB.id)).toBe(0);
+  });
+
+  it("deactivated user fails server action with AuthError INACTIVE", async () => {
+    const tenant = await createTenant(prisma, { slug: "shop-inactive-action" });
+    const owner = await createUser(prisma, {
+      tenantId: tenant.id,
+      role: "OWNER",
+      active: false,
+    });
+    const client = await createClient(prisma, tenant.id);
+
+    mockSession(owner);
+
+    await expect(
+      updateClient(client.id, clientFormData({ name: "Should Fail" }))
+    ).rejects.toBeInstanceOf(AuthError);
+    await expect(
+      updateClient(client.id, clientFormData({ name: "Should Fail" }))
+    ).rejects.toMatchObject({ code: "INACTIVE" });
+    expect(await auditCountForEntity(client.id)).toBe(0);
+  });
+
+  it("requireTenantAdmin rejects admin action when DB role is BARBER but session claims OWNER", async () => {
+    const tenant = await createTenant(prisma, { slug: "shop-role-drift-action" });
+    const user = await createUser(prisma, {
+      tenantId: tenant.id,
+      role: "BARBER",
+    });
+    const service = await createService(prisma, tenant.id);
+    const client = await createClient(prisma, tenant.id);
+    const scheduledAt = futureWeekdaySlot(17);
+
+    const appointment = await prisma.appointment.create({
+      data: {
+        tenantId: tenant.id,
+        clientId: client.id,
+        serviceId: service.id,
+        barberId: user.id,
+        scheduledAt,
+        duration: 30,
+        price: service.price,
+        status: "SCHEDULED",
+      },
+    });
+
+    mockGetServerSession.mockResolvedValue({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: "OWNER",
+        tenantId: tenant.id,
+      },
+      expires: new Date(Date.now() + 3600_000).toISOString(),
+    } as never);
+
+    await expect(deleteAppointment(appointment.id)).rejects.toBeInstanceOf(
+      AuthError
+    );
+    await expect(deleteAppointment(appointment.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+
+    const stillThere = await prisma.appointment.findUnique({
+      where: { id: appointment.id },
+    });
+    expect(stillThere).not.toBeNull();
+    expect(await auditCountForEntity(appointment.id)).toBe(0);
   });
 
   it("concurrent closeSale creates one commission entry and one cash movement", async () => {

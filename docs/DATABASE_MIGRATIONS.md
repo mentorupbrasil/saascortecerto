@@ -37,26 +37,37 @@ npx tsx scripts/verify-schema.ts
 
 Both migrations apply in order.
 
-## Scenario B — legacy database (created with `db push` at schema `331af59`)
+## Production (non-empty DB / Vercel P3005)
 
-1. Confirm the live schema matches the legacy baseline (or restore a backup first).
-2. Mark **only** the legacy baseline as already applied (do **not** re-run its SQL):
+When Vercel reports `P3005 The database schema is not empty`, the production database already has the legacy schema from `db push` and has **not** recorded Prisma migrations.
+
+### Safe sequence
+
+1. Point `DATABASE_URL` at production (do not log the full URL).
+2. Create a Neon **branch** or snapshot backup.
+3. Run read-only preflight:
 
 ```bash
-export DATABASE_URL=postgresql://USER:PASS@HOST:5432/your_legacy_db
-npx prisma migrate resolve --applied 20260727100000_legacy_baseline
-npx prisma migrate deploy
-npx tsx scripts/verify-schema.ts
+npx tsx scripts/verify-legacy-preflight.ts
+# After backup:
+BACKUP_CONFIRMED=1 npx tsx scripts/verify-legacy-preflight.ts
 ```
 
-`migrate deploy` then applies **only** `20260727100001_expand_operational_schema`.
+4. Only if preflight prints `READY`:
 
-### Safety checks after legacy upgrade
+```bash
+npx prisma migrate resolve --applied 20260727100000_legacy_baseline
+npx prisma migrate deploy
+npm run db:verify
+```
 
-- Existing tenants/clients/appointments still present
-- New tables exist (`Location`, `Sale`, `AuditLog`, …)
-- Primary `Location` backfilled per tenant
-- Checkout snapshot columns backfilled when possible
+Do **not** re-execute the baseline SQL against existing tables.
+Do **not** use `db push`, `db push --accept-data-loss`, or `migrate reset`.
+
+Forward migrations currently include:
+
+- `20260727100001_expand_operational_schema`
+- `20260728000000_webhook_event_lease`
 
 ## Schema verification
 
