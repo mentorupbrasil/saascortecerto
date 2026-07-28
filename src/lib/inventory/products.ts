@@ -170,6 +170,7 @@ export type SerializedProduct = {
   price: number;
   cost: number | null;
   stockQty: number;
+  categoryId: string | null;
   categoryName: string | null;
   lowStock: boolean;
 };
@@ -181,7 +182,8 @@ export function serializeProduct(p: {
   price: { toString(): string };
   cost: { toString(): string } | null;
   stockQty: number;
-  category?: { name: string } | null;
+  categoryId?: string | null;
+  category?: { id: string; name: string } | null;
 }): SerializedProduct {
   return {
     id: p.id,
@@ -190,6 +192,7 @@ export function serializeProduct(p: {
     price: Number(p.price),
     cost: p.cost ? Number(p.cost) : null,
     stockQty: p.stockQty,
+    categoryId: p.categoryId ?? p.category?.id ?? null,
     categoryName: p.category?.name ?? null,
     lowStock: p.stockQty <= 5,
   };

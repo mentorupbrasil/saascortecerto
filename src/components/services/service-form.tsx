@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, cloneElement, isValidElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { createService, updateService, toggleService } from "@/lib/actions";
-import { Plus, X, Pencil } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-type ServiceData = {
+export type ServiceData = {
   id: string;
   name: string;
   price: number;
@@ -16,130 +19,199 @@ type ServiceData = {
   active: boolean;
 };
 
-export function ServiceFormModal() {
+export function ServiceFormModal({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await createService(formData);
-      setOpen(false);
-      router.refresh();
+      try {
+        await createService(formData);
+        setOpen(false);
+        toast.success("Serviço criado");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao criar serviço");
+      }
     });
   }
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
+      <Button onClick={() => setOpen(true)} className={cn("min-h-[44px]", className)}>
         <Plus className="h-4 w-4" /> Novo serviço
       </Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <Card className="w-full max-w-md animate-fade-in">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Novo serviço</h2>
-              <button onClick={() => setOpen(false)} className="text-zinc-400">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="name" label="Nome" required placeholder="Corte" />
-              <Input name="price" label="Valor (R$)" type="number" step="0.01" required />
-              <Input name="duration" label="Duração (min)" type="number" defaultValue={30} required />
-              <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? "Salvando..." : "Salvar"}
-              </Button>
-            </form>
-          </Card>
-        </div>
-      )}
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Novo serviço"
+        mobileVariant="sheet"
+        footer={
+          <Button form="service-create-form" type="submit" className="w-full min-h-[44px]" disabled={pending}>
+            {pending ? "Salvando..." : "Salvar serviço"}
+          </Button>
+        }
+      >
+        <form id="service-create-form" onSubmit={handleSubmit} className="space-y-4">
+          <Input name="name" label="Nome" required placeholder="Corte" />
+          <Input name="price" label="Valor (R$)" type="number" step="0.01" required />
+          <Input name="duration" label="Duração (min)" type="number" defaultValue={30} required />
+        </form>
+      </ResponsiveDialog>
     </>
   );
 }
 
-export function EditServiceModal({ service }: { service: ServiceData }) {
+export function EditServiceModal({
+  service,
+  trigger,
+  className,
+}: {
+  service: ServiceData;
+  trigger?: ReactNode;
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await updateService(service.id, formData);
-      setOpen(false);
-      router.refresh();
+      try {
+        await updateService(service.id, formData);
+        setOpen(false);
+        toast.success("Serviço atualizado");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao salvar");
+      }
     });
+  }
+
+  return (
+    <>
+      {trigger && isValidElement(trigger) ? (
+        cloneElement(
+          trigger as React.ReactElement<{
+            onClick?: (e: React.MouseEvent) => void;
+            className?: string;
+          }>,
+          {
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault();
+              (trigger.props as { onClick?: (e: React.MouseEvent) => void }).onClick?.(e);
+              setOpen(true);
+            },
+            className: cn((trigger.props as { className?: string }).className, className),
+          }
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-3 text-sm font-medium text-foreground hover:bg-accent",
+            className
+          )}
+        >
+          <Pencil className="h-4 w-4" /> Editar
+        </button>
+      )}
+
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Editar serviço"
+        mobileVariant="sheet"
+        footer={
+          <Button form={`service-edit-${service.id}`} type="submit" className="w-full min-h-[44px]" disabled={pending}>
+            {pending ? "Salvando..." : "Salvar alterações"}
+          </Button>
+        }
+      >
+        <form id={`service-edit-${service.id}`} onSubmit={handleSubmit} className="space-y-4">
+          <Input name="name" label="Nome" required defaultValue={service.name} />
+          <Input
+            name="price"
+            label="Valor (R$)"
+            type="number"
+            step="0.01"
+            required
+            defaultValue={service.price}
+          />
+          <Input
+            name="duration"
+            label="Duração (min)"
+            type="number"
+            required
+            defaultValue={service.duration}
+          />
+        </form>
+      </ResponsiveDialog>
+    </>
+  );
+}
+
+export function ToggleServiceButton({ id, active, name }: { id: string; active: boolean; name: string }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const toast = useToast();
+
+  function runToggle() {
+    startTransition(async () => {
+      try {
+        await toggleService(id, !active);
+        toast.success(active ? "Serviço desativado" : "Serviço ativado");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Erro ao alterar status");
+      }
+    });
+  }
+
+  function handleClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (active) {
+      setConfirmOpen(true);
+    } else {
+      runToggle();
+    }
   }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-xs text-amber-400 hover:underline"
+        type="button"
+        disabled={pending}
+        onClick={handleClick}
+        className={cn(
+          "inline-flex min-h-[44px] items-center rounded-full px-3 text-xs font-semibold uppercase tracking-wide",
+          active ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-700/80 text-zinc-400"
+        )}
       >
-        <Pencil className="h-3 w-3" /> Editar
+        {active ? "Ativo" : "Inativo"}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <Card className="w-full max-w-md animate-fade-in">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Editar serviço</h2>
-              <button onClick={() => setOpen(false)} className="text-zinc-400">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="name" label="Nome" required defaultValue={service.name} />
-              <Input
-                name="price"
-                label="Valor (R$)"
-                type="number"
-                step="0.01"
-                required
-                defaultValue={service.price}
-              />
-              <Input
-                name="duration"
-                label="Duração (min)"
-                type="number"
-                required
-                defaultValue={service.duration}
-              />
-              <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? "Salvando..." : "Salvar alterações"}
-              </Button>
-            </form>
-          </Card>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Desativar serviço?"
+        description={`"${name}" deixará de aparecer na agenda e nas vendas.`}
+        confirmLabel="Desativar"
+        tone="danger"
+        loading={pending}
+        onConfirm={runToggle}
+      />
     </>
-  );
-}
-
-export function ToggleServiceButton({ id, active }: { id: string; active: boolean }) {
-  const [pending, startTransition] = useTransition();
-  const router = useRouter();
-
-  return (
-    <button
-      disabled={pending}
-      onClick={() =>
-        startTransition(async () => {
-          await toggleService(id, !active);
-          router.refresh();
-        })
-      }
-      className={`rounded-lg px-3 py-1 text-xs font-medium ${
-        active ? "bg-green-500/20 text-green-400" : "bg-zinc-700 text-zinc-400"
-      }`}
-    >
-      {active ? "Ativo" : "Inativo"}
-    </button>
   );
 }

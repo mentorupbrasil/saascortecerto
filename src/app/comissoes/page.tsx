@@ -7,13 +7,19 @@ import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { ComissoesPanel } from "@/components/finance/comissoes-panel";
 import { Percent } from "lucide-react";
 
-export default async function ComissoesPage() {
+export default async function ComissoesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (isSuperAdmin(user) && !user.tenantId) redirect("/admin");
 
+  const { period } = await searchParams;
+
   try {
-    const data = await getComissoesPanelData();
+    const data = await getComissoesPanelData(period);
 
     return (
       <TenantAppShell>

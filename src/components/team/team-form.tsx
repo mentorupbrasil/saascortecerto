@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, cloneElement, isValidElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { useToast } from "@/components/ui/toast";
 import { createTenantUser, updateTenantUser } from "@/lib/actions";
-import { Plus, X, Pencil } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import type { UserRole } from "@/lib/auth-utils";
+import { cn } from "@/lib/utils";
 
 type Member = {
   id: string;
@@ -17,11 +19,12 @@ type Member = {
   active: boolean;
 };
 
-export function TeamUserForm({ tenantId }: { tenantId: string }) {
+export function TeamUserForm({ tenantId, className }: { tenantId: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const router = useRouter();
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,46 +35,46 @@ export function TeamUserForm({ tenantId }: { tenantId: string }) {
       try {
         await createTenantUser(tenantId, formData);
         setOpen(false);
+        toast.success("Usuário criado");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao criar usuário");
+        const msg = err instanceof Error ? err.message : "Erro ao criar usuário";
+        setError(msg);
+        toast.error(msg);
       }
     });
   }
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
+      <Button onClick={() => setOpen(true)} className={cn("min-h-[44px]", className)}>
         <Plus className="h-4 w-4" /> Novo usuário
       </Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <Card className="w-full max-w-md animate-fade-in">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Novo usuário</h2>
-              <button onClick={() => setOpen(false)} className="text-zinc-400">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="name" label="Nome" required />
-              <Input name="email" label="Email" type="email" required />
-              <Input name="password" label="Senha" type="password" required minLength={6} />
-              <Select name="role" label="Função" required>
-                <option value="BARBER">Barbeiro</option>
-                <option value="RECEPTIONIST">Recepcionista</option>
-                <option value="MANAGER">Gerente</option>
-                <option value="OWNER">Dono</option>
-              </Select>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? "Criando..." : "Criar usuário"}
-              </Button>
-            </form>
-          </Card>
-        </div>
-      )}
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Novo usuário"
+        mobileVariant="sheet"
+        footer={
+          <Button form="team-create-form" type="submit" className="w-full min-h-[44px]" disabled={pending}>
+            {pending ? "Criando..." : "Criar usuário"}
+          </Button>
+        }
+      >
+        <form id="team-create-form" onSubmit={handleSubmit} className="space-y-4">
+          <Input name="name" label="Nome" required />
+          <Input name="email" label="Email" type="email" required />
+          <Input name="password" label="Senha" type="password" required minLength={6} />
+          <Select name="role" label="Função" required>
+            <option value="BARBER">Barbeiro</option>
+            <option value="RECEPTIONIST">Recepcionista</option>
+            <option value="MANAGER">Gerente</option>
+            <option value="OWNER">Dono</option>
+          </Select>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+        </form>
+      </ResponsiveDialog>
     </>
   );
 }
@@ -79,14 +82,19 @@ export function TeamUserForm({ tenantId }: { tenantId: string }) {
 export function EditUserModal({
   member,
   isSelf,
+  trigger,
+  className,
 }: {
   member: Member;
   isSelf?: boolean;
+  trigger?: ReactNode;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const router = useRouter();
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,70 +105,108 @@ export function EditUserModal({
       try {
         await updateTenantUser(member.id, formData);
         setOpen(false);
+        toast.success("Usuário atualizado");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao salvar");
+        const msg = err instanceof Error ? err.message : "Erro ao salvar";
+        setError(msg);
+        toast.error(msg);
       }
     });
   }
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-xs text-amber-400 hover:underline"
-      >
-        <Pencil className="h-3 w-3" /> Editar
-      </button>
-
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <Card className="w-full max-w-md animate-fade-in">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Editar usuário</h2>
-              <button onClick={() => setOpen(false)} className="text-zinc-400">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="name" label="Nome" required defaultValue={member.name} />
-              <Input
-                name="email"
-                label="Email"
-                type="email"
-                required
-                defaultValue={member.email}
-              />
-              <Input
-                name="password"
-                label="Nova senha (deixe vazio para manter)"
-                type="password"
-                minLength={6}
-                placeholder="••••••••"
-              />
-              <Select
-                name="role"
-                label="Função"
-                required
-                defaultValue={member.role}
-                disabled={isSelf}
-              >
-                <option value="BARBER">Barbeiro</option>
-                <option value="RECEPTIONIST">Recepcionista</option>
-                <option value="MANAGER">Gerente</option>
-                <option value="OWNER">Dono</option>
-              </Select>
-              {isSelf && (
-                <p className="text-xs text-zinc-500">Você não pode alterar sua própria função.</p>
-              )}
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? "Salvando..." : "Salvar"}
-              </Button>
-            </form>
-          </Card>
-        </div>
+      {trigger && isValidElement(trigger) ? (
+        cloneElement(
+          trigger as React.ReactElement<{
+            onClick?: (e: React.MouseEvent) => void;
+            className?: string;
+          }>,
+          {
+            onClick: (e: React.MouseEvent) => {
+              e.preventDefault();
+              (trigger.props as { onClick?: (e: React.MouseEvent) => void }).onClick?.(e);
+              setOpen(true);
+            },
+            className: cn((trigger.props as { className?: string }).className, className),
+          }
+        )
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-3 text-sm font-medium text-foreground hover:bg-accent",
+            className
+          )}
+        >
+          <Pencil className="h-4 w-4" /> Editar
+        </button>
       )}
+
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Editar usuário"
+        mobileVariant="sheet"
+        footer={
+          <Button form={`team-edit-${member.id}`} type="submit" className="w-full min-h-[44px]" disabled={pending}>
+            {pending ? "Salvando..." : "Salvar"}
+          </Button>
+        }
+      >
+        <form id={`team-edit-${member.id}`} onSubmit={handleSubmit} className="space-y-4">
+          <Input name="name" label="Nome" required defaultValue={member.name} />
+          <Input
+            name="email"
+            label="Email"
+            type="email"
+            required
+            defaultValue={member.email}
+          />
+          <Input
+            name="password"
+            label="Nova senha (deixe vazio para manter)"
+            type="password"
+            minLength={6}
+            placeholder="••••••••"
+          />
+          <Select
+            name="role"
+            label="Função"
+            required
+            defaultValue={member.role}
+            disabled={isSelf}
+          >
+            <option value="BARBER">Barbeiro</option>
+            <option value="RECEPTIONIST">Recepcionista</option>
+            <option value="MANAGER">Gerente</option>
+            <option value="OWNER">Dono</option>
+          </Select>
+          {isSelf && (
+            <p className="text-xs text-muted-foreground">Você não pode alterar sua própria função.</p>
+          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
+        </form>
+      </ResponsiveDialog>
     </>
+  );
+}
+
+export function TeamAvatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+  const sizes = { sm: "h-10 w-10 text-sm", md: "h-12 w-12 text-base" };
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
+  return (
+    <div
+      className={`${sizes[size]} flex shrink-0 items-center justify-center rounded-full bg-zinc-800 font-bold text-amber-400`}
+    >
+      {initials}
+    </div>
   );
 }

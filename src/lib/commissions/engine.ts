@@ -160,6 +160,40 @@ export async function createCommissionRule(
   });
 }
 
+export async function updateCommissionRule(
+  tenantId: string,
+  ruleId: string,
+  input: {
+    name: string;
+    type: "PERCENTAGE" | "FIXED";
+    rate: number | string;
+    serviceId?: string | null;
+    barberId?: string | null;
+  }
+) {
+  return prisma.commissionRule.updateMany({
+    where: { id: ruleId, tenantId },
+    data: {
+      name: input.name.trim(),
+      type: input.type,
+      rate: toDecimal(input.rate),
+      serviceId: input.serviceId ?? null,
+      barberId: input.barberId ?? null,
+    },
+  });
+}
+
+export async function toggleCommissionRule(
+  tenantId: string,
+  ruleId: string,
+  active: boolean
+) {
+  return prisma.commissionRule.updateMany({
+    where: { id: ruleId, tenantId },
+    data: { active },
+  });
+}
+
 export type SerializedCommissionEntry = {
   id: string;
   barberName: string;

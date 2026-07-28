@@ -46,6 +46,8 @@ import {
   listCommissionRules,
   listCommissionEntries,
   createCommissionRule,
+  updateCommissionRule,
+  toggleCommissionRule,
   serializeCommissionEntry,
   periodKeyForDate,
 } from "@/lib/commissions/engine";
@@ -161,6 +163,10 @@ const createCommissionRuleSchema = z
     barberId: z.string().optional(),
   })
   .strict();
+
+const updateCommissionRuleSchema = createCommissionRuleSchema.extend({
+  ruleId: z.string().min(1),
+});
 
 function revalidateFinance() {
   for (const p of FINANCE_PATHS) revalidatePath(p);
@@ -539,14 +545,15 @@ export async function adjustStockAction(productId: string, quantity: number, not
 // Commissions
 // ---------------------------------------------------------------------------
 
-export async function getComissoesPanelData() {
+export async function getComissoesPanelData(periodKey?: string) {
   const user = await requireTenantPermission("finance:view");
   const tz = await getTimeZone(user.tenantId);
-  const periodKey = periodKeyForDate(new Date(), tz);
+  const currentPeriodKey = periodKeyForDate(new Date(), tz);
+  const selectedPeriodKey = periodKey ?? currentPeriodKey;
 
-  const [rules, entries, barbers, services] = await Promise.all([
+  const [rules, entries, barbers, services, periodRows] = await Promise.all([
     listCommissionRules(user.tenantId),
-    listCommissionEntries(user.tenantId, { periodKey, limit: 40 }),
+    listCommissionEntries(user.tenantId, { periodKey: selectedPeriodKey, limit: 100 }),
     prisma.user.findMany({
       where: { tenantId: user.tenantId, active: true, role: { in: ["BARBER", "OWNER", "MANAGER"] } },
       select: { id: true, name: true },
@@ -555,12 +562,25 @@ export async function getComissoesPanelData() {
       where: { tenantId: user.tenantId, active: true },
       select: { id: true, name: true },
     }),
+    prisma.commissionEntry.findMany({
+      where: { tenantId: user.tenantId },
+      select: { periodKey: true },
+      distinct: ["periodKey"],
+      orderBy: { periodKey: "desc" },
+      take: 12,
+    }),
   ]);
+
+  const availablePeriods = Array.from(
+    new Set([currentPeriodKey, ...periodRows.map((r) => r.periodKey)])
+  ).sort((a, b) => b.localeCompare(a));
 
   const periodTotal = entries.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return {
-    periodKey,
+    periodKey: selectedPeriodKey,
+    currentPeriodKey,
+    availablePeriods,
     periodTotal,
     rules: rules.map((r) => ({
       id: r.id,
@@ -568,7 +588,9 @@ export async function getComissoesPanelData() {
       type: r.type,
       rate: Number(r.rate),
       active: r.active,
+      serviceId: r.serviceId,
       serviceName: r.service?.name ?? null,
+      barberId: r.barberId,
       barberName: r.barber?.name ?? null,
     })),
     entries: entries.map(serializeCommissionEntry),
@@ -587,6 +609,29 @@ export async function createCommissionRuleAction(input: {
   const parsed = createCommissionRuleSchema.parse(input);
   const user = await requireTenantPermission("finance:view");
   await createCommissionRule(user.tenantId, parsed);
+  revalidateFinance();
+  return { success: true };
+}
+
+export async function updateCommissionRuleAction(input: {
+  ruleId: string;
+  name: string;
+  type: "PERCENTAGE" | "FIXED";
+  rate: number;
+  serviceId?: string;
+  barberId?: string;
+}) {
+  const parsed = updateCommissionRuleSchema.parse(input);
+  const user = await requireTenantPermission("finance:view");
+  const { ruleId, ...data } = parsed;
+  await updateCommissionRule(user.tenantId, ruleId, data);
+  revalidateFinance();
+  return { success: true };
+}
+
+export async function toggleCommissionRuleAction(ruleId: string, active: boolean) {
+  const user = await requireTenantPermission("finance:view");
+  await toggleCommissionRule(user.tenantId, ruleId, active);
   revalidateFinance();
   return { success: true };
 }
