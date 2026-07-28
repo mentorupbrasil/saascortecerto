@@ -3,13 +3,15 @@ import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, requireTenantId } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { serializeServices } from "@/lib/serialize";
+import { canAccessComandas } from "@/lib/nav-config";
 import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { NewAppointmentModal } from "@/components/appointments/appointment-components";
 import { AgendaWeekNav } from "@/components/agenda/agenda-week-nav";
-import { AgendaCalendarGrid } from "@/components/agenda/agenda-calendar-grid";
+import { AgendaSection } from "@/components/agenda/agenda-section";
 import { ShareBookingLink } from "@/components/agenda/share-booking-link";
 import { PublicBookingSettings } from "@/components/agenda/public-booking-settings";
 import { OnlineBookingsPanel } from "@/components/agenda/online-bookings-panel";
+import { PageHeader } from "@/components/ui/page-chrome";
 import { getAgendaOnlineItems } from "@/lib/public-booking-actions";
 import { getPublicBookingSettingsDto } from "@/lib/public-booking-settings-dto";
 import { toDateKey } from "@/lib/date-format";
@@ -35,6 +37,7 @@ export default async function AgendaPage({
   const tenantId = requireTenantId(user);
   const params = await searchParams;
   const currentDate = params.date ? parseISO(params.date) : new Date();
+  const currentDateKey = params.date ?? toDateKey(new Date());
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
@@ -54,6 +57,12 @@ export default async function AgendaPage({
         client: true,
         service: true,
         barber: { select: { name: true } },
+        sales: {
+          where: { status: { in: ["DRAFT", "OPEN", "CLOSED"] } },
+          select: { id: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: { scheduledAt: "asc" },
     }),
@@ -74,6 +83,7 @@ export default async function AgendaPage({
   ]);
 
   const bookingSettings = getPublicBookingSettingsDto(settings);
+  const showComandas = canAccessComandas(user.role);
 
   const days = daysRaw.map((day) => ({
     date: toDateKey(day),
@@ -87,30 +97,39 @@ export default async function AgendaPage({
     duration: apt.duration,
     status: apt.status,
     clientName: apt.client.name,
+    clientPhone: apt.client.phone,
+    clientId: apt.clientId,
+    serviceId: apt.serviceId,
     serviceName: apt.service.name,
     barberId: apt.barberId,
     barberName: apt.barber?.name,
     bookedOnline: apt.bookedOnline,
+    notes: apt.notes,
+    origin: apt.origin,
+    paymentMethod: apt.paymentMethod,
+    saleId: apt.sales[0]?.id ?? null,
   }));
+
+  const openTime = settings?.openTime ?? "07:00";
+  const closeTime = settings?.closeTime ?? "22:00";
 
   return (
     <TenantAppShell>
       <div className="animate-fade-in space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Agenda</h1>
-            <p className="text-sm text-zinc-400">
-              Semana · {settings?.openTime ?? "07:00"} às{" "}
-              {settings?.closeTime ?? "22:00"}
-            </p>
-          </div>
-          <NewAppointmentModal
-            services={serializeServices(services)}
-            barbers={barbers}
-          />
-        </div>
+        <PageHeader
+          title="Agenda"
+          description={`Semana · ${openTime} às ${closeTime}`}
+          action={
+            <NewAppointmentModal
+              services={serializeServices(services)}
+              barbers={barbers}
+            />
+          }
+        />
 
-        <AgendaWeekNav currentDate={currentDate.toISOString()} />
+        <div className="hidden lg:block">
+          <AgendaWeekNav currentDate={currentDate.toISOString()} />
+        </div>
 
         <OnlineBookingsPanel
           pendingCheckouts={onlineItems.pendingCheckouts}
@@ -124,12 +143,15 @@ export default async function AgendaPage({
           />
         )}
 
-        <AgendaCalendarGrid
+        <AgendaSection
           days={days}
           appointments={calendarAppointments}
-          openTime={settings?.openTime ?? "07:00"}
-          closeTime={settings?.closeTime ?? "22:00"}
+          openTime={openTime}
+          closeTime={closeTime}
           barbers={barbers}
+          services={serializeServices(services)}
+          canAccessComandas={showComandas}
+          initialDate={currentDateKey}
         />
 
         {tenant && (
