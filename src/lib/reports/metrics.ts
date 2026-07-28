@@ -3,9 +3,14 @@ import "server-only";
 import {
   eachDayOfInterval,
   endOfDay,
+  endOfMonth,
+  format,
   startOfDay,
+  startOfMonth,
   subDays,
+  subMonths,
 } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { prisma } from "@/lib/prisma";
 import {
   parseWorkingDays,
@@ -40,6 +45,14 @@ export type ReportMetrics = {
   };
 };
 
+export type ReportDashboardData = {
+  metrics: ReportMetrics;
+  previous: ReportMetrics | null;
+  topServices: { name: string; count: number }[];
+  barberPerformance: { name: string; completed: number }[];
+  statusEvolution: { label: string; cancelled: number; noShow: number }[];
+};
+
 function resolvePeriod(period: ReportPeriod, now = new Date()) {
   const to = endOfDay(now);
   let from: Date;
@@ -61,6 +74,34 @@ function resolvePeriod(period: ReportPeriod, now = new Date()) {
   }
 
   return { from, to };
+}
+
+function resolvePreviousPeriod(period: ReportPeriod, now = new Date()) {
+  switch (period) {
+    case "7d":
+      return {
+        from: startOfDay(subDays(now, 13)),
+        to: endOfDay(subDays(now, 7)),
+      };
+    case "30d":
+      return {
+        from: startOfDay(subDays(now, 59)),
+        to: endOfDay(subDays(now, 30)),
+      };
+    case "90d":
+      return {
+        from: startOfDay(subDays(now, 179)),
+        to: endOfDay(subDays(now, 90)),
+      };
+    case "month":
+    default: {
+      const prevMonth = subMonths(now, 1);
+      return {
+        from: startOfMonth(prevMonth),
+        to: endOfMonth(prevMonth),
+      };
+    }
+  }
 }
 
 function computeAvailableMinutesPerDay(
@@ -95,12 +136,11 @@ function computeAvailableMinutesPerDay(
   return daily * Math.max(1, barberCount);
 }
 
-export async function getReportMetrics(
+async function buildMetricsForRange(
   tenantId: string,
-  period: ReportPeriod = "30d"
+  from: Date,
+  to: Date
 ): Promise<ReportMetrics> {
-  const { from, to } = resolvePeriod(period);
-
   const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
   const timeZone = getTenantTimezone(settings?.timeZone);
 
@@ -211,6 +251,100 @@ export async function getReportMetrics(
       returningClients,
       uniqueServed: servedClientIds.size,
     },
+  };
+}
+
+export async function getReportMetrics(
+  tenantId: string,
+  period: ReportPeriod = "30d"
+): Promise<ReportMetrics> {
+  const { from, to } = resolvePeriod(period);
+  return buildMetricsForRange(tenantId, from, to);
+}
+
+function bucketKey(date: Date, period: ReportPeriod): string {
+  if (period === "7d") {
+    return format(date, "EEE dd/MM", { locale: ptBR });
+  }
+  if (period === "month") {
+    return format(date, "'Sem' w", { locale: ptBR });
+  }
+  return format(date, "dd/MM", { locale: ptBR });
+}
+
+export async function getReportDashboardData(
+  tenantId: string,
+  period: ReportPeriod = "30d"
+): Promise<ReportDashboardData> {
+  const { from, to } = resolvePeriod(period);
+  const prevRange = resolvePreviousPeriod(period);
+
+  const [metrics, previous, detailAppointments] = await Promise.all([
+    buildMetricsForRange(tenantId, from, to),
+    buildMetricsForRange(tenantId, prevRange.from, prevRange.to),
+    prisma.appointment.findMany({
+      where: {
+        tenantId,
+        scheduledAt: { gte: from, lte: to },
+        status: { in: ["COMPLETED", "CANCELLED", "NO_SHOW"] },
+      },
+      select: {
+        status: true,
+        scheduledAt: true,
+        service: { select: { name: true } },
+        barber: { select: { name: true } },
+      },
+    }),
+  ]);
+
+  const serviceCounts = new Map<string, number>();
+  const barberCounts = new Map<string, number>();
+  const evolutionBuckets = new Map<string, { cancelled: number; noShow: number }>();
+
+  for (const appt of detailAppointments) {
+    const key = bucketKey(appt.scheduledAt, period);
+    if (!evolutionBuckets.has(key)) {
+      evolutionBuckets.set(key, { cancelled: 0, noShow: 0 });
+    }
+    const bucket = evolutionBuckets.get(key)!;
+    if (appt.status === "CANCELLED") bucket.cancelled += 1;
+    if (appt.status === "NO_SHOW") bucket.noShow += 1;
+
+    if (appt.status === "COMPLETED") {
+      const serviceName = appt.service.name;
+      serviceCounts.set(serviceName, (serviceCounts.get(serviceName) ?? 0) + 1);
+      const barberName = appt.barber?.name ?? "Sem profissional";
+      barberCounts.set(barberName, (barberCounts.get(barberName) ?? 0) + 1);
+    }
+  }
+
+  const topServices = [...serviceCounts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const barberPerformance = [...barberCounts.entries()]
+    .map(([name, completed]) => ({ name, completed }))
+    .sort((a, b) => b.completed - a.completed)
+    .slice(0, 5);
+
+  const statusEvolution = [...evolutionBuckets.entries()].map(([label, data]) => ({
+    label,
+    cancelled: data.cancelled,
+    noShow: data.noShow,
+  }));
+
+  const hasPreviousData =
+    previous.revenue.paymentCount > 0 ||
+    previous.appointments.total > 0 ||
+    previous.clients.newClients > 0;
+
+  return {
+    metrics,
+    previous: hasPreviousData ? previous : null,
+    topServices,
+    barberPerformance,
+    statusEvolution,
   };
 }
 

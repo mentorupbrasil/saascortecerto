@@ -7,12 +7,7 @@ import {
   getClientsForSubscribe,
 } from "@/lib/membership-actions";
 import { TenantAppShell } from "@/components/layout/tenant-shell";
-import {
-  MembershipPlanForm,
-  SubscribeClientForm,
-  PlansList,
-  MembershipsList,
-} from "@/components/clube/clube-panel";
+import { ClubePanel } from "@/components/clube/clube-panel";
 import {
   serializeMembershipForClient,
   serializePlanForClient,
@@ -37,53 +32,19 @@ export default async function ClubePage() {
 
   return (
     <TenantAppShell>
-      <div className="animate-fade-in space-y-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Clube de Assinatura</h1>
-            <p className="text-sm text-zinc-400">
-              Crie planos mensais, pacotes e fidelidade — você define as regras
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <SubscribeClientForm plans={serializedPlans} clients={clients} />
-            <MembershipPlanForm />
-          </div>
+      <div className="animate-fade-in space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Clube de Assinatura</h1>
+          <p className="text-sm text-zinc-400">
+            Crie planos mensais, pacotes e fidelidade — você define as regras
+          </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">Membros ativos</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">{memberships.length}</p>
-          </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">Planos ativos</p>
-            <p className="text-2xl font-bold text-white mt-1">
-              {plans.filter((p) => p.active).length}
-            </p>
-          </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">Clientes elegíveis</p>
-            <p className="text-2xl font-bold text-white mt-1">{clients.length}</p>
-          </div>
-        </div>
-
-        <section>
-          <h2 className="text-lg font-semibold text-white mb-4">Planos disponíveis</h2>
-          <PlansList plans={serializedPlans} />
-          {plans.length === 0 && (
-            <p className="text-zinc-500 text-sm">
-              Crie seu primeiro plano: mensal com X cortes, ilimitado, pacote ou fidelidade.
-            </p>
-          )}
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Clientes inscritos ({memberships.length})
-          </h2>
-          <MembershipsList memberships={serializedMemberships} />
-        </section>
+        <ClubePanel
+          plans={serializedPlans}
+          memberships={serializedMemberships}
+          clients={clients}
+        />
       </div>
     </TenantAppShell>
   );

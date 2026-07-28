@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { isSuperAdmin, requireTenantId } from "@/lib/auth-utils";
 import { TenantAppShell } from "@/components/layout/tenant-shell";
 import { ReportsPanel } from "@/components/reports/reports-panel";
-import { getReportMetrics } from "@/lib/reports/metrics";
+import { getReportDashboardData } from "@/lib/reports/metrics";
 import type { ReportPeriod } from "@/lib/reports/metrics";
 
 const REPORTS_ROLES = new Set(["OWNER", "MANAGER", "SUPER_ADMIN"]);
@@ -25,7 +25,7 @@ export default async function RelatoriosPage({
   const validPeriods: ReportPeriod[] = ["7d", "30d", "90d", "month"];
   const safePeriod = validPeriods.includes(period) ? period : "30d";
 
-  const metrics = await getReportMetrics(tenantId, safePeriod);
+  const data = await getReportDashboardData(tenantId, safePeriod);
 
   const canExport =
     user.role === "OWNER" ||
@@ -42,7 +42,7 @@ export default async function RelatoriosPage({
           </p>
         </div>
         <ReportsPanel
-          metrics={metrics}
+          data={data}
           period={safePeriod}
           canExport={canExport}
         />
