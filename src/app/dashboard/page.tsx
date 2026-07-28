@@ -63,21 +63,42 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const freeSlots = [];
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
   const occupiedHours = new Set(
     appointments
       .filter((a) => a.status !== "CANCELLED")
       .map((a) => formatTime(a.scheduledAt))
   );
 
+  const freeSlots: string[] = [];
   for (let h = 8; h <= 19; h++) {
     for (const m of [0, 30]) {
       const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      if (!occupiedHours.has(time)) {
+      const slotMinutes = h * 60 + m;
+      if (!occupiedHours.has(time) && slotMinutes > nowMinutes) {
         freeSlots.push(time);
       }
     }
   }
+
+  type TimelineRow =
+    | { kind: "appointment"; sortKey: string; apt: (typeof appointments)[number] }
+    | { kind: "free"; sortKey: string; time: string };
+
+  const timeline: TimelineRow[] = [
+    ...appointments.map((apt) => ({
+      kind: "appointment" as const,
+      sortKey: formatTime(apt.scheduledAt),
+      apt,
+    })),
+    ...freeSlots.slice(0, 3).map((time) => ({
+      kind: "free" as const,
+      sortKey: time,
+      time,
+    })),
+  ].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
   return (
     <TenantAppShell>
@@ -135,42 +156,42 @@ export default async function DashboardPage() {
         <Card>
           <h2 className="mb-4 text-lg font-semibold text-foreground">Agenda de hoje</h2>
           <div className="space-y-2">
-            {appointments.length === 0 && (
-              <p className="py-8 text-center text-zinc-500">Nenhum horário hoje</p>
+            {timeline.length === 0 && (
+              <p className="py-8 text-center text-zinc-500">Nenhum horário restante hoje</p>
             )}
-            {appointments.map((apt) => (
-              <div
-                key={apt.id}
-                className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-lg font-bold text-amber-400 tabular-nums">
-                    {formatTime(apt.scheduledAt)}
-                  </span>
-                  <div>
-                    <p className="font-medium text-foreground">{apt.client.name}</p>
-                    <p className="text-sm text-zinc-500">
-                      {apt.service.name}
-                      {apt.barber && ` · ${apt.barber.name}`}
-                    </p>
+            {timeline.map((row) =>
+              row.kind === "appointment" ? (
+                <div
+                  key={row.apt.id}
+                  className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-lg font-bold text-amber-400 tabular-nums">
+                      {formatTime(row.apt.scheduledAt)}
+                    </span>
+                    <div>
+                      <p className="font-medium text-foreground">{row.apt.client.name}</p>
+                      <p className="text-sm text-zinc-500">
+                        {row.apt.service.name}
+                        {row.apt.barber && ` · ${row.apt.barber.name}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={row.apt.status} />
+                    <AppointmentActions id={row.apt.id} status={row.apt.status} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={apt.status} />
-                  <AppointmentActions id={apt.id} status={apt.status} />
+              ) : (
+                <div
+                  key={`free-${row.time}`}
+                  className="flex items-center gap-4 rounded-xl border border-dashed border-zinc-800 px-4 py-3 opacity-60"
+                >
+                  <span className="text-lg font-bold text-zinc-600 tabular-nums">{row.time}</span>
+                  <span className="text-sm text-zinc-600">Livre</span>
                 </div>
-              </div>
-            ))}
-
-            {freeSlots.slice(0, 3).map((time) => (
-              <div
-                key={time}
-                className="flex items-center gap-4 rounded-xl border border-dashed border-zinc-800 px-4 py-3 opacity-60"
-              >
-                <span className="text-lg font-bold text-zinc-600 tabular-nums">{time}</span>
-                <span className="text-sm text-zinc-600">Livre</span>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </Card>
 
