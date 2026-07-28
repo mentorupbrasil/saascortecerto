@@ -1,9 +1,10 @@
 import "server-only";
 import { Decimal } from "@prisma/client/runtime/library";
-import type {
-  CashMovementType,
-  CashSession,
-  CashSessionStatus,
+import {
+  Prisma,
+  type CashMovementType,
+  type CashSession,
+  type CashSessionStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -17,8 +18,14 @@ export type CashSessionContext = {
   user: AuthenticatedUser & { tenantId: string };
 };
 
+type DbClient = Prisma.TransactionClient | typeof prisma;
+
 function toDecimal(value: number | string | Decimal): Decimal {
   return value instanceof Decimal ? value : new Decimal(value);
+}
+
+function isUniqueConstraintError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
 }
 
 /** Ensures a primary Location exists for legacy tenants without locations. */
@@ -225,16 +232,18 @@ export async function addCashMovement(
   sessionId: string,
   input: {
     type: CashMovementType;
-    amount: number | string;
+    amount: number | string | Decimal;
     notes?: string | null;
-  }
+    idempotencyKey?: string | null;
+  },
+  db: DbClient = prisma
 ) {
   const { user } = ctx;
   if (!hasPermission(user, "finance:sell") && !hasPermission(user, "finance:cash_close")) {
     throw new Error("Sem permissão para movimentar caixa");
   }
 
-  const session = await prisma.cashSession.findFirst({
+  const session = await db.cashSession.findFirst({
     where: { id: sessionId, tenantId: user.tenantId },
   });
   if (!session) throw new Error("Sessão de caixa não encontrada");
@@ -243,18 +252,27 @@ export async function addCashMovement(
   const amount = toDecimal(input.amount);
   if (amount.lte(0)) throw new Error("Valor deve ser positivo");
 
-  const movement = await prisma.cashMovement.create({
-    data: {
-      tenantId: user.tenantId,
-      sessionId,
-      type: input.type,
-      amount,
-      notes: input.notes ?? null,
-      createdByUserId: user.id,
-    },
-  });
-
-  return movement;
+  try {
+    return await db.cashMovement.create({
+      data: {
+        tenantId: user.tenantId,
+        sessionId,
+        type: input.type,
+        amount,
+        notes: input.notes ?? null,
+        idempotencyKey: input.idempotencyKey ?? null,
+        createdByUserId: user.id,
+      },
+    });
+  } catch (err) {
+    if (isUniqueConstraintError(err) && input.idempotencyKey) {
+      const existing = await db.cashMovement.findUnique({
+        where: { idempotencyKey: input.idempotencyKey },
+      });
+      if (existing) return existing;
+    }
+    throw err;
+  }
 }
 
 export type SerializedCashSession = {

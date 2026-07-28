@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
   requireTenantUser,
   hasPermission,
@@ -59,6 +60,107 @@ const FINANCE_PATHS = [
   "/estoque",
   "/comissoes",
 ] as const;
+
+const openCashSchema = z
+  .object({
+    openingBalance: z.coerce.number(),
+    notes: z.string().optional(),
+  })
+  .strict();
+
+const closeCashSchema = z
+  .object({
+    sessionId: z.string().min(1),
+    closingBalance: z.coerce.number(),
+    notes: z.string().optional(),
+  })
+  .strict();
+
+const addCashMovementSchema = z
+  .object({
+    sessionId: z.string().min(1),
+    type: z.enum(["SUPPLY", "BLEED", "ADJUSTMENT", "SALE", "REFUND"]),
+    amount: z.coerce.number().positive(),
+    notes: z.string().optional(),
+  })
+  .strict();
+
+const createComandaSchema = z
+  .object({
+    clientId: z.string().optional(),
+    appointmentId: z.string().optional(),
+  })
+  .strict();
+
+const addComandaItemSchema = z
+  .object({
+    kind: z.enum(["SERVICE", "PRODUCT"]),
+    serviceId: z.string().optional(),
+    productId: z.string().optional(),
+    barberId: z.string().optional(),
+    quantity: z.coerce.number().int().positive().optional(),
+    unitPrice: z.coerce.number().nonnegative().optional(),
+    discount: z.coerce.number().nonnegative().optional(),
+  })
+  .strict();
+
+const addComandaPaymentSchema = z
+  .object({
+    saleId: z.string().min(1),
+    method: z.enum(["PIX", "CASH", "CARD"]),
+    amount: z.coerce.number().positive(),
+  })
+  .strict();
+
+const cancelComandaSchema = z
+  .object({
+    saleId: z.string().min(1),
+    reason: z.string().optional(),
+  })
+  .strict();
+
+const createExpenseSchema = z
+  .object({
+    categoryId: z.string().min(1),
+    amount: z.coerce.number().positive(),
+    description: z.string().optional(),
+  })
+  .strict();
+
+const createExpenseCategorySchema = z
+  .object({
+    name: z.string().min(1),
+  })
+  .strict();
+
+const createProductSchema = z
+  .object({
+    name: z.string().min(1),
+    sku: z.string().optional(),
+    price: z.coerce.number().nonnegative(),
+    cost: z.coerce.number().nonnegative().optional(),
+    categoryId: z.string().optional(),
+    initialStock: z.coerce.number().int().nonnegative().optional(),
+  })
+  .strict();
+
+const adjustStockSchema = z
+  .object({
+    productId: z.string().min(1),
+    quantity: z.coerce.number(),
+    notes: z.string().optional(),
+  })
+  .strict();
+
+const createCommissionRuleSchema = z
+  .object({
+    name: z.string().min(1),
+    type: z.enum(["PERCENTAGE", "FIXED"]),
+    rate: z.coerce.number().nonnegative(),
+    serviceId: z.string().optional(),
+    barberId: z.string().optional(),
+  })
+  .strict();
 
 function revalidateFinance() {
   for (const p of FINANCE_PATHS) revalidatePath(p);
@@ -143,21 +245,29 @@ export async function getCashPanelData() {
 }
 
 export async function openCashAction(openingBalance: number, notes?: string) {
+  const parsed = openCashSchema.parse({ openingBalance, notes });
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:sell") && !hasPermission(ctx.user, "finance:cash_close")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para abrir caixa");
   }
-  const session = await openCashSession(ctx, { openingBalance, notes });
+  const session = await openCashSession(ctx, {
+    openingBalance: parsed.openingBalance,
+    notes: parsed.notes,
+  });
   revalidateFinance();
   return serializeCashSession(session);
 }
 
 export async function closeCashAction(sessionId: string, closingBalance: number, notes?: string) {
+  const parsed = closeCashSchema.parse({ sessionId, closingBalance, notes });
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:cash_close")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para fechar caixa");
   }
-  const session = await closeCashSession(ctx, sessionId, { closingBalance, notes });
+  const session = await closeCashSession(ctx, parsed.sessionId, {
+    closingBalance: parsed.closingBalance,
+    notes: parsed.notes,
+  });
   revalidateFinance();
   return serializeCashSession(session);
 }
@@ -168,11 +278,16 @@ export async function addCashMovementAction(
   amount: number,
   notes?: string
 ) {
+  const parsed = addCashMovementSchema.parse({ sessionId, type, amount, notes });
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:sell") && !hasPermission(ctx.user, "finance:cash_close")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para movimentar caixa");
   }
-  await addCashMovement(ctx, sessionId, { type, amount, notes });
+  await addCashMovement(ctx, parsed.sessionId, {
+    type: parsed.type,
+    amount: parsed.amount,
+    notes: parsed.notes,
+  });
   revalidateFinance();
   return { success: true };
 }
@@ -219,13 +334,14 @@ export async function createComandaAction(input: {
   clientId?: string;
   appointmentId?: string;
 }) {
+  const parsed = createComandaSchema.parse(input);
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:sell")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para registrar vendas");
   }
   const openCash = await getOpenCashSession(ctx.user.tenantId);
   const sale = await createSale(ctx, {
-    ...input,
+    ...parsed,
     cashSessionId: openCash?.id ?? undefined,
   });
   revalidateFinance();
@@ -240,13 +356,16 @@ export async function addComandaItemAction(
     productId?: string;
     barberId?: string;
     quantity?: number;
+    unitPrice?: number;
+    discount?: number;
   }
 ) {
+  const parsed = addComandaItemSchema.parse(input);
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:sell")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para registrar vendas");
   }
-  await addSaleItem(ctx, saleId, input);
+  await addSaleItem(ctx, saleId, parsed);
   revalidateFinance();
   return { success: true };
 }
@@ -256,21 +375,29 @@ export async function addComandaPaymentAction(
   method: PaymentMethod,
   amount: number
 ) {
+  const parsed = addComandaPaymentSchema.parse({ saleId, method, amount });
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:sell")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para registrar pagamentos");
   }
-  await addSalePayment(ctx, saleId, { method, amount });
+  await addSalePayment(ctx, parsed.saleId, {
+    method: parsed.method,
+    amount: parsed.amount,
+  });
   revalidateFinance();
   return { success: true };
 }
 
 export async function cancelComandaAction(saleId: string, reason?: string) {
+  const parsed = cancelComandaSchema.parse({ saleId, reason });
   const ctx = await financeCtx();
-  if (!hasPermission(ctx.user, "finance:sell")) {
+  if (
+    !hasPermission(ctx.user, "finance:sell") &&
+    !hasPermission(ctx.user, "finance:refund")
+  ) {
     throw new AuthError("FORBIDDEN", "Sem permissão para cancelar comanda");
   }
-  await cancelSale(ctx, saleId, { reason });
+  await cancelSale(ctx, parsed.saleId, { reason: parsed.reason });
   revalidateFinance();
   return { success: true };
 }
@@ -323,21 +450,23 @@ export async function createExpenseAction(input: {
   amount: number;
   description?: string;
 }) {
+  const parsed = createExpenseSchema.parse(input);
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:view")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para registrar despesas");
   }
-  await createExpense(ctx, input);
+  await createExpense(ctx, parsed);
   revalidateFinance();
   return { success: true };
 }
 
 export async function createExpenseCategoryAction(name: string) {
+  const parsed = createExpenseCategorySchema.parse({ name });
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "finance:view")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para gerenciar despesas");
   }
-  await createExpenseCategory(ctx, { name });
+  await createExpenseCategory(ctx, { name: parsed.name });
   revalidateFinance();
   return { success: true };
 }
@@ -378,27 +507,29 @@ export async function createProductAction(input: {
   categoryId?: string;
   initialStock?: number;
 }) {
+  const parsed = createProductSchema.parse(input);
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "inventory:adjust")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para cadastrar produtos");
   }
-  await createProduct(ctx, input);
+  await createProduct(ctx, parsed);
   revalidateFinance();
   return { success: true };
 }
 
 export async function adjustStockAction(productId: string, quantity: number, notes?: string) {
+  const parsed = adjustStockSchema.parse({ productId, quantity, notes });
   const ctx = await financeCtx();
   if (!hasPermission(ctx.user, "inventory:adjust")) {
     throw new AuthError("FORBIDDEN", "Sem permissão para ajustar estoque");
   }
-  const absQty = Math.abs(quantity);
+  const absQty = Math.abs(parsed.quantity);
   if (absQty <= 0) throw new Error("Quantidade inválida");
   await recordStockMovement(ctx, {
-    productId,
-    type: quantity > 0 ? "IN" : "OUT",
+    productId: parsed.productId,
+    type: parsed.quantity > 0 ? "IN" : "OUT",
     quantity: absQty,
-    notes: notes ?? "Ajuste manual",
+    notes: parsed.notes ?? "Ajuste manual",
   });
   revalidateFinance();
   return { success: true };
@@ -453,8 +584,9 @@ export async function createCommissionRuleAction(input: {
   serviceId?: string;
   barberId?: string;
 }) {
+  const parsed = createCommissionRuleSchema.parse(input);
   const user = await requireTenantPermission("finance:view");
-  await createCommissionRule(user.tenantId, input);
+  await createCommissionRule(user.tenantId, parsed);
   revalidateFinance();
   return { success: true };
 }

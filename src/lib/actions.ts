@@ -2,20 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
 import {
-  canManageTenants,
-  canManageUsers,
-  getAppointmentFilter,
-  isSuperAdmin,
-  isTenantAdmin,
-  requireTenantId,
-} from "@/lib/auth-utils";
+  appointmentScopeFilter,
+  AuthError,
+  hasPermission,
+  requirePermission,
+  requirePlatformAdmin,
+  requireTenantAdmin,
+  requireTenantUser,
+} from "@/lib/authz";
 import bcrypt from "bcryptjs";
 import { slugify } from "@/lib/utils";
 import { z } from "zod";
-import type { AppointmentStatus, PaymentMethod } from "@prisma/client";
-import type { UserRole } from "@/lib/auth-utils";
+import type { AppointmentStatus, PaymentMethod, Role } from "@prisma/client";
 import {
   addMinutes,
   endOfDay,
@@ -88,8 +87,9 @@ function revalidateDashboard() {
 }
 
 export async function createAppointment(formData: FormData) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("agenda:edit");
+  const tenantId = user.tenantId;
 
   const parsed = appointmentSchema.parse({
     clientName: formData.get("clientName"),
@@ -164,9 +164,8 @@ export async function updateAppointmentStatus(id: string, status: AppointmentSta
 }
 
 export async function deleteAppointment(id: string) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
 
   await prisma.appointment.deleteMany({
     where: { id, tenantId },
@@ -177,8 +176,9 @@ export async function deleteAppointment(id: string) {
 }
 
 export async function createClient(formData: FormData) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("clients:manage");
+  const tenantId = user.tenantId;
 
   const parsed = clientSchema.parse({
     name: formData.get("name"),
@@ -228,8 +228,9 @@ export async function createClient(formData: FormData) {
 }
 
 export async function updateClient(id: string, formData: FormData) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("clients:manage");
+  const tenantId = user.tenantId;
 
   const parsed = clientSchema.parse({
     name: formData.get("name"),
@@ -279,9 +280,9 @@ export async function updateClient(id: string, formData: FormData) {
 }
 
 export async function createService(formData: FormData) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("services:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   const parsed = serviceSchema.parse({
     name: formData.get("name"),
@@ -304,9 +305,9 @@ export async function createService(formData: FormData) {
 }
 
 export async function updateService(id: string, formData: FormData) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("services:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   const parsed = serviceSchema.parse({
     name: formData.get("name"),
@@ -330,9 +331,9 @@ export async function updateService(id: string, formData: FormData) {
 }
 
 export async function toggleService(id: string, active: boolean) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("services:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   await prisma.service.updateMany({
     where: { id, tenantId },
@@ -344,8 +345,7 @@ export async function toggleService(id: string, active: boolean) {
 }
 
 export async function createTenant(formData: FormData) {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   const parsed = tenantSchema.parse({
     name: formData.get("name"),
@@ -401,13 +401,12 @@ const userUpdateSchema = z.object({
 });
 
 export async function updateTenantUser(userId: string, formData: FormData) {
-  const user = await requireAuth();
-  if (!canManageUsers(user)) throw new Error("Sem permissão");
+  const user = await requirePermission("team:manage");
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) throw new Error("Usuário não encontrado");
 
-  if (!isSuperAdmin(user) && target.tenantId !== user.tenantId) {
+  if (user.role !== "SUPER_ADMIN" && target.tenantId !== user.tenantId) {
     throw new Error("Sem permissão");
   }
 
@@ -425,12 +424,12 @@ export async function updateTenantUser(userId: string, formData: FormData) {
   const data: {
     name: string;
     email: string;
-    role: UserRole;
+    role: Role;
     passwordHash?: string;
   } = {
     name: parsed.name,
     email: parsed.email.toLowerCase(),
-    role: parsed.role as UserRole,
+    role: parsed.role as Role,
   };
 
   if (parsed.password && parsed.password.length >= 6) {
@@ -448,10 +447,9 @@ export async function updateTenantUser(userId: string, formData: FormData) {
 }
 
 export async function createTenantUser(tenantId: string, formData: FormData) {
-  const user = await requireAuth();
-  if (!canManageUsers(user)) throw new Error("Sem permissão");
+  const user = await requirePermission("team:manage");
 
-  if (!isSuperAdmin(user) && user.tenantId !== tenantId) {
+  if (user.role !== "SUPER_ADMIN" && user.tenantId !== tenantId) {
     throw new Error("Sem permissão para esta barbearia");
   }
 
@@ -470,7 +468,7 @@ export async function createTenantUser(tenantId: string, formData: FormData) {
       name: parsed.name,
       email: parsed.email.toLowerCase(),
       passwordHash,
-      role: parsed.role as UserRole,
+      role: parsed.role as Role,
     },
   });
 
@@ -480,13 +478,12 @@ export async function createTenantUser(tenantId: string, formData: FormData) {
 }
 
 export async function toggleUserActive(userId: string, active: boolean) {
-  const user = await requireAuth();
-  if (!canManageUsers(user)) throw new Error("Sem permissão");
+  const user = await requirePermission("team:manage");
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) throw new Error("Usuário não encontrado");
 
-  if (!isSuperAdmin(user) && target.tenantId !== user.tenantId) {
+  if (user.role !== "SUPER_ADMIN" && target.tenantId !== user.tenantId) {
     throw new Error("Sem permissão");
   }
 
@@ -501,8 +498,7 @@ export async function toggleUserActive(userId: string, active: boolean) {
 }
 
 export async function toggleTenantActive(tenantId: string, active: boolean) {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -514,9 +510,15 @@ export async function toggleTenantActive(tenantId: string, active: boolean) {
 }
 
 export async function getTodayStats() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
-  const filter = getAppointmentFilter(user);
+  const user = await requireTenantUser();
+  if (
+    !hasPermission(user, "agenda:view_all") &&
+    !hasPermission(user, "agenda:view_own")
+  ) {
+    throw new AuthError("FORBIDDEN", "Sem permissão para ver agenda");
+  }
+  const tenantId = user.tenantId;
+  const filter = appointmentScopeFilter(user);
 
   const todayStart = startOfDay(new Date());
   const todayEnd = endOfDay(new Date());
@@ -546,9 +548,15 @@ export async function getTodayStats() {
 }
 
 export async function getWeekAppointments(dateStr: string) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
-  const filter = getAppointmentFilter(user);
+  const user = await requireTenantUser();
+  if (
+    !hasPermission(user, "agenda:view_all") &&
+    !hasPermission(user, "agenda:view_own")
+  ) {
+    throw new AuthError("FORBIDDEN", "Sem permissão para ver agenda");
+  }
+  const tenantId = user.tenantId;
+  const filter = appointmentScopeFilter(user);
 
   const date = parseISO(dateStr);
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
@@ -571,8 +579,9 @@ export async function getWeekAppointments(dateStr: string) {
 }
 
 export async function getAvailableSlots(dateStr: string, duration: number) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("agenda:edit");
+  const tenantId = user.tenantId;
 
   const settings = await prisma.tenantSettings.findUnique({
     where: { tenantId },
@@ -625,8 +634,9 @@ function setTime(date: Date, hours: number, minutes: number) {
 }
 
 export async function getClientsAtRisk() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("clients:manage");
+  const tenantId = user.tenantId;
 
   const clients = await prisma.client.findMany({
     where: { tenantId, lastVisitAt: { not: null } },

@@ -2,13 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
-import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
 import { getPlanPrice, PLAN_LABELS } from "@/lib/plan-pricing";
 import { getPlatformPixConfig } from "@/lib/platform-billing";
 import { generatePixCopiaECola } from "@/lib/pix";
 import { differenceInCalendarDays, startOfDay } from "date-fns";
-import { assertTenantResource, requireAuthenticatedUser } from "@/lib/authz";
+import {
+  assertTenantResource,
+  AuthError,
+  requireAuthenticatedUser,
+  requireTenantAdmin,
+  requireTenantUser,
+} from "@/lib/authz";
 import { syncOverdueSubscriptionPayments } from "@/lib/billing/cron";
 import type { Plan, SubscriptionPaymentStatus } from "@prisma/client";
 
@@ -169,16 +173,18 @@ export async function getTenantBillingOverview(tenantId: string): Promise<Tenant
 }
 
 export async function getTenantBillingForSession() {
-  const user = await requireAuth();
-  if (!user.tenantId || !isTenantAdmin(user)) return null;
-  return getTenantBillingOverview(user.tenantId);
+  try {
+    const user = await requireTenantAdmin();
+    return getTenantBillingOverview(user.tenantId);
+  } catch (err) {
+    if (err instanceof AuthError) return null;
+    throw err;
+  }
 }
 
 export async function getTenantPaymentPixPayload(paymentId: string) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
   const pix = getPlatformPixConfig();
   if (!pix) throw new Error("PIX da plataforma não configurado. Contate o suporte.");
 
@@ -211,10 +217,10 @@ export async function getTenantPaymentPixPayload(paymentId: string) {
 }
 
 export async function reportTenantPayment(paymentId: string) {
-  const user = await requireAuth();
+  const user = await requireTenantUser();
   if (user.role !== "OWNER") throw new Error("Apenas o dono pode confirmar pagamento");
 
-  const tenantId = requireTenantId(user);
+  const tenantId = user.tenantId;
   const payment = await prisma.subscriptionPayment.findFirst({
     where: { id: paymentId, tenantId },
   });

@@ -7,8 +7,9 @@ import {
   hasPermission,
   type AuthenticatedUser,
 } from "@/lib/authz";
+import { writeAuditLog } from "@/lib/audit";
 import { createCommissionEntryForSaleItem } from "@/lib/commissions/engine";
-import { ensurePrimaryLocation } from "@/lib/finance/cash";
+import { addCashMovement, ensurePrimaryLocation } from "@/lib/finance/cash";
 import { recordStockMovement } from "@/lib/inventory/products";
 import { getTenantTimezone } from "@/lib/timezone";
 
@@ -21,6 +22,10 @@ function toDecimal(value: number | string | Decimal): Decimal {
 }
 
 /**
+ * Stock strategy: consume inventory only when a sale is CLOSED, not when adding
+ * a product to an open comanda. On add we only verify stockQty >= quantity
+ * (reservation check); the actual SALE stock movement runs inside closeSale.
+ *
  * Revenue is recorded only through Sale (comanda). Completing an appointment
  * updates visit/membership state only — it does NOT create revenue or cash
  * movements. Always open a comanda (or link one) to register barbershop income.
@@ -175,8 +180,18 @@ export async function addSaleItem(
   const quantity = input.quantity ?? 1;
   if (quantity <= 0) throw new Error("Quantidade inválida");
 
+  const canDiscount = hasPermission(user, "finance:discount");
+  if (input.unitPrice != null && !canDiscount) {
+    throw new Error("Sem permissão para alterar preço");
+  }
+
+  const discount = toDecimal(input.discount ?? 0);
+  if (discount.gt(0) && !canDiscount) {
+    throw new Error("Sem permissão para aplicar desconto");
+  }
+
   let name = input.name?.trim() ?? "";
-  let unitPrice = input.unitPrice != null ? toDecimal(input.unitPrice) : null;
+  let catalogPrice: Decimal;
   const serviceId = input.serviceId ?? null;
   const productId = input.productId ?? null;
   const barberId = input.barberId ?? null;
@@ -188,7 +203,7 @@ export async function addSaleItem(
     });
     if (!service) throw new Error("Serviço não encontrado");
     name = name || service.name;
-    unitPrice = unitPrice ?? toDecimal(service.price);
+    catalogPrice = toDecimal(service.price);
   } else {
     if (!productId) throw new Error("Produto obrigatório");
     const product = await prisma.product.findFirst({
@@ -196,14 +211,33 @@ export async function addSaleItem(
     });
     if (!product) throw new Error("Produto não encontrado");
     name = name || product.name;
-    unitPrice = unitPrice ?? toDecimal(product.price);
+    catalogPrice = toDecimal(product.price);
     if (product.stockQty < quantity) {
       throw new Error(`Estoque insuficiente (${product.stockQty} disponível)`);
     }
   }
 
-  const discount = toDecimal(input.discount ?? 0);
-  const lineTotal = unitPrice!.mul(quantity).minus(discount);
+  const unitPrice =
+    input.unitPrice != null ? toDecimal(input.unitPrice) : catalogPrice;
+
+  if (input.unitPrice != null && !unitPrice.eq(catalogPrice)) {
+    await writeAuditLog({
+      tenantId: user.tenantId,
+      actorUserId: user.id,
+      action: "sale.price_override",
+      entityType: "Sale",
+      entityId: saleId,
+      metadata: {
+        kind: input.kind,
+        serviceId,
+        productId,
+        catalogPrice: catalogPrice.toString(),
+        unitPrice: unitPrice.toString(),
+      },
+    });
+  }
+
+  const lineTotal = unitPrice.mul(quantity).minus(discount);
 
   const item = await prisma.saleItem.create({
     data: {
@@ -216,27 +250,17 @@ export async function addSaleItem(
       appointmentId: input.appointmentId ?? sale.appointmentId,
       name,
       quantity,
-      unitPrice: unitPrice!,
+      unitPrice,
       discount,
       total: lineTotal.lt(0) ? new Decimal(0) : lineTotal,
     },
   });
 
-  if (input.kind === "PRODUCT" && productId) {
-    await recordStockMovement(ctx, {
-      productId,
-      type: "SALE",
-      quantity,
-      saleItemId: item.id,
-      notes: `Venda ${saleId.slice(-6)}`,
-    });
-  }
-
   await recalculateSaleTotals(saleId);
   return item;
 }
 
-async function tryCloseSale(ctx: SalesContext, saleId: string) {
+export async function closeSale(ctx: SalesContext, saleId: string) {
   const sale = await prisma.sale.findUniqueOrThrow({
     where: { id: saleId },
     include: { items: true, payments: true },
@@ -251,39 +275,75 @@ async function tryCloseSale(ctx: SalesContext, saleId: string) {
 
   if (paid.lt(toDecimal(sale.total))) return sale;
 
-  const closed = await prisma.sale.update({
-    where: { id: saleId },
-    data: { status: "CLOSED" satisfies SaleStatus, closedAt: new Date() },
-    include: { items: true, payments: true },
-  });
-
   const tz = await getTenantTimeZone(ctx.user.tenantId);
-  for (const item of closed.items) {
-    await createCommissionEntryForSaleItem(ctx.user.tenantId, item.id, tz);
-  }
 
-  const cashPayment = closed.payments.find(
-    (p) => p.method === "CASH" && p.status === "COMPLETED"
-  );
-  if (cashPayment && closed.cashSessionId) {
-    const session = await prisma.cashSession.findFirst({
-      where: { id: closed.cashSessionId, status: "OPEN" },
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.sale.updateMany({
+      where: {
+        id: saleId,
+        tenantId: ctx.user.tenantId,
+        status: { in: ["OPEN", "DRAFT"] },
+      },
+      data: { status: "CLOSED" satisfies SaleStatus, closedAt: new Date() },
     });
-    if (session) {
-      await prisma.cashMovement.create({
-        data: {
-          tenantId: ctx.user.tenantId,
-          sessionId: session.id,
-          type: "SALE",
-          amount: cashPayment.amount,
-          notes: `Comanda ${saleId.slice(-6)}`,
-          createdByUserId: ctx.user.id,
-        },
+
+    if (updated.count !== 1) {
+      return tx.sale.findUniqueOrThrow({
+        where: { id: saleId },
+        include: { items: true, payments: true },
       });
     }
-  }
 
-  return closed;
+    const closed = await tx.sale.findUniqueOrThrow({
+      where: { id: saleId },
+      include: { items: true, payments: true },
+    });
+
+    for (const item of closed.items) {
+      await createCommissionEntryForSaleItem(ctx.user.tenantId, item.id, tz, tx);
+    }
+
+    const cashPayment = closed.payments.find(
+      (p) => p.method === "CASH" && p.status === "COMPLETED"
+    );
+    if (cashPayment && closed.cashSessionId) {
+      const session = await tx.cashSession.findFirst({
+        where: { id: closed.cashSessionId, status: "OPEN" },
+      });
+      if (session) {
+        await addCashMovement(
+          ctx,
+          session.id,
+          {
+            type: "SALE",
+            amount: cashPayment.amount,
+            notes: `Comanda ${saleId.slice(-6)}`,
+            idempotencyKey: `sale-close:${saleId}`,
+          },
+          tx
+        );
+      }
+    }
+
+    for (const item of closed.items) {
+      if (item.kind === "PRODUCT" && item.productId) {
+        await recordStockMovement(
+          ctx,
+          {
+            productId: item.productId,
+            type: "SALE",
+            quantity: item.quantity,
+            saleItemId: item.id,
+            notes: `Venda ${saleId.slice(-6)}`,
+            idempotencyKey: `sale-item-stock:${item.id}`,
+          },
+          tx
+        );
+      }
+    }
+
+    return closed;
+  });
 }
 
 export async function addSalePayment(
@@ -322,7 +382,7 @@ export async function addSalePayment(
     },
   });
 
-  await tryCloseSale(ctx, saleId);
+  await closeSale(ctx, saleId);
   return payment;
 }
 
@@ -332,39 +392,74 @@ export async function cancelSale(
   input?: { reason?: string | null }
 ) {
   const { user } = ctx;
-  if (!hasPermission(user, "finance:refund") && !hasPermission(user, "finance:sell")) {
-    throw new Error("Sem permissão para cancelar comanda");
-  }
 
   const sale = await prisma.sale.findFirst({
     where: { id: saleId, tenantId: user.tenantId },
-    include: { items: true },
+    include: { items: true, payments: true },
   });
   if (!sale) throw new Error("Comanda não encontrada");
   if (sale.status === "CANCELLED") return sale;
 
-  for (const item of sale.items) {
-    if (item.kind === "PRODUCT" && item.productId) {
-      await recordStockMovement(ctx, {
-        productId: item.productId,
-        type: "RETURN",
-        quantity: item.quantity,
-        saleItemId: item.id,
-        notes: input?.reason ?? "Cancelamento de comanda",
-      });
+  const hasCompletedPayments = sale.payments.some((p) => p.status === "COMPLETED");
+  const isClosed = sale.status === "CLOSED";
+
+  if (isClosed || hasCompletedPayments) {
+    if (!hasPermission(user, "finance:refund")) {
+      throw new Error("Sem permissão para estornar comanda paga");
     }
+  } else if (
+    !hasPermission(user, "finance:refund") &&
+    !hasPermission(user, "finance:sell")
+  ) {
+    throw new Error("Sem permissão para cancelar comanda");
   }
 
-  return prisma.sale.update({
-    where: { id: saleId },
-    data: {
-      status: "CANCELLED",
-      notes: input?.reason
-        ? sale.notes
-          ? `${sale.notes}\nCancelada: ${input.reason}`
-          : `Cancelada: ${input.reason}`
-        : sale.notes,
-    },
+  return prisma.$transaction(async (tx) => {
+    if (isClosed) {
+      for (const item of sale.items) {
+        if (item.kind === "PRODUCT" && item.productId) {
+          await recordStockMovement(
+            ctx,
+            {
+              productId: item.productId,
+              type: "RETURN",
+              quantity: item.quantity,
+              saleItemId: item.id,
+              notes: input?.reason ?? "Cancelamento de comanda",
+              idempotencyKey: `sale-item-return:${item.id}`,
+            },
+            tx
+          );
+        }
+      }
+    }
+
+    if (hasCompletedPayments) {
+      for (const payment of sale.payments.filter((p) => p.status === "COMPLETED")) {
+        await tx.saleRefund.create({
+          data: {
+            tenantId: user.tenantId,
+            saleId,
+            paymentId: payment.id,
+            amount: payment.amount,
+            reason: input?.reason ?? null,
+            refundedByUserId: user.id,
+          },
+        });
+      }
+    }
+
+    return tx.sale.update({
+      where: { id: saleId },
+      data: {
+        status: "CANCELLED",
+        notes: input?.reason
+          ? sale.notes
+            ? `${sale.notes}\nCancelada: ${input.reason}`
+            : `Cancelada: ${input.reason}`
+          : sale.notes,
+      },
+    });
   });
 }
 

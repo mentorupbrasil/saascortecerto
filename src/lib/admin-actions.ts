@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
-import { canManageTenants } from "@/lib/auth-utils";
+import { requirePlatformAdmin } from "@/lib/authz";
 import { getPlanPrice } from "@/lib/plan-pricing";
 import type { Plan, SubscriptionPaymentStatus } from "@prisma/client";
 import { z } from "zod";
@@ -25,8 +24,7 @@ const paymentSchema = z.object({
 });
 
 export async function getPlatformBillingStats() {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -71,8 +69,7 @@ export async function getPlatformBillingStats() {
 }
 
 export async function updateTenantPlan(formData: FormData) {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   const parsed = updatePlanSchema.parse({
     tenantId: formData.get("tenantId"),
@@ -89,8 +86,7 @@ export async function updateTenantPlan(formData: FormData) {
 }
 
 export async function recordSubscriptionPayment(formData: FormData) {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   const parsed = paymentSchema.parse({
     tenantId: formData.get("tenantId"),
@@ -120,8 +116,7 @@ export async function recordSubscriptionPayment(formData: FormData) {
 }
 
 export async function markPaymentPaid(paymentId: string) {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   await prisma.subscriptionPayment.update({
     where: { id: paymentId },
@@ -134,8 +129,7 @@ export async function markPaymentPaid(paymentId: string) {
 }
 
 export async function generateMonthlyInvoices() {
-  const user = await requireAuth();
-  if (!canManageTenants(user)) throw new Error("Sem permissão");
+  await requirePlatformAdmin();
 
   const tenants = await prisma.tenant.findMany({
     where: { active: true, plan: { not: "FREE" } },

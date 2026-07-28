@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
-import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
+import {
+  requirePermission,
+  requireTenantAdmin,
+  requireTenantUser,
+} from "@/lib/authz";
 import { computeMembershipExpiry } from "@/lib/membership";
 import { z } from "zod";
 import type { MembershipPlanType, MembershipBilling } from "@prisma/client";
@@ -33,8 +36,9 @@ const subscribeSchema = z.object({
 });
 
 export async function getMembershipPlans() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("club:manage");
+  const tenantId = user.tenantId;
 
   return prisma.membershipPlan.findMany({
     where: { tenantId },
@@ -46,8 +50,9 @@ export async function getMembershipPlans() {
 }
 
 export async function getActiveMemberships() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("club:manage");
+  const tenantId = user.tenantId;
 
   return prisma.clientMembership.findMany({
     where: { tenantId, status: "ACTIVE" },
@@ -60,9 +65,9 @@ export async function getActiveMemberships() {
 }
 
 export async function createMembershipPlan(formData: FormData) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("club:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   const parsed = planSchema.parse({
     name: formData.get("name"),
@@ -98,9 +103,9 @@ export async function createMembershipPlan(formData: FormData) {
 }
 
 export async function toggleMembershipPlan(planId: string, active: boolean) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("club:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   await prisma.membershipPlan.updateMany({
     where: { id: planId, tenantId },
@@ -112,9 +117,9 @@ export async function toggleMembershipPlan(planId: string, active: boolean) {
 }
 
 export async function subscribeClient(formData: FormData) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("club:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   const parsed = subscribeSchema.parse({
     clientId: formData.get("clientId"),
@@ -153,9 +158,9 @@ export async function subscribeClient(formData: FormData) {
 }
 
 export async function cancelMembership(membershipId: string) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("club:manage");
+  const user = await requireTenantUser();
+  const tenantId = user.tenantId;
 
   await prisma.clientMembership.updateMany({
     where: { id: membershipId, tenantId },
@@ -167,8 +172,9 @@ export async function cancelMembership(membershipId: string) {
 }
 
 export async function getClientActiveMembership(clientId: string) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("club:manage");
+  const tenantId = user.tenantId;
 
   return prisma.clientMembership.findFirst({
     where: { clientId, tenantId, status: "ACTIVE" },
@@ -177,8 +183,9 @@ export async function getClientActiveMembership(clientId: string) {
 }
 
 export async function getClientsForSubscribe() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("club:manage");
+  const tenantId = user.tenantId;
 
   return prisma.client.findMany({
     where: { tenantId },

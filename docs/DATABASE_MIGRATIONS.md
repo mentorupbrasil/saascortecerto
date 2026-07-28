@@ -1,72 +1,87 @@
-# Database Migrations — CorteCerto
+# Database Migrations
 
 ## Overview
 
-This project uses **Prisma Migrate** with PostgreSQL. Migration history lives in `prisma/migrations/`.
+This project uses **versioned Prisma migrations** only.
 
-Baseline migration: `20260727000000_init_baseline` — full schema snapshot from initial `schema.prisma`.
-
-## Commands
-
-| Command | When to use |
-|---------|-------------|
-| `npm run db:migrate:dev` | Local dev — create/apply new migrations |
-| `npm run db:migrate` | Production/CI — apply pending migrations only |
-| `npm run db:push` | **Dev only** — quick schema sync without migration files |
-| `npm run db:generate` | Regenerate Prisma client after schema change |
-
-## Creating a new migration
+Never use in production:
 
 ```bash
-# Edit prisma/schema.prisma, then:
-npm run db:migrate:dev -- --name describe_change
+prisma db push
+prisma db push --accept-data-loss
 ```
 
-Review generated SQL in `prisma/migrations/<timestamp>_describe_change/migration.sql` before committing.
-
-## Production deploy
-
-Vercel build runs:
-
-```
-prisma migrate deploy && prisma generate && next build
-```
-
-`migrate deploy`:
-
-- Applies unapplied migrations in order
-- Records state in `_prisma_migrations` table
-- Fails safely if migration history conflicts
-
-## Baseline for existing databases
-
-If a database was created with `db push` before migrations existed:
-
-1. Ensure schema matches `schema.prisma`
-2. Mark baseline as applied without running SQL:
+Deploy command:
 
 ```bash
-npx prisma migrate resolve --applied 20260727000000_init_baseline
+npx prisma migrate deploy
 ```
 
-Or on empty DB, `migrate deploy` applies the full baseline.
+## Migration history (safe for legacy + empty)
 
-## Credentials migration (data, not schema)
+| Migration | Purpose |
+|-----------|---------|
+| `20260727100000_legacy_baseline` | Exact schema as of commit `331af59` (pre-hardening, `db push` era) |
+| `20260727100001_expand_operational_schema` | Additive forward migration to current `schema.prisma` + backfills + uniqueness |
 
-Plaintext tokens in `TenantSettings` are encrypted separately:
+The previous single `20260727000000_init_baseline` (full new schema) was **unsafe** for legacy databases and was replaced.
+
+## Scenario A — empty database
 
 ```bash
-CREDENTIALS_ENCRYPTION_KEY=... DATABASE_URL=... npm run credentials:migrate
+createdb cortecerto_empty_test   # or CREATE DATABASE
+export DATABASE_URL=postgresql://USER:PASS@HOST:5432/cortecerto_empty_test
+npx prisma migrate deploy
+npx tsx scripts/verify-schema.ts
 ```
 
-See `scripts/migrate-credentials.ts`.
+Both migrations apply in order.
 
-## Do not
+## Scenario B — legacy database (created with `db push` at schema `331af59`)
 
-- Run `prisma db push --accept-data-loss` in production
-- Edit applied migration files — create a forward migration instead
-- Delete `_prisma_migrations` rows manually unless recovering from a documented incident
+1. Confirm the live schema matches the legacy baseline (or restore a backup first).
+2. Mark **only** the legacy baseline as already applied (do **not** re-run its SQL):
 
-## Lock file
+```bash
+export DATABASE_URL=postgresql://USER:PASS@HOST:5432/your_legacy_db
+npx prisma migrate resolve --applied 20260727100000_legacy_baseline
+npx prisma migrate deploy
+npx tsx scripts/verify-schema.ts
+```
 
-`prisma/migrations/migration_lock.toml` pins provider to `postgresql`. Commit with migrations.
+`migrate deploy` then applies **only** `20260727100001_expand_operational_schema`.
+
+### Safety checks after legacy upgrade
+
+- Existing tenants/clients/appointments still present
+- New tables exist (`Location`, `Sale`, `AuditLog`, …)
+- Primary `Location` backfilled per tenant
+- Checkout snapshot columns backfilled when possible
+
+## Schema verification
+
+```bash
+npx tsx scripts/verify-schema.ts
+```
+
+Compares the live database to `prisma/schema.prisma` via `prisma migrate diff`. Exit code `1` means drift.
+
+## Regenerating diffs (maintainers)
+
+```bash
+node scripts/regen-migrations.js
+```
+
+Uses `prisma/schema.legacy.tmp.prisma` extracted from git commit `331af59`.
+
+## Rollback notes
+
+- Forward migration is additive (new enums/tables/columns/indexes). Prefer restore-from-backup for rollback of critical production failures.
+- Do not delete columns/tables in emergency “fixes” with `db push --accept-data-loss`.
+
+## Indexes / uniqueness added in forward migration
+
+- Unique `mercadoPagoPaymentId` on signup and public booking checkouts
+- Unique `CommissionEntry.saleItemId`
+- Unique optional `idempotencyKey` on `CashMovement` and `StockMovement`
+- `MembershipRedemption.idempotencyKey` unique (from schema create)

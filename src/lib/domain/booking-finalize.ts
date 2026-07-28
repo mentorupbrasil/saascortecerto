@@ -13,6 +13,7 @@ import {
   resolveBarberId,
   validatePublicBookingSlot,
 } from "@/lib/booking-checkout";
+import { createAppointmentWithConflictGuard } from "@/lib/domain/appointment-create";
 
 export type FinalizedBookingResult = {
   checkout: Awaited<ReturnType<typeof loadCheckoutForFinalize>>;
@@ -151,6 +152,7 @@ export async function finalizeBookingFromVerifiedPayment(
     barberId: checkout.barberId,
     scheduledAt: checkout.scheduledAt,
     settings: bookingSettings,
+    excludeCheckoutId: checkoutId,
   });
 
   const phone = checkout.clientPhone.replace(/\D/g, "");
@@ -183,36 +185,34 @@ export async function finalizeBookingFromVerifiedPayment(
     barbers,
   });
 
-  const appointment = await prisma.$transaction(async (tx) => {
-    const apt = await tx.appointment.create({
-      data: {
-        tenantId: checkout.tenantId,
-        clientId: client!.id,
-        serviceId: service.id,
-        barberId,
-        scheduledAt: checkout.scheduledAt,
-        duration: service.duration,
-        price: checkout.amount,
-        paymentMethod: "PIX",
-        status: "CONFIRMED",
-        bookedOnline: true,
-        notes: "Agendamento online — PIX confirmado",
-      },
-    });
-
-    await tx.publicBookingCheckout.update({
-      where: { id: checkoutId },
-      data: {
-        status: "PAID",
-        paidAt: new Date(),
-        appointmentId: apt.id,
-        paymentSource: options?.paymentSource ?? "PAID_PROVIDER",
-        confirmedByUserId: options?.confirmedByUserId ?? null,
-        confirmationNote: options?.confirmationNote ?? null,
-      },
-    });
-
-    return apt;
+  const appointment = await createAppointmentWithConflictGuard({
+    tenantId: checkout.tenantId,
+    clientId: client!.id,
+    serviceId: service.id,
+    barberId,
+    scheduledAt: checkout.scheduledAt,
+    duration: service.duration,
+    price: checkout.amount,
+    paymentMethod: "PIX",
+    status: "CONFIRMED",
+    bookedOnline: true,
+    notes: "Agendamento online — PIX confirmado",
+    origin: "PUBLIC",
+    checkoutId,
+    excludeCheckoutId: checkoutId,
+    afterCreate: async (tx, apt) => {
+      await tx.publicBookingCheckout.update({
+        where: { id: checkoutId },
+        data: {
+          status: "PAID",
+          paidAt: new Date(),
+          appointmentId: apt.id,
+          paymentSource: options?.paymentSource ?? "PAID_PROVIDER",
+          confirmedByUserId: options?.confirmedByUserId ?? null,
+          confirmationNote: options?.confirmationNote ?? null,
+        },
+      });
+    },
   });
 
   await notifyBarbershopBooking({

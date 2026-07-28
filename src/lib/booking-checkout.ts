@@ -50,7 +50,8 @@ export async function getDayOccupancy(
     openTime: string;
     closeTime: string;
     workingDays: string;
-  }
+  },
+  options?: { excludeCheckoutId?: string }
 ) {
   const dayStart = startOfDay(scheduledAt);
   const dayEnd = endOfDay(scheduledAt);
@@ -72,6 +73,9 @@ export async function getDayOccupancy(
         status: { in: ["PENDING_PAYMENT", "AWAITING_CONFIRMATION"] },
         scheduledAt: { gte: dayStart, lte: dayEnd },
         expiresAt: { gt: new Date() },
+        ...(options?.excludeCheckoutId
+          ? { id: { not: options.excludeCheckoutId } }
+          : {}),
       },
       select: { scheduledAt: true, serviceId: true, barberId: true },
     }),
@@ -113,6 +117,7 @@ export async function validatePublicBookingSlot(options: {
     closeTime: string;
     workingDays: string;
   };
+  excludeCheckoutId?: string;
 }) {
   const service = await prisma.service.findFirst({
     where: { id: options.serviceId, tenantId: options.tenantId, active: true },
@@ -122,7 +127,8 @@ export async function validatePublicBookingSlot(options: {
   const { appointments, barbers } = await getDayOccupancy(
     options.tenantId,
     options.scheduledAt,
-    options.settings
+    options.settings,
+    { excludeCheckoutId: options.excludeCheckoutId }
   );
 
   const slots = getAvailableSlots({

@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
-import { isTenantAdmin, requireTenantId } from "@/lib/auth-utils";
+import {
+  requirePermission,
+  requireTenantAdmin,
+  requireTenantUser,
+} from "@/lib/authz";
 import { canUseAutoWhatsApp } from "@/lib/plan-pricing";
 import {
   credentialConfigured,
@@ -56,8 +59,9 @@ export type WhatsAppSettingsDto = {
 };
 
 export async function getWhatsAppSettings() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("integrations:manage");
+  const tenantId = user.tenantId;
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -88,9 +92,9 @@ export async function getWhatsAppSettings() {
 }
 
 export async function updateWhatsAppSettings(formData: FormData) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("integrations:manage");
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
   const plan = await getTenantPlan(tenantId);
   const autoAllowed = canUseAutoWhatsApp(plan);
 
@@ -144,15 +148,16 @@ export async function updateWhatsAppSettings(formData: FormData) {
 }
 
 export async function getReturnPreview() {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("integrations:manage");
+  const tenantId = user.tenantId;
   return getClientsDueForReturn(tenantId);
 }
 
 export async function sendBulkReturnMessages() {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("integrations:manage");
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
   await assertAutoWhatsApp(tenantId);
 
   const result = await processBulkReturnForTenant(tenantId);
@@ -162,8 +167,9 @@ export async function sendBulkReturnMessages() {
 }
 
 export async function sendSingleReturnMessage(clientId: string) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("integrations:manage");
+  const tenantId = user.tenantId;
   await assertAutoWhatsApp(tenantId);
 
   const client = await prisma.client.findFirst({
@@ -215,9 +221,9 @@ export async function sendSingleReturnMessage(clientId: string) {
 }
 
 export async function markManualReturnSent(clientId: string) {
-  const user = await requireAuth();
-  if (!isTenantAdmin(user)) throw new Error("Sem permissão");
-  const tenantId = requireTenantId(user);
+  await requirePermission("integrations:manage");
+  const user = await requireTenantAdmin();
+  const tenantId = user.tenantId;
 
   const client = await prisma.client.findFirst({
     where: { id: clientId, tenantId },
@@ -265,8 +271,9 @@ export async function markManualReturnSent(clientId: string) {
 }
 
 export async function getWhatsAppMessageLog(limit = 50) {
-  const user = await requireAuth();
-  const tenantId = requireTenantId(user);
+  const user = await requireTenantUser();
+  await requirePermission("integrations:manage");
+  const tenantId = user.tenantId;
 
   return prisma.whatsAppMessage.findMany({
     where: { tenantId },

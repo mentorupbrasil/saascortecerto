@@ -1,6 +1,6 @@
 import "server-only";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { StockMovementType } from "@prisma/client";
+import { Prisma, type StockMovementType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertTenantResource, type AuthenticatedUser } from "@/lib/authz";
 import { writeAuditLog } from "@/lib/audit";
@@ -9,12 +9,21 @@ export type InventoryContext = {
   user: AuthenticatedUser & { tenantId: string };
 };
 
+type DbClient = Prisma.TransactionClient | typeof prisma;
+
 function toDecimal(value: number | string | Decimal): Decimal {
   return value instanceof Decimal ? value : new Decimal(value);
 }
 
-export async function deriveStockFromMovements(productId: string): Promise<number> {
-  const movements = await prisma.stockMovement.findMany({
+function isUniqueConstraintError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+}
+
+export async function deriveStockFromMovements(
+  productId: string,
+  db: DbClient = prisma
+): Promise<number> {
+  const movements = await db.stockMovement.findMany({
     where: { productId },
     select: { type: true, quantity: true },
   });
@@ -30,9 +39,9 @@ export async function deriveStockFromMovements(productId: string): Promise<numbe
   return qty;
 }
 
-export async function syncProductStockQty(productId: string) {
-  const qty = await deriveStockFromMovements(productId);
-  return prisma.product.update({
+export async function syncProductStockQty(productId: string, db: DbClient = prisma) {
+  const qty = await deriveStockFromMovements(productId, db);
+  return db.product.update({
     where: { id: productId },
     data: { stockQty: qty },
   });
@@ -83,42 +92,55 @@ export async function recordStockMovement(
     quantity: number;
     notes?: string | null;
     saleItemId?: string | null;
-  }
+    idempotencyKey?: string | null;
+  },
+  db: DbClient = prisma
 ) {
   const { user } = ctx;
   if (input.quantity <= 0) throw new Error("Quantidade deve ser positiva");
 
-  const product = await prisma.product.findFirst({
+  const product = await db.product.findFirst({
     where: { id: input.productId, tenantId: user.tenantId },
   });
   if (!product) throw new Error("Produto não encontrado");
 
-  const movement = await prisma.stockMovement.create({
-    data: {
-      tenantId: user.tenantId,
-      productId: input.productId,
-      type: input.type,
-      quantity: input.quantity,
-      notes: input.notes ?? null,
-      saleItemId: input.saleItemId ?? null,
-      createdByUserId: user.id,
-    },
-  });
-
-  await syncProductStockQty(input.productId);
-
-  if (input.type === "ADJUSTMENT") {
-    await writeAuditLog({
-      tenantId: user.tenantId,
-      actorUserId: user.id,
-      action: "inventory.adjusted",
-      entityType: "Product",
-      entityId: input.productId,
-      metadata: { quantity: input.quantity, type: input.type },
+  try {
+    const movement = await db.stockMovement.create({
+      data: {
+        tenantId: user.tenantId,
+        productId: input.productId,
+        type: input.type,
+        quantity: input.quantity,
+        notes: input.notes ?? null,
+        saleItemId: input.saleItemId ?? null,
+        idempotencyKey: input.idempotencyKey ?? null,
+        createdByUserId: user.id,
+      },
     });
-  }
 
-  return movement;
+    await syncProductStockQty(input.productId, db);
+
+    if (input.type === "ADJUSTMENT") {
+      await writeAuditLog({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: "inventory.adjusted",
+        entityType: "Product",
+        entityId: input.productId,
+        metadata: { quantity: input.quantity, type: input.type },
+      });
+    }
+
+    return movement;
+  } catch (err) {
+    if (isUniqueConstraintError(err) && input.idempotencyKey) {
+      const existing = await db.stockMovement.findUnique({
+        where: { idempotencyKey: input.idempotencyKey },
+      });
+      if (existing) return existing;
+    }
+    throw err;
+  }
 }
 
 export async function listProducts(tenantId: string, opts?: { lowStockOnly?: boolean }) {

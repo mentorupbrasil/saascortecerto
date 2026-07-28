@@ -22,6 +22,11 @@ import {
 import { isBookingDemoMode } from "@/lib/mercadopago";
 import { credentialConfigured, prepareCredentialForStorage } from "@/lib/crypto/credentials";
 import { requireTenantAdmin, requireTenantUser } from "@/lib/authz";
+import {
+  assertMercadoPagoPaymentIdAvailable,
+  validateApprovedMercadoPagoPayment,
+} from "@/lib/domain/payment-validation";
+import { logger } from "@/lib/logging/logger";
 
 const publicBookingSchema = z.object({
   clientName: z.string().min(2),
@@ -167,8 +172,45 @@ export async function processBookingMercadoPagoPayment(paymentId: string) {
   }
 
   if (!checkout) return null;
-  if (payment.status !== "approved") return null;
   if (checkout.status === "PAID") return checkout.appointmentId;
+
+  const validation = validateApprovedMercadoPagoPayment({
+    payment: {
+      status: payment.status,
+      currency_id: payment.currency_id,
+      transaction_amount: payment.transaction_amount,
+      external_reference: payment.external_reference,
+      id: payment.id,
+    },
+    expected: {
+      externalReference: `bk_${checkout.id}`,
+      amountDecimalOrString: checkout.amount,
+      currency: "BRL",
+    },
+  });
+
+  if (!validation.ok) {
+    logger.warn("booking_payment_validation_failed", {
+      action: "webhook.booking.payment_validation",
+      checkoutId: checkout.id,
+      paymentId,
+      reason: validation.reason,
+    });
+    return null;
+  }
+
+  const paymentAvailability = await assertMercadoPagoPaymentIdAvailable(payment.id, {
+    kind: "booking",
+    checkoutId: checkout.id,
+  });
+  if (!paymentAvailability.ok) {
+    logger.warn("booking_payment_id_conflict", {
+      action: "webhook.booking.payment_id_conflict",
+      checkoutId: checkout.id,
+      paymentId,
+    });
+    return null;
+  }
 
   await prisma.publicBookingCheckout.update({
     where: { id: checkout.id },
@@ -364,18 +406,47 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
       checkout.mercadoPagoPaymentId,
       storedMercadoPagoToken
     );
-    if (payment?.status === "approved") {
-      await finalizeBookingFromVerifiedPayment(checkout.id, {
-        paymentSource: "PAID_PROVIDER",
-      });
-      const refreshed = await prisma.publicBookingCheckout.findUnique({
-        where: { id: checkoutId },
-        include: {
-          tenant: { include: { settings: true } },
-          appointment: { include: { service: true } },
+    if (payment) {
+      const validation = validateApprovedMercadoPagoPayment({
+        payment: {
+          status: payment.status,
+          currency_id: payment.currency_id,
+          transaction_amount: payment.transaction_amount,
+          external_reference: payment.external_reference,
+          id: payment.id,
+        },
+        expected: {
+          externalReference: `bk_${checkout.id}`,
+          amountDecimalOrString: checkout.amount,
+          currency: "BRL",
         },
       });
-      if (refreshed) Object.assign(checkout, refreshed);
+
+      if (validation.ok) {
+        const paymentAvailability = await assertMercadoPagoPaymentIdAvailable(payment.id, {
+          kind: "booking",
+          checkoutId: checkout.id,
+        });
+
+        if (paymentAvailability.ok) {
+          await prisma.publicBookingCheckout.update({
+            where: { id: checkout.id },
+            data: { mercadoPagoPaymentId: String(payment.id) },
+          });
+
+          await finalizeBookingFromVerifiedPayment(checkout.id, {
+            paymentSource: "PAID_PROVIDER",
+          });
+          const refreshed = await prisma.publicBookingCheckout.findUnique({
+            where: { id: checkoutId },
+            include: {
+              tenant: { include: { settings: true } },
+              appointment: { include: { service: true } },
+            },
+          });
+          if (refreshed) Object.assign(checkout, refreshed);
+        }
+      }
     }
   }
 
@@ -539,19 +610,21 @@ export async function createPublicBooking(slug: string, formData: FormData) {
     barbers,
   });
 
-  const appointment = await prisma.appointment.create({
-    data: {
-      tenantId: tenant.id,
-      clientId: client.id,
-      serviceId: service.id,
-      barberId,
-      scheduledAt,
-      duration: service.duration,
-      price: service.price,
-      status: "SCHEDULED",
-      bookedOnline: true,
-      notes: "Agendamento online",
-    },
+  const { createAppointmentWithConflictGuard } = await import(
+    "@/lib/domain/appointment-create"
+  );
+  const appointment = await createAppointmentWithConflictGuard({
+    tenantId: tenant.id,
+    clientId: client.id,
+    serviceId: service.id,
+    barberId,
+    scheduledAt,
+    duration: service.duration,
+    price: service.price,
+    status: "SCHEDULED",
+    bookedOnline: true,
+    notes: "Agendamento online",
+    origin: "PUBLIC",
   });
 
   await notifyBarbershopBooking({

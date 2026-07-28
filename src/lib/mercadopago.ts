@@ -76,7 +76,9 @@ export async function fetchMercadoPagoPayment(paymentId: string, accessToken?: s
   return res.json() as Promise<{
     id: number;
     status: string;
-    external_reference?: string;
+    currency_id: string;
+    transaction_amount: number;
+    external_reference: string;
     point_of_interaction?: {
       transaction_data?: {
         qr_code?: string;

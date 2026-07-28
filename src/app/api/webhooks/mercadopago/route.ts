@@ -4,12 +4,15 @@ import { processMercadoPagoWebhookPayment } from "@/lib/signup/webhook-processor
 import {
   claimWebhookEvent,
   completeWebhookEvent,
+  failWebhookEvent,
   verifyMercadoPagoSignature,
 } from "@/lib/integrations/mercadopago-webhook";
 import { logger, createRequestId } from "@/lib/logging/logger";
 
 export async function POST(req: NextRequest) {
   const requestId = createRequestId();
+  let eventKey: string | null = null;
+
   try {
     const rawBody = await req.text();
     let body: Record<string, unknown> = {};
@@ -27,6 +30,9 @@ export async function POST(req: NextRequest) {
     if (!paymentId) {
       return NextResponse.json({ ok: true, skipped: "no payment id" });
     }
+
+    const action = String(body.action ?? "unknown");
+    eventKey = `mercadopago:payment:${paymentId}:${action}`;
 
     const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() ?? "";
     const xSignature = req.headers.get("x-signature");
@@ -51,7 +57,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const eventKey = `payment:${paymentId}:${xRequestId ?? "no-req"}`;
     const payloadHash = createHash("sha256").update(rawBody).digest("hex");
     const claim = await claimWebhookEvent({
       provider: "mercadopago",
@@ -67,6 +72,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, tenantId });
   } catch (err) {
+    if (eventKey) {
+      await failWebhookEvent(
+        "mercadopago",
+        eventKey,
+        err instanceof Error ? err.message : "unknown"
+      );
+    }
+
     logger.error("webhook_mercadopago_error", {
       requestId,
       action: "webhook.mercadopago",

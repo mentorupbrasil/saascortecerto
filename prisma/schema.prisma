@@ -326,6 +326,7 @@ model SignupCheckout {
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
 
+  @@unique([mercadoPagoPaymentId])
   @@index([ownerEmail])
   @@index([status])
   @@index([mercadoPagoPreferenceId])
@@ -521,9 +522,9 @@ model PublicBookingCheckout {
   createdAt            DateTime                    @default(now())
   updatedAt            DateTime                    @updatedAt
 
+  @@unique([mercadoPagoPaymentId])
   @@index([tenantId, status])
   @@index([tenantId, scheduledAt])
-  @@index([mercadoPagoPaymentId])
   @@index([expiresAt])
 }
 
@@ -639,6 +640,7 @@ model ProcessedWebhookEvent {
   eventKey    String
   payloadHash String?
   processedAt DateTime @default(now())
+  status      String   @default("PROCESSING") // PROCESSING | PROCESSED | FAILED
   result      String?
 
   @@unique([provider, eventKey])
@@ -845,10 +847,12 @@ model CashMovement {
   type            CashMovementType
   amount          Decimal          @db.Decimal(12, 2)
   notes           String?
+  idempotencyKey  String?
   createdByUserId String?
   createdByUser   User?            @relation("CashMovementCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   createdAt       DateTime         @default(now())
 
+  @@unique([idempotencyKey])
   @@index([tenantId])
   @@index([sessionId])
 }
@@ -1031,6 +1035,7 @@ model CommissionEntry {
   periodKey  String
   createdAt  DateTime        @default(now())
 
+  @@unique([saleItemId])
   @@index([tenantId, periodKey])
   @@index([barberId, periodKey])
 }
@@ -1087,9 +1092,11 @@ model StockMovement {
   quantity        Int
   notes           String?
   saleItemId      String?
+  idempotencyKey  String?
   createdByUserId String?
   createdAt       DateTime          @default(now())
 
+  @@unique([idempotencyKey])
   @@index([tenantId])
   @@index([productId, createdAt])
 }

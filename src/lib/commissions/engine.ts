@@ -1,12 +1,18 @@
 import "server-only";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { CommissionRule, SaleItem } from "@prisma/client";
+import { Prisma, type CommissionRule, type SaleItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { zonedParts } from "@/lib/timezone";
 import { DEFAULT_TENANT_TIMEZONE } from "@/lib/timezone";
 
+type DbClient = Prisma.TransactionClient | typeof prisma;
+
 function toDecimal(value: number | string | Decimal): Decimal {
   return value instanceof Decimal ? value : new Decimal(value);
+}
+
+function isUniqueConstraintError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
 }
 
 export function periodKeyForDate(date: Date, timeZone = DEFAULT_TENANT_TIMEZONE): string {
@@ -58,14 +64,10 @@ export async function findCommissionRuleForSaleItem(
 export async function createCommissionEntryForSaleItem(
   tenantId: string,
   saleItemId: string,
-  timeZone?: string | null
+  timeZone?: string | null,
+  db: DbClient = prisma
 ) {
-  const existing = await prisma.commissionEntry.findFirst({
-    where: { tenantId, saleItemId },
-  });
-  if (existing) return existing;
-
-  const saleItem = await prisma.saleItem.findFirst({
+  const saleItem = await db.saleItem.findFirst({
     where: { id: saleItemId, tenantId },
     include: { sale: { select: { closedAt: true, createdAt: true, status: true } } },
   });
@@ -82,16 +84,26 @@ export async function createCommissionEntryForSaleItem(
   const refDate = saleItem.sale.closedAt ?? saleItem.sale.createdAt;
   const periodKey = periodKeyForDate(refDate, timeZone ?? DEFAULT_TENANT_TIMEZONE);
 
-  return prisma.commissionEntry.create({
-    data: {
-      tenantId,
-      ruleId: rule.id,
-      barberId: saleItem.barberId,
-      saleItemId,
-      amount,
-      periodKey,
-    },
-  });
+  try {
+    return await db.commissionEntry.create({
+      data: {
+        tenantId,
+        ruleId: rule.id,
+        barberId: saleItem.barberId,
+        saleItemId,
+        amount,
+        periodKey,
+      },
+    });
+  } catch (err) {
+    if (isUniqueConstraintError(err)) {
+      const existing = await db.commissionEntry.findFirst({
+        where: { saleItemId },
+      });
+      if (existing) return existing;
+    }
+    throw err;
+  }
 }
 
 export async function listCommissionRules(tenantId: string) {
