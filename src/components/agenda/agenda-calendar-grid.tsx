@@ -29,7 +29,7 @@ type CalendarDay = {
 
 function parseHm(hm: string) {
   const [h, m] = hm.split(":").map(Number);
-  return (h ?? 8) * 60 + (m ?? 0);
+  return (h ?? 7) * 60 + (m ?? 0);
 }
 
 function getSlots(openTime: string, closeTime: string) {
@@ -55,8 +55,8 @@ const statusColors: Record<string, string> = {
 export function AgendaCalendarGrid({
   days,
   appointments,
-  openTime = "08:00",
-  closeTime = "20:00",
+  openTime = "07:00",
+  closeTime = "22:00",
   barbers = [],
 }: {
   days: CalendarDay[];

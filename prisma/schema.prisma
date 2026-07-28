@@ -479,8 +479,8 @@ model TenantSettings {
   autoReturnEnabled        Boolean   @default(false)
   returnMessageDays        Int       @default(20)
   lastBulkSendAt           DateTime?
-  openTime                 String    @default("08:00")
-  closeTime                String    @default("20:00")
+  openTime                 String    @default("07:00")
+  closeTime                String    @default("22:00")
   workingDays              String    @default("1,2,3,4,5,6")
   publicBookingEnabled     Boolean   @default(true)
   bookingNotifyPhone       String?

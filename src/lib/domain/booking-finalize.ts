@@ -141,8 +141,8 @@ export async function finalizeBookingFromVerifiedPayment(
 
   const settings = checkout.tenant.settings;
   const bookingSettings = {
-    openTime: settings?.openTime ?? "08:00",
-    closeTime: settings?.closeTime ?? "20:00",
+    openTime: settings?.openTime ?? "07:00",
+    closeTime: settings?.closeTime ?? "22:00",
     workingDays: settings?.workingDays ?? "1,2,3,4,5,6",
   };
 

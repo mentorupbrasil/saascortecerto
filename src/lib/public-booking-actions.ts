@@ -81,8 +81,8 @@ export async function getPublicBookingPage(slug: string) {
   if (tenant.settings && !tenant.settings.publicBookingEnabled) return null;
 
   const booking = getTenantBookingSettings({
-    openTime: tenant.settings?.openTime ?? "08:00",
-    closeTime: tenant.settings?.closeTime ?? "20:00",
+    openTime: tenant.settings?.openTime ?? "07:00",
+    closeTime: tenant.settings?.closeTime ?? "22:00",
     workingDays: tenant.settings?.workingDays ?? "1,2,3,4,5,6",
     bookingRequirePixPayment: tenant.settings?.bookingRequirePixPayment,
     bookingPixKey: tenant.settings?.bookingPixKey,
@@ -244,8 +244,8 @@ export async function createPublicBookingCheckout(slug: string, formData: FormDa
 
   const storedMercadoPagoToken = tenant.settings?.mercadoPagoAccessToken ?? null;
   const booking = getTenantBookingSettings({
-    openTime: tenant.settings?.openTime ?? "08:00",
-    closeTime: tenant.settings?.closeTime ?? "20:00",
+    openTime: tenant.settings?.openTime ?? "07:00",
+    closeTime: tenant.settings?.closeTime ?? "22:00",
     workingDays: tenant.settings?.workingDays ?? "1,2,3,4,5,6",
     bookingRequirePixPayment: tenant.settings?.bookingRequirePixPayment,
     bookingPixKey: tenant.settings?.bookingPixKey,
@@ -451,8 +451,8 @@ export async function getPublicBookingCheckoutPublic(slug: string, checkoutId: s
   }
 
   const booking = getTenantBookingSettings({
-    openTime: checkout.tenant.settings?.openTime ?? "08:00",
-    closeTime: checkout.tenant.settings?.closeTime ?? "20:00",
+    openTime: checkout.tenant.settings?.openTime ?? "07:00",
+    closeTime: checkout.tenant.settings?.closeTime ?? "22:00",
     workingDays: checkout.tenant.settings?.workingDays ?? "1,2,3,4,5,6",
     bookingPixKey: checkout.tenant.settings?.bookingPixKey,
     bookingPixHolderName: checkout.tenant.settings?.bookingPixHolderName,
@@ -573,8 +573,8 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   const scheduledAt = parseISO(parsed.scheduledAt);
   const phone = parsed.clientPhone.replace(/\D/g, "");
   const bookingSettings = getTenantBookingSettings({
-    openTime: tenant.settings?.openTime ?? "08:00",
-    closeTime: tenant.settings?.closeTime ?? "20:00",
+    openTime: tenant.settings?.openTime ?? "07:00",
+    closeTime: tenant.settings?.closeTime ?? "22:00",
     workingDays: tenant.settings?.workingDays ?? "1,2,3,4,5,6",
   });
 

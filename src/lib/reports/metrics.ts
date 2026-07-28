@@ -156,8 +156,8 @@ export async function getReportMetrics(
   let availableMinutes = 0;
   for (const day of days) {
     availableMinutes += computeAvailableMinutesPerDay(
-      settings?.openTime ?? "08:00",
-      settings?.closeTime ?? "20:00",
+      settings?.openTime ?? "07:00",
+      settings?.closeTime ?? "22:00",
       settings?.workingDays ?? "1,2,3,4,5,6",
       barberCount || 1,
       day,

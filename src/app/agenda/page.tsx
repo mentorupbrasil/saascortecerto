@@ -100,8 +100,8 @@ export default async function AgendaPage({
           <div>
             <h1 className="text-2xl font-bold text-white">Agenda</h1>
             <p className="text-sm text-zinc-400">
-              Grade semanal · {settings?.openTime ?? "08:00"} às{" "}
-              {settings?.closeTime ?? "20:00"}
+              Grade semanal · {settings?.openTime ?? "07:00"} às{" "}
+              {settings?.closeTime ?? "22:00"}
             </p>
           </div>
           <NewAppointmentModal
@@ -127,8 +127,8 @@ export default async function AgendaPage({
         <AgendaCalendarGrid
           days={days}
           appointments={calendarAppointments}
-          openTime={settings?.openTime ?? "08:00"}
-          closeTime={settings?.closeTime ?? "20:00"}
+          openTime={settings?.openTime ?? "07:00"}
+          closeTime={settings?.closeTime ?? "22:00"}
           barbers={barbers}
         />
 

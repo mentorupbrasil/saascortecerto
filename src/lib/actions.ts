@@ -587,8 +587,8 @@ export async function getAvailableSlots(dateStr: string, duration: number) {
     where: { tenantId },
   });
 
-  const openTime = settings?.openTime ?? "08:00";
-  const closeTime = settings?.closeTime ?? "20:00";
+  const openTime = settings?.openTime ?? "07:00";
+  const closeTime = settings?.closeTime ?? "22:00";
 
   const [openH, openM] = openTime.split(":").map(Number);
   const [closeH, closeM] = closeTime.split(":").map(Number);
