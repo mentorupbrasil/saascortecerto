@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Plus, X, Clock, UserX } from "lucide-react";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
+import { EmptyState, FixedActionBar } from "@/components/ui/page-chrome";
+import { Plus, Clock, MessageCircle } from "lucide-react";
 import { formatPhone } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   joinWaitlistAction,
@@ -43,6 +47,26 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
+const PERIODS = [
+  { id: "morning", label: "Manhã", start: "08:00", end: "12:00" },
+  { id: "afternoon", label: "Tarde", start: "12:00", end: "18:00" },
+  { id: "evening", label: "Noite", start: "18:00", end: "22:00" },
+];
+
+function nextDays(count: number) {
+  const days: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    days.push({
+      value: d.toISOString().slice(0, 10),
+      label: format(d, "EEE dd/MM", { locale: ptBR }),
+    });
+  }
+  return days;
+}
+
 export function WaitlistPanel({
   entries,
   formOptions,
@@ -51,182 +75,416 @@ export function WaitlistPanel({
   formOptions: FormOptions;
 }) {
   const [open, setOpen] = useState(false);
+  const [offerId, setOfferId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<"existing" | "new">("new");
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [period, setPeriod] = useState("afternoon");
+  const [offerDate, setOfferDate] = useState(new Date().toISOString().slice(0, 10));
+  const [offerTime, setOfferTime] = useState("10:00");
+  const [offerHours, setOfferHours] = useState("2");
   const router = useRouter();
+  const toast = useToast();
+  const dayOptions = useMemo(() => nextDays(14), []);
+
+  const offerEntry = entries.find((e) => e.id === offerId) ?? null;
+  const offerPreview = useMemo(() => {
+    if (!offerEntry) return "";
+    const when = `${offerDate} ${offerTime}`;
+    return `Olá ${offerEntry.clientName}! Temos uma vaga para ${offerEntry.service.name} em ${format(new Date(`${offerDate}T${offerTime}`), "dd/MM 'às' HH:mm", { locale: ptBR })}. Responda para confirmar.`;
+  }, [offerEntry, offerDate, offerTime]);
+
+  function toggleDate(value: string) {
+    setSelectedDates((prev) =>
+      prev.includes(value) ? prev.filter((d) => d !== value) : [...prev, value]
+    );
+  }
 
   function handleJoin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     const formData = new FormData(e.currentTarget);
+    const periodMeta = PERIODS.find((p) => p.id === period);
+    if (periodMeta) {
+      formData.set("preferredTimeStart", periodMeta.start);
+      formData.set("preferredTimeEnd", periodMeta.end);
+    }
+    formData.set("preferredDates", selectedDates.join(","));
+
+    if (mode === "existing") {
+      const clientId = String(formData.get("clientId") || "");
+      const client = formOptions.clients.find((c) => c.id === clientId);
+      if (!client) {
+        setError("Selecione um cliente");
+        return;
+      }
+      formData.set("clientName", client.name);
+      formData.set("clientPhone", client.phone);
+    }
+
     startTransition(async () => {
       try {
         await joinWaitlistAction(formData);
         setOpen(false);
+        setSelectedDates([]);
+        toast.success("Adicionado à lista de espera");
         router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao salvar");
+        const msg = err instanceof Error ? err.message : "Erro ao salvar";
+        setError(msg);
+        toast.error(msg);
       }
     });
   }
 
-  function handleOffer(entryId: string) {
-    const slot = prompt("Horário da vaga (ISO ou datetime-local):");
-    if (!slot) return;
-    const slotAt = slot.includes("T") && !slot.endsWith("Z")
-      ? new Date(slot).toISOString()
-      : slot;
+  function handleOfferSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!offerId) return;
+    const slotAt = new Date(`${offerDate}T${offerTime}:00`).toISOString();
     startTransition(async () => {
       try {
-        await offerWaitlistSlotAction(entryId, slotAt);
+        await offerWaitlistSlotAction(offerId, slotAt);
+        setOfferId(null);
+        toast.success("Vaga oferecida");
         router.refresh();
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Erro");
+        toast.error(err instanceof Error ? err.message : "Erro ao oferecer vaga");
       }
-    });
-  }
-
-  function handleCancel(entryId: string) {
-    if (!confirm("Remover da lista de espera?")) return;
-    startTransition(async () => {
-      await cancelWaitlistEntryAction(entryId);
-      router.refresh();
     });
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => setOpen(true)}>
+    <div className="space-y-6 pb-24 lg:pb-0">
+      <div className="hidden justify-end lg:flex">
+        <Button className="min-h-[44px]" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> Adicionar à fila
         </Button>
       </div>
 
       <div className="grid gap-3">
-        {entries.map((entry) => (
-          <Card key={entry.id} hover>
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold text-white">{entry.clientName}</p>
-                <p className="text-sm text-zinc-400">{formatPhone(entry.clientPhone)}</p>
-                <p className="text-sm text-zinc-500 mt-1">
-                  {entry.service.name}
-                  {entry.barber ? ` · ${entry.barber.name}` : ""}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-zinc-300">
+        {entries.map((entry) => {
+          const wa = `https://wa.me/55${entry.clientPhone.replace(/\D/g, "")}`;
+          return (
+            <Card key={entry.id}>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold text-white">{entry.clientName}</p>
+                  <p className="text-sm text-zinc-400">{formatPhone(entry.clientPhone)}</p>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    {entry.service.name}
+                    {entry.barber ? ` · ${entry.barber.name}` : " · Qualquer profissional"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-zinc-800 px-2 py-1 text-zinc-300">
                     {STATUS_LABELS[entry.status] ?? entry.status}
                   </span>
                   {entry.priority > 0 && (
-                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-400">
+                    <span className="rounded-full bg-amber-500/10 px-2 py-1 text-amber-400">
                       Prioridade {entry.priority}
                     </span>
                   )}
-                  <span className="text-zinc-600">
-                    desde {format(new Date(entry.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                  <span className="rounded-full bg-zinc-800 px-2 py-1 text-zinc-400">
+                    Na fila{" "}
+                    {formatDistanceToNow(new Date(entry.createdAt), {
+                      locale: ptBR,
+                      addSuffix: false,
+                    })}
                   </span>
                 </div>
+                {entry.preferredDates && (
+                  <p className="text-xs text-zinc-500">Preferências: {entry.preferredDates}</p>
+                )}
                 {entry.offeredSlotAt && (
-                  <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-xs text-amber-400">
                     <Clock className="h-3 w-3" />
-                    Vaga oferecida:{" "}
+                    Oferta:{" "}
                     {format(new Date(entry.offeredSlotAt), "dd/MM HH:mm", { locale: ptBR })}
                     {entry.offerExpiresAt &&
-                      ` (expira ${format(new Date(entry.offerExpiresAt), "dd/MM HH:mm", { locale: ptBR })})`}
+                      ` · expira ${format(new Date(entry.offerExpiresAt), "dd/MM HH:mm", { locale: ptBR })}`}
                   </p>
                 )}
-              </div>
-              <div className="flex gap-2 shrink-0">
-                {entry.status === "PENDING" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={pending}
-                    onClick={() => handleOffer(entry.id)}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {entry.status === "PENDING" && (
+                    <Button
+                      className="min-h-[44px] flex-1"
+                      variant="secondary"
+                      disabled={pending}
+                      onClick={() => setOfferId(entry.id)}
+                    >
+                      Oferecer vaga
+                    </Button>
+                  )}
+                  <a
+                    href={wa}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground"
                   >
-                    Oferecer vaga
-                  </Button>
-                )}
-                {entry.status !== "CANCELLED" && entry.status !== "BOOKED" && (
-                  <button
-                    onClick={() => handleCancel(entry.id)}
-                    disabled={pending}
-                    className="rounded-lg p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
-                    aria-label="Cancelar"
-                  >
-                    <UserX className="h-4 w-4" />
-                  </button>
-                )}
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </a>
+                  {entry.status !== "CANCELLED" && entry.status !== "BOOKED" && (
+                    <Button
+                      className="min-h-[44px] flex-1"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => setCancelId(entry.id)}
+                    >
+                      Remover
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
 
         {entries.length === 0 && (
-          <Card>
-            <p className="py-8 text-center text-zinc-500">Nenhuma entrada na lista de espera</p>
-          </Card>
+          <EmptyState
+            title="Fila vazia"
+            description="Adicione clientes que querem ser avisados quando surgir um horário."
+          />
         )}
       </div>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Lista de espera</h2>
-              <button onClick={() => setOpen(false)} className="text-zinc-400 hover:text-white">
-                <X className="h-5 w-5" />
-              </button>
+      <div className="lg:hidden">
+        <FixedActionBar>
+          <Button className="min-h-[44px] w-full" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" /> Adicionar à fila
+          </Button>
+        </FixedActionBar>
+      </div>
+
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Nova entrada na fila"
+        mobileVariant="full"
+        footer={
+          <Button form="waitlist-join" type="submit" className="w-full min-h-[44px]" disabled={pending}>
+            {pending ? "Salvando..." : "Adicionar"}
+          </Button>
+        }
+      >
+        <form id="waitlist-join" onSubmit={handleJoin} className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={`min-h-[44px] rounded-xl border px-3 text-sm ${
+                mode === "existing"
+                  ? "border-amber-500/50 bg-amber-500/10 text-amber-300"
+                  : "border-border text-zinc-400"
+              }`}
+              onClick={() => setMode("existing")}
+            >
+              Cliente existente
+            </button>
+            <button
+              type="button"
+              className={`min-h-[44px] rounded-xl border px-3 text-sm ${
+                mode === "new"
+                  ? "border-amber-500/50 bg-amber-500/10 text-amber-300"
+                  : "border-border text-zinc-400"
+              }`}
+              onClick={() => setMode("new")}
+            >
+              Novo cliente
+            </button>
+          </div>
+
+          {mode === "existing" ? (
+            <div>
+              <label className="mb-1.5 block text-sm text-muted-foreground">Cliente</label>
+              <select
+                name="clientId"
+                required
+                className="w-full min-h-[44px] rounded-xl border border-border bg-input px-3 text-sm text-foreground"
+              >
+                <option value="">Selecione...</option>
+                {formOptions.clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} · {formatPhone(c.phone)}
+                  </option>
+                ))}
+              </select>
             </div>
-            <form onSubmit={handleJoin} className="space-y-4">
+          ) : (
+            <>
               <Input name="clientName" label="Nome" required />
-              <Input name="clientPhone" label="Telefone" required />
-              <div>
-                <label className="mb-1 block text-sm text-zinc-400">Serviço</label>
-                <select
-                  name="serviceId"
-                  required
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
+              <Input name="clientPhone" label="Telefone" required placeholder="(11) 99999-9999" />
+            </>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-sm text-muted-foreground">Serviço</label>
+            <select
+              name="serviceId"
+              required
+              className="w-full min-h-[44px] rounded-xl border border-border bg-input px-3 text-sm text-foreground"
+            >
+              {formOptions.services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm text-muted-foreground">
+              Profissional (opcional)
+            </label>
+            <select
+              name="barberId"
+              className="w-full min-h-[44px] rounded-xl border border-border bg-input px-3 text-sm text-foreground"
+            >
+              <option value="">Qualquer</option>
+              {formOptions.barbers.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm text-muted-foreground">Datas preferidas</p>
+            <div className="flex flex-wrap gap-2">
+              {dayOptions.map((d) => {
+                const active = selectedDates.includes(d.value);
+                return (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => toggleDate(d.value)}
+                    className={`min-h-[40px] rounded-full border px-3 text-xs capitalize ${
+                      active
+                        ? "border-amber-500/50 bg-amber-500/15 text-amber-300"
+                        : "border-border text-zinc-400"
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm text-muted-foreground">Período preferido</p>
+            <div className="grid grid-cols-3 gap-2">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPeriod(p.id)}
+                  className={`min-h-[44px] rounded-xl border text-sm ${
+                    period === p.id
+                      ? "border-amber-500/50 bg-amber-500/15 text-amber-300"
+                      : "border-border text-zinc-400"
+                  }`}
                 >
-                  {formOptions.services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm text-zinc-400">Barbeiro (opcional)</label>
-                <select
-                  name="barberId"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-white"
-                >
-                  <option value="">Qualquer</option>
-                  {formOptions.barbers.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Input name="preferredDates" label="Datas preferidas (YYYY-MM-DD, separadas por vírgula)" />
-              <Input name="priority" label="Prioridade" type="number" min={0} defaultValue={0} />
-              <Textarea name="notes" label="Observações" />
-              {error && (
-                <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
-              )}
-              <div className="flex gap-3">
-                <Button type="button" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" className="flex-1" disabled={pending}>
-                  {pending ? "Salvando..." : "Adicionar"}
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Input name="priority" label="Prioridade" type="number" min={0} defaultValue={0} />
+          <Textarea name="notes" label="Observações" />
+          {error && (
+            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+          )}
+        </form>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={!!offerId}
+        onOpenChange={(o) => !o && setOfferId(null)}
+        title="Oferecer vaga"
+        mobileVariant="sheet"
+        footer={
+          <div className="flex flex-col gap-2">
+            {offerEntry && (
+              <a
+                href={`https://wa.me/55${offerEntry.clientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(offerPreview)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-border bg-secondary text-sm font-medium"
+              >
+                <MessageCircle className="h-4 w-4" /> Abrir WhatsApp
+              </a>
+            )}
+            <Button
+              form="waitlist-offer"
+              type="submit"
+              className="w-full min-h-[44px]"
+              disabled={pending}
+            >
+              {pending ? "Enviando..." : "Confirmar oferta"}
+            </Button>
+          </div>
+        }
+      >
+        <form id="waitlist-offer" onSubmit={handleOfferSubmit} className="space-y-3">
+          <Input
+            type="date"
+            label="Data"
+            value={offerDate}
+            onChange={(e) => setOfferDate(e.target.value)}
+            required
+          />
+          <Input
+            type="time"
+            label="Horário"
+            value={offerTime}
+            onChange={(e) => setOfferTime(e.target.value)}
+            required
+          />
+          <div>
+            <label className="mb-1.5 block text-sm text-muted-foreground">Profissional</label>
+            <select className="w-full min-h-[44px] rounded-xl border border-border bg-input px-3 text-sm">
+              <option value="">
+                {offerEntry?.barber?.name ?? "Qualquer / o da preferência"}
+              </option>
+              {formOptions.barbers.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Input
+            type="number"
+            min={1}
+            label="Validade da oferta (horas)"
+            value={offerHours}
+            onChange={(e) => setOfferHours(e.target.value)}
+          />
+          <div className="rounded-xl bg-zinc-900 px-3 py-3 text-sm text-zinc-300">
+            <p className="mb-1 text-xs text-zinc-500">Preview da mensagem</p>
+            {offerPreview}
+          </div>
+        </form>
+      </ResponsiveDialog>
+
+      <ConfirmDialog
+        open={!!cancelId}
+        onOpenChange={(o) => !o && setCancelId(null)}
+        title="Remover da lista de espera?"
+        description="O cliente deixará de receber ofertas desta fila."
+        confirmLabel="Remover"
+        tone="danger"
+        loading={pending}
+        onConfirm={async () => {
+          if (!cancelId) return;
+          await cancelWaitlistEntryAction(cancelId);
+          toast.success("Removido da fila");
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
