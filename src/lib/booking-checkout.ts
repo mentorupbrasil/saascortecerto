@@ -80,7 +80,11 @@ export async function getDayOccupancy(
       select: { scheduledAt: true, serviceId: true, barberId: true },
     }),
     prisma.user.findMany({
-      where: { tenantId, role: "BARBER", active: true },
+      where: {
+        tenantId,
+        role: { in: ["BARBER", "OWNER", "MANAGER"] },
+        active: true,
+      },
       select: { id: true },
     }),
   ]);

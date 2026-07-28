@@ -57,8 +57,10 @@ export function getServerEnv(): ServerEnv {
 }
 
 export function isDemoModeAllowed() {
-  const env = getServerEnv();
-  return env.NODE_ENV !== "production";
+  // Do not call getServerEnv() here — public pages (e.g. /agendar) call
+  // isBookingDemoMode() and must not crash if optional secrets used only
+  // for credential encryption / cron are missing from the deployment.
+  return process.env.NODE_ENV !== "production";
 }
 
 export function isWhatsAppDemoMode() {

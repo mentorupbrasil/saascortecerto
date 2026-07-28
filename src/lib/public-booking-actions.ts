@@ -29,6 +29,14 @@ import {
 import { logger } from "@/lib/logging/logger";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/request-ip";
+import {
+  buildPublicBookingConfirmationResponse,
+  finalizeBookingFromVerifiedPayment,
+  notifyBarbershopBooking,
+} from "@/lib/domain/booking-finalize";
+
+/** Roles that can appear as bookable professionals on the public agenda. */
+const PUBLIC_BOOKING_PRO_ROLES = ["BARBER", "OWNER", "MANAGER"] as const;
 
 const publicBookingSchema = z.object({
   clientName: z.string().min(2),
@@ -60,12 +68,6 @@ function getTenantBookingSettings(settings: {
   };
 }
 
-import {
-  buildPublicBookingConfirmationResponse,
-  finalizeBookingFromVerifiedPayment,
-  notifyBarbershopBooking,
-} from "@/lib/domain/booking-finalize";
-
 export async function getPublicBookingPage(slug: string) {
   const tenant = await prisma.tenant.findFirst({
     where: { slug, active: true },
@@ -73,8 +75,9 @@ export async function getPublicBookingPage(slug: string) {
       settings: true,
       services: { where: { active: true }, orderBy: { sortOrder: "asc" } },
       users: {
-        where: { role: "BARBER", active: true },
+        where: { role: { in: [...PUBLIC_BOOKING_PRO_ROLES] }, active: true },
         select: { id: true, name: true },
+        orderBy: { name: "asc" },
       },
     },
   });
@@ -306,7 +309,12 @@ async function createPublicBookingCheckoutInternal(slug: string, formData: FormD
 
   const barber = parsed.barberId
     ? await prisma.user.findFirst({
-        where: { id: parsed.barberId, tenantId: tenant.id, role: "BARBER", active: true },
+        where: {
+          id: parsed.barberId,
+          tenantId: tenant.id,
+          role: { in: [...PUBLIC_BOOKING_PRO_ROLES] },
+          active: true,
+        },
         select: { name: true },
       })
     : null;
