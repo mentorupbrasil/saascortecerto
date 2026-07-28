@@ -1,0 +1,14 @@
+---
+description: Always commit and push completed work to main
+alwaysApply: true
+---
+
+# Commit and push to main
+
+After finishing a requested change, always create a git commit and push it to `main` (do not wait for the user to ask).
+
+- Work directly on `main` unless the user asks for another branch.
+- Use a concise commit message describing the why.
+- Push with `git push` to `origin/main` after a successful commit.
+- Do not use force push.
+- Never commit secrets (`.env`, credentials, tokens).
