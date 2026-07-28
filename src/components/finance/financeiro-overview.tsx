@@ -81,7 +81,7 @@ export function FinanceiroOverview({ data }: { data: FinanceOverview }) {
         <div className="flex items-start gap-3">
           <Receipt className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500" />
           <div>
-            <p className="font-medium text-white">Plano e cobrança SaaS</p>
+            <p className="font-medium text-foreground">Plano e cobrança SaaS</p>
             <p className="text-sm text-zinc-500">
               Assinatura da plataforma e faturas ficam em Faturamento.
             </p>

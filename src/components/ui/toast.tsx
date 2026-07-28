@@ -74,7 +74,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <p className="flex-1 leading-snug">{toast.message}</p>
             <button
               type="button"
-              className="rounded-lg p-1 text-zinc-500 hover:text-white min-h-[32px] min-w-[32px]"
+              className="rounded-lg p-1 text-zinc-500 hover:text-foreground min-h-[32px] min-w-[32px]"
               aria-label="Fechar aviso"
               onClick={() => setItems((prev) => prev.filter((t) => t.id !== toast.id))}
             >

@@ -15,9 +15,9 @@ export default async function ContaBloqueadaPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
       <Card className="w-full max-w-md text-center animate-fade-in">
         <ShieldOff className="h-14 w-14 text-red-400 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold text-white mb-2">Conta bloqueada</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Conta bloqueada</h1>
         <p className="text-sm text-zinc-400 mb-4">
-          O acesso à barbearia <strong className="text-white">{user.tenantName}</strong> foi
+          O acesso à barbearia <strong className="text-foreground">{user.tenantName}</strong> foi
           suspenso por pendência de pagamento ou decisão administrativa.
         </p>
         <p className="text-sm text-zinc-500 mb-6">

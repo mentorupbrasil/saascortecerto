@@ -64,7 +64,7 @@ export function AdminBillingPanel({
         </Card>
         <Card>
           <p className="text-sm text-zinc-400">Recebido este mês</p>
-          <p className="text-2xl font-bold text-white">{formatCurrency(revenueThisMonth)}</p>
+          <p className="text-2xl font-bold text-foreground">{formatCurrency(revenueThisMonth)}</p>
         </Card>
         <Card className="border-amber-500/20">
           <p className="text-sm text-zinc-400">Pendente ({pendingCount})</p>
@@ -72,7 +72,7 @@ export function AdminBillingPanel({
         </Card>
         <Card>
           <p className="text-sm text-zinc-400">Barbearias pagantes</p>
-          <p className="text-2xl font-bold text-white">
+          <p className="text-2xl font-bold text-foreground">
             {tenants.filter((t) => t.active && t.plan !== "FREE").length}
           </p>
         </Card>
@@ -95,7 +95,7 @@ export function AdminBillingPanel({
       </div>
 
       <Card>
-        <h2 className="text-lg font-semibold text-white mb-4">Planos das barbearias</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Planos das barbearias</h2>
         <div className="space-y-2">
           {tenants.map((tenant) => (
             <TenantPlanRow key={tenant.id} tenant={tenant} />
@@ -104,7 +104,7 @@ export function AdminBillingPanel({
       </Card>
 
       <Card>
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <DollarSign className="h-5 w-5 text-green-400" />
           Histórico de pagamentos
         </h2>
@@ -130,7 +130,7 @@ export function AdminBillingPanel({
               )}
               {payments.map((p) => (
                 <tr key={p.id} className="border-b border-zinc-800/50">
-                  <td className="py-2 pr-4 text-white">{p.tenantName}</td>
+                  <td className="py-2 pr-4 text-foreground">{p.tenantName}</td>
                   <td className="py-2 pr-4 text-zinc-400">{p.plan}</td>
                   <td className="py-2 pr-4 text-amber-400">{formatCurrency(p.amount)}</td>
                   <td className="py-2 pr-4 text-zinc-400">
@@ -195,7 +195,7 @@ function TenantPlanRow({ tenant }: { tenant: TenantRow }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg bg-zinc-900 px-3 py-2">
       <div>
-        <p className="text-sm font-medium text-white">{tenant.name}</p>
+        <p className="text-sm font-medium text-foreground">{tenant.name}</p>
         <p className="text-xs text-zinc-500">{tenant.ownerEmail ?? "—"}</p>
       </div>
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -241,7 +241,7 @@ function RecordPaymentModal({ tenants }: { tenants: TenantRow[] }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <Card className="w-full max-w-md animate-fade-in">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Registrar pagamento</h2>
+              <h2 className="text-xl font-bold text-foreground">Registrar pagamento</h2>
               <button onClick={() => setOpen(false)} className="text-zinc-400">
                 <X className="h-5 w-5" />
               </button>

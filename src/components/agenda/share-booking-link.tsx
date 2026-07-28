@@ -52,7 +52,7 @@ export function ShareBookingLink({
       <div className="flex items-start gap-3">
         <Link2 className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-white">Link para clientes agendarem</h3>
+          <h3 className="text-sm font-semibold text-foreground">Link para clientes agendarem</h3>
           <p className="text-xs text-zinc-400 mt-1 mb-3">
             Envie nos grupos do WhatsApp. O cliente vê horários livres e agenda sozinho.
           </p>

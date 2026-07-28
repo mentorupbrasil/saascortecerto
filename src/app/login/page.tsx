@@ -48,7 +48,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 px-4 overflow-x-hidden safe-bottom">
       <div className="flex flex-wrap justify-end items-center gap-2 sm:gap-3 p-3 sm:p-4 safe-top">
-        <Link href="/" className="text-sm text-zinc-400 hover:text-white py-2">
+        <Link href="/" className="text-sm text-zinc-400 hover:text-foreground py-2">
           ← Voltar ao site
         </Link>
         <Link href="/assinar">
@@ -64,7 +64,7 @@ export default function LoginPage() {
             <Link href="/" className="inline-flex">
               <BrandMark className="mx-auto mb-4 h-14 w-14 sm:h-16 sm:w-16" />
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">CorteCerto</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">CorteCerto</h1>
             <p className="mt-2 text-zinc-400">Área do cliente</p>
           </div>
 

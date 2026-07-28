@@ -21,7 +21,7 @@ export function AgendaWeekNav({ currentDate }: { currentDate: string }) {
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm font-medium text-white capitalize">
+      <span className="text-sm font-medium text-foreground capitalize">
         {format(weekStart, "MMMM yyyy")}
       </span>
       <div className="flex gap-2">

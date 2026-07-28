@@ -81,11 +81,11 @@ export function ClubePanel({
         </Card>
         <Card className="py-3">
           <p className="text-xs text-zinc-500 uppercase tracking-wide">Planos ativos</p>
-          <p className="text-2xl font-bold text-white mt-1">{activePlans.length}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{activePlans.length}</p>
         </Card>
         <Card className="py-3">
           <p className="text-xs text-zinc-500 uppercase tracking-wide">Clientes elegíveis</p>
-          <p className="text-2xl font-bold text-white mt-1">{clients.length}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{clients.length}</p>
         </Card>
       </div>
 
@@ -99,7 +99,7 @@ export function ClubePanel({
               "shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors min-h-[44px]",
               tab === t.id
                 ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                : "bg-zinc-800 text-zinc-400 hover:text-white border border-transparent"
+                : "bg-zinc-800 text-zinc-400 hover:text-foreground border border-transparent"
             )}
           >
             {t.label}
@@ -209,7 +209,7 @@ function WeekdayChips({
               "min-h-[44px] min-w-[44px] rounded-xl border px-3 text-sm font-medium transition-colors",
               selected.includes(i)
                 ? "border-amber-500/50 bg-amber-500/10 text-amber-300"
-                : "border-border text-zinc-400 hover:text-white"
+                : "border-border text-zinc-400 hover:text-foreground"
             )}
           >
             {label}
@@ -249,35 +249,35 @@ function PlanSummary({
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between gap-2">
           <dt className="text-zinc-500">Nome</dt>
-          <dd className="text-white font-medium">{name || "—"}</dd>
+          <dd className="text-foreground font-medium">{name || "—"}</dd>
         </div>
         <div className="flex justify-between gap-2">
           <dt className="text-zinc-500">Valor</dt>
-          <dd className="text-white">
+          <dd className="text-foreground">
             {price ? formatCurrency(Number(price)) : "—"}
             {billingCycle === "MONTHLY" ? "/mês" : " único"}
           </dd>
         </div>
         <div className="flex justify-between gap-2">
           <dt className="text-zinc-500">Tipo</dt>
-          <dd className="text-white">{PLAN_TYPE_LABELS[planType] ?? planType}</dd>
+          <dd className="text-foreground">{PLAN_TYPE_LABELS[planType] ?? planType}</dd>
         </div>
         {planType === "MONTHLY_LIMITED" && maxVisitsPerMonth && (
           <div className="flex justify-between gap-2">
             <dt className="text-zinc-500">Cortes/mês</dt>
-            <dd className="text-white">{maxVisitsPerMonth}</dd>
+            <dd className="text-foreground">{maxVisitsPerMonth}</dd>
           </div>
         )}
         {planType === "VISIT_PACK" && totalVisits && (
           <div className="flex justify-between gap-2">
             <dt className="text-zinc-500">Visitas</dt>
-            <dd className="text-white">{totalVisits}</dd>
+            <dd className="text-foreground">{totalVisits}</dd>
           </div>
         )}
         {planType === "LOYALTY" && bonusAfterVisits && (
           <div className="flex justify-between gap-2">
             <dt className="text-zinc-500">Bônus</dt>
-            <dd className="text-white">
+            <dd className="text-foreground">
               A cada {bonusAfterVisits} cortes
               {bonusDescription ? `: ${bonusDescription}` : ""}
             </dd>
@@ -285,7 +285,7 @@ function PlanSummary({
         )}
         <div className="flex justify-between gap-2">
           <dt className="text-zinc-500">Dias</dt>
-          <dd className="text-white text-right">{weekdayStr || "—"}</dd>
+          <dd className="text-foreground text-right">{weekdayStr || "—"}</dd>
         </div>
       </dl>
     </Card>
@@ -639,7 +639,7 @@ export function PlansList({ plans }: { plans: Plan[] }) {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <Crown className="h-4 w-4 text-amber-400 shrink-0" />
-                <p className="font-semibold text-white truncate">{plan.name}</p>
+                <p className="font-semibold text-foreground truncate">{plan.name}</p>
               </div>
               <p className="text-xl font-bold text-amber-400 mt-1">
                 {formatCurrency(Number(plan.price))}
@@ -723,7 +723,7 @@ export function MembershipsList({ memberships }: { memberships: Membership[] }) 
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-semibold text-white truncate">{m.client.name}</p>
+                  <p className="font-semibold text-foreground truncate">{m.client.name}</p>
                   <p className="text-sm text-amber-400">{m.plan.name}</p>
                   <p className="text-xs text-zinc-500 mt-1">
                     {getMembershipRemaining(

@@ -66,7 +66,7 @@ export function OnlineBookingsPanel({
         <Card className="border-amber-500/30 bg-amber-500/5">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="h-5 w-5 text-amber-400" />
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-foreground">
               Aguardando PIX ({pendingCheckouts.length})
             </h3>
           </div>
@@ -80,7 +80,7 @@ export function OnlineBookingsPanel({
                 className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 flex flex-col sm:flex-row sm:items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{item.clientName}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{item.clientName}</p>
                   <p className="text-xs text-zinc-500">
                     {item.serviceName} ·{" "}
                     {format(new Date(item.scheduledAt), "dd/MM 'às' HH:mm", { locale: ptBR })} ·{" "}
@@ -116,7 +116,7 @@ export function OnlineBookingsPanel({
         <Card className="border-green-500/30 bg-green-500/5">
           <div className="flex items-center gap-2 mb-4">
             <Globe className="h-5 w-5 text-green-400" />
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-foreground">
               Agendamentos online ({onlineAppointments.length})
             </h3>
           </div>
@@ -130,7 +130,7 @@ export function OnlineBookingsPanel({
                 className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {formatTime(apt.scheduledAt)} · {apt.clientName}
                   </p>
                   <p className="text-xs text-zinc-500 truncate">{apt.serviceName}</p>

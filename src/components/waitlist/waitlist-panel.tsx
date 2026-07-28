@@ -170,7 +170,7 @@ export function WaitlistPanel({
             <Card key={entry.id}>
               <div className="space-y-3">
                 <div>
-                  <p className="font-semibold text-white">{entry.clientName}</p>
+                  <p className="font-semibold text-foreground">{entry.clientName}</p>
                   <p className="text-sm text-zinc-400">{formatPhone(entry.clientPhone)}</p>
                   <p className="mt-1 text-sm text-zinc-500">
                     {entry.service.name}

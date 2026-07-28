@@ -41,7 +41,7 @@ export function TenantFormModal() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-4 overflow-y-auto">
           <Card className="w-full max-w-lg my-8 animate-fade-in">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Nova barbearia</h2>
+              <h2 className="text-xl font-bold text-foreground">Nova barbearia</h2>
               <button onClick={() => setOpen(false)} className="text-zinc-400">
                 <X className="h-5 w-5" />
               </button>

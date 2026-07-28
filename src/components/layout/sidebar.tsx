@@ -62,13 +62,13 @@ function NavLink({
         collapsed ? "justify-center px-2 py-2" : "px-2.5 py-2",
         active
           ? "bg-amber-500/15 text-amber-400"
-          : "text-zinc-400 hover:bg-zinc-800/80 hover:text-white"
+          : "text-zinc-400 hover:bg-zinc-800/80 hover:text-foreground"
       )}
     >
       <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-amber-400")} />
       {!collapsed && <span className="truncate">{item.label}</span>}
       {collapsed && (
-        <span className="pointer-events-none absolute left-full z-50 ml-2 hidden whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-white shadow-lg group-hover:block">
+        <span className="pointer-events-none absolute left-full z-50 ml-2 hidden whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-foreground shadow-lg group-hover:block">
           {item.label}
         </span>
       )}
@@ -112,7 +112,7 @@ function SidebarChrome({
         <BrandMark className="h-9 w-9 shrink-0" />
         {!isCollapsed && (
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-bold text-white">CorteCerto</h1>
+            <h1 className="truncate text-base font-bold text-foreground">CorteCerto</h1>
             {user.tenantName && (
               <p className="truncate text-[11px] text-zinc-500">{user.tenantName}</p>
             )}
@@ -122,7 +122,7 @@ function SidebarChrome({
           <button
             type="button"
             onClick={onNavigate}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-foreground lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Fechar menu"
           >
             <X className="h-4 w-4" />
@@ -132,7 +132,7 @@ function SidebarChrome({
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
             title={isCollapsed ? "Expandir" : "Recolher"}
           >
@@ -216,7 +216,7 @@ function SidebarChrome({
       >
         {!isCollapsed && (
           <div className="mb-2 min-w-0 px-1">
-            <p className="truncate text-sm font-medium text-white">{user.name}</p>
+            <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
             <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
           </div>
         )}

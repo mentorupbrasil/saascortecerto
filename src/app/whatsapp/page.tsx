@@ -36,7 +36,7 @@ export default async function WhatsAppPage() {
       <TenantAppShell>
         <div className="animate-fade-in space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">WhatsApp</h1>
+            <h1 className="text-2xl font-bold text-foreground">WhatsApp</h1>
             <p className="text-sm text-zinc-400">Retorno de clientes por WhatsApp</p>
           </div>
           <WhatsAppPlanBanner plan={plan} />
@@ -56,7 +56,7 @@ export default async function WhatsAppPage() {
     <TenantAppShell>
       <div className="animate-fade-in space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">WhatsApp</h1>
+          <h1 className="text-2xl font-bold text-foreground">WhatsApp</h1>
           <p className="text-sm text-zinc-400">
             {autoWhatsApp
               ? "Disparo automático — traz o cliente de volta sem esforço"

@@ -186,7 +186,7 @@ export function AgendaDayView({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-sm font-semibold capitalize text-white">{selectedDayLabel}</p>
+          <p className="truncate text-sm font-semibold capitalize text-foreground">{selectedDayLabel}</p>
           <p className="text-xs text-zinc-500">
             {openTime} – {closeTime}
           </p>
@@ -358,7 +358,7 @@ export function AgendaDayView({
                   </p>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-white">{apt.clientName}</p>
+                  <p className="truncate font-semibold text-foreground">{apt.clientName}</p>
                   <p className="truncate text-sm text-zinc-400">{apt.serviceName}</p>
                   {apt.barberName && (
                     <p className="truncate text-xs text-zinc-500">{apt.barberName}</p>
@@ -393,7 +393,7 @@ export function AgendaDayView({
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-400">Profissional</label>
             <select
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-foreground"
               value={barberFilter}
               onChange={(e) => setBarberFilter(e.target.value)}
             >
@@ -408,7 +408,7 @@ export function AgendaDayView({
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-zinc-400">Status</label>
             <select
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-foreground"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >

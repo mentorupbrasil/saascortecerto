@@ -41,7 +41,7 @@ export default async function AdminPage() {
       <div className="animate-fade-in space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Admin Plataforma</h1>
+            <h1 className="text-2xl font-bold text-foreground">Admin Plataforma</h1>
             <p className="text-sm text-zinc-400">
               Faturamento do SaaS · Pro {formatPlanPrice("PRO")}/mês (manual) · Completo{" "}
               {formatPlanPrice("CLUBE")}/mês (automático)
@@ -60,14 +60,14 @@ export default async function AdminPage() {
         />
 
         <section>
-          <h2 className="text-lg font-semibold text-white mb-4">Barbearias cadastradas</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Barbearias cadastradas</h2>
           <div className="space-y-3">
             {billing.tenants.map((tenant) => (
               <Card key={tenant.id}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-lg font-semibold text-white">{tenant.name}</p>
+                      <p className="text-lg font-semibold text-foreground">{tenant.name}</p>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           tenant.active

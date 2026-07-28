@@ -18,7 +18,7 @@ function PaymentSummary({ checkout }: { checkout: CheckoutData }) {
   return (
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-2">
       <p className="text-xs uppercase tracking-wide text-zinc-500">Resumo</p>
-      <p className="font-medium text-white">{checkout.barbershopName}</p>
+      <p className="font-medium text-foreground">{checkout.barbershopName}</p>
       <p className="text-sm text-zinc-400">Plano {checkout.planLabel}</p>
       <div className="flex justify-between items-center pt-2 border-t border-zinc-800">
         <span className="text-sm text-zinc-500">Total</span>
@@ -92,7 +92,7 @@ export function PaymentPageClient({ checkoutId }: { checkoutId: string }) {
     <div className="min-h-screen bg-zinc-950 flex flex-col">
       <SiteHeader />
       <div className="mx-auto w-full max-w-lg flex-1 px-4 py-8 pb-12">
-        <h1 className="text-2xl font-bold text-white text-center mb-2">Finalizar assinatura</h1>
+        <h1 className="text-2xl font-bold text-foreground text-center mb-2">Finalizar assinatura</h1>
         <p className="text-sm text-zinc-400 text-center mb-6">
           Conclua o pagamento para ativar sua barbearia
         </p>
@@ -143,7 +143,7 @@ export function PaymentPageClient({ checkoutId }: { checkoutId: string }) {
               {checkout.pixKey && (
                 <div>
                   <p className="text-xs text-zinc-500 mb-1">Chave PIX</p>
-                  <code className="block text-sm bg-zinc-900 p-2 rounded-lg break-all text-white">
+                  <code className="block text-sm bg-zinc-900 p-2 rounded-lg break-all text-foreground">
                     {checkout.pixKey}
                   </code>
                 </div>

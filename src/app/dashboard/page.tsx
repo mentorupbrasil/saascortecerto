@@ -85,7 +85,7 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-amber-400 font-medium">Hoje</p>
-            <h1 className="text-2xl font-bold text-white capitalize">
+            <h1 className="text-2xl font-bold text-foreground capitalize">
               {formatDateLong(new Date())}
             </h1>
           </div>
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
         </div>
 
         <Card>
-          <h2 className="mb-4 text-lg font-semibold text-white">Agenda de hoje</h2>
+          <h2 className="mb-4 text-lg font-semibold text-foreground">Agenda de hoje</h2>
           <div className="space-y-2">
             {appointments.length === 0 && (
               <p className="py-8 text-center text-zinc-500">Nenhum horário hoje</p>
@@ -148,7 +148,7 @@ export default async function DashboardPage() {
                     {formatTime(apt.scheduledAt)}
                   </span>
                   <div>
-                    <p className="font-medium text-white">{apt.client.name}</p>
+                    <p className="font-medium text-foreground">{apt.client.name}</p>
                     <p className="text-sm text-zinc-500">
                       {apt.service.name}
                       {apt.barber && ` · ${apt.barber.name}`}
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
           <Card className="border-orange-500/20">
             <div className="mb-3 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-400" />
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-foreground">
                 Clientes para retorno ({dueClients.length})
               </h2>
             </div>
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
                   className="flex items-center justify-between rounded-lg bg-zinc-900 px-3 py-2"
                 >
                   <div>
-                    <p className="text-sm font-medium text-white">{client.name}</p>
+                    <p className="text-sm font-medium text-foreground">{client.name}</p>
                     <p className="text-xs text-zinc-500">{client.daysSince} dias sem retorno</p>
                   </div>
                   {isTenantAdmin(user) ? (

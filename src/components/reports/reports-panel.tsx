@@ -90,7 +90,7 @@ export function ReportsPanel({
                 "shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors min-h-[44px]",
                 period === p.value
                   ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                  : "bg-zinc-800 text-zinc-400 hover:text-white border border-transparent"
+                  : "bg-zinc-800 text-zinc-400 hover:text-foreground border border-transparent"
               )}
             >
               {p.label}
@@ -164,7 +164,7 @@ export function ReportsPanel({
       )}
 
       <Card>
-        <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+        <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-amber-400" />
           Cancelamentos e no-show
         </h2>
@@ -180,7 +180,7 @@ export function ReportsPanel({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
             <Scissors className="h-4 w-4 text-amber-400" />
             Top serviços
           </h2>
@@ -201,7 +201,7 @@ export function ReportsPanel({
         </Card>
 
         <Card>
-          <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
             <Users className="h-4 w-4 text-amber-400" />
             Desempenho por profissional
           </h2>
@@ -223,7 +223,7 @@ export function ReportsPanel({
       </div>
 
       <Card>
-        <h2 className="text-base font-semibold text-white mb-4">Receita por forma de pagamento</h2>
+        <h2 className="text-base font-semibold text-foreground mb-4">Receita por forma de pagamento</h2>
         <div className="space-y-3">
           {Object.entries(metrics.revenue.byMethod).map(([method, amount]) => {
             const max = Math.max(...Object.values(metrics.revenue.byMethod), 1);
@@ -232,7 +232,7 @@ export function ReportsPanel({
               <div key={method}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-zinc-400">{PAYMENT_LABELS[method] ?? method}</span>
-                  <span className="text-white font-medium">{formatCurrency(amount)}</span>
+                  <span className="text-foreground font-medium">{formatCurrency(amount)}</span>
                 </div>
                 <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
                   <div
@@ -250,7 +250,7 @@ export function ReportsPanel({
       </Card>
 
       <Card>
-        <h2 className="text-base font-semibold text-white mb-4">Agendamentos</h2>
+        <h2 className="text-base font-semibold text-foreground mb-4">Agendamentos</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatBlock label="Total" value={metrics.appointments.total} />
           <StatBlock label="Concluídos" value={metrics.appointments.completed} accent />
@@ -341,7 +341,7 @@ function MetricCard({
           hasComparison={hasComparison}
         />
       </div>
-      <p className="text-2xl font-bold text-white mt-1">{value}</p>
+      <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
       <p className="text-xs text-zinc-500 mt-1">{sub}</p>
     </Card>
   );
@@ -365,7 +365,7 @@ function StatBlock({
           "text-2xl font-bold",
           accent && "text-amber-400",
           warn && "text-red-400",
-          !accent && !warn && "text-white"
+          !accent && !warn && "text-foreground"
         )}
       >
         {value}

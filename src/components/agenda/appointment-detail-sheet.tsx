@@ -181,7 +181,7 @@ export function AppointmentDetailSheet({
               {(appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED") && (
                 <>
                   <Button
-                    className="min-h-[44px] bg-green-600 hover:bg-green-500 text-white"
+                    className="min-h-[44px] bg-green-600 hover:bg-green-500 text-foreground"
                     disabled={pending}
                     onClick={() => handleStatus("COMPLETED")}
                   >

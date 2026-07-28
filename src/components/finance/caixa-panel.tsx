@@ -138,7 +138,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
 
           <Card>
             <p className="text-sm text-zinc-300">
-              Operador: <span className="text-white font-medium">{data.openSession.operatorName}</span>
+              Operador: <span className="text-foreground font-medium">{data.openSession.operatorName}</span>
             </p>
             <p className="text-xs text-zinc-500 mt-1">
               Aberto em{" "}
@@ -150,7 +150,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-lg bg-zinc-900 px-3 py-2">
                 <p className="text-xs text-zinc-500">Vendas dinheiro</p>
-                <p className="font-medium text-white">{formatCurrency(totals.sales)}</p>
+                <p className="font-medium text-foreground">{formatCurrency(totals.sales)}</p>
               </div>
               <div className="rounded-lg bg-zinc-900 px-3 py-2">
                 <p className="text-xs text-zinc-500">Suprimentos</p>
@@ -189,7 +189,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
 
           {data.movements.length > 0 && (
             <Card>
-              <h3 className="text-sm font-medium text-white mb-3">Movimentações</h3>
+              <h3 className="text-sm font-medium text-foreground mb-3">Movimentações</h3>
               <div className="space-y-2">
                 {data.movements.map((m) => (
                   <div
@@ -197,7 +197,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
                     className="flex justify-between rounded-lg bg-zinc-900 px-3 py-2.5 text-sm min-h-[44px] items-center"
                   >
                     <span className="text-zinc-300">{MOVEMENT_LABELS[m.type] ?? m.type}</span>
-                    <span className="text-white font-medium">{formatCurrency(m.amount)}</span>
+                    <span className="text-foreground font-medium">{formatCurrency(m.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -207,7 +207,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
       )}
 
       <Card>
-        <h3 className="text-lg font-semibold text-white mb-4">Histórico recente</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Histórico recente</h3>
         <div className="space-y-2">
           {data.recentSessions.length === 0 && (
             <p className="text-sm text-zinc-600 text-center py-4">Nenhuma sessão registrada</p>
@@ -218,7 +218,7 @@ export function CaixaPanel({ data }: { data: CashData }) {
                 <span className={s.status === "OPEN" ? "text-green-400" : "text-zinc-400"}>
                   {s.status === "OPEN" ? "Aberto" : "Fechado"}
                 </span>
-                <span className="text-white">{formatCurrency(s.openingBalance)}</span>
+                <span className="text-foreground">{formatCurrency(s.openingBalance)}</span>
               </div>
               <p className="text-xs text-zinc-500 mt-1">
                 {s.operatorName} ·{" "}

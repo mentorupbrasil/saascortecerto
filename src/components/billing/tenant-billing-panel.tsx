@@ -37,7 +37,7 @@ export function TenantBillingPanel({
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="border-amber-500/20">
           <p className="text-sm text-zinc-400">Seu plano</p>
-          <p className="text-xl font-bold text-white">{billing.planLabel}</p>
+          <p className="text-xl font-bold text-foreground">{billing.planLabel}</p>
           <p className="text-sm text-amber-400">
             {billing.plan === "FREE"
               ? "Gratuito"
@@ -46,7 +46,7 @@ export function TenantBillingPanel({
         </Card>
         <Card>
           <p className="text-sm text-zinc-400">Próximo vencimento</p>
-          <p className="text-xl font-bold text-white">
+          <p className="text-xl font-bold text-foreground">
             {billing.openInvoice
               ? format(new Date(billing.openInvoice.dueDate), "dd/MM/yyyy", { locale: ptBR })
               : "—"}
@@ -89,7 +89,7 @@ export function TenantBillingPanel({
             }`}
           />
           <div>
-            <p className="text-sm font-medium text-white">{billing.alertMessage}</p>
+            <p className="text-sm font-medium text-foreground">{billing.alertMessage}</p>
             <p className="text-xs text-zinc-400 mt-1">
               O bloqueio da conta é feito manualmente pela plataforma após o vencimento.
             </p>
@@ -121,7 +121,7 @@ export function TenantBillingPanel({
       <Card>
         <div className="mb-4 flex items-center gap-2">
           <FileText className="h-5 w-5 text-amber-400" />
-          <h2 className="text-lg font-semibold text-white">Suas faturas</h2>
+          <h2 className="text-lg font-semibold text-foreground">Suas faturas</h2>
         </div>
 
         {billing.invoices.length === 0 ? (
@@ -176,7 +176,7 @@ function InvoiceRow({
         <td className="py-3 pr-4 text-zinc-400">
           {format(new Date(invoice.createdAt), "MMM/yyyy", { locale: ptBR })}
         </td>
-        <td className="py-3 pr-4 text-white">{invoice.planLabel}</td>
+        <td className="py-3 pr-4 text-foreground">{invoice.planLabel}</td>
         <td className="py-3 pr-4 text-amber-400">{formatCurrency(invoice.amount)}</td>
         <td className="py-3 pr-4 text-zinc-400">
           {format(new Date(invoice.dueDate), "dd/MM/yyyy", { locale: ptBR })}
@@ -276,7 +276,7 @@ function PayInvoiceModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <Card className="w-full max-w-lg animate-fade-in max-h-[90vh] overflow-y-auto">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Pagar fatura com PIX</h2>
+          <h2 className="text-xl font-bold text-foreground">Pagar fatura com PIX</h2>
           <button onClick={onClose} className="text-zinc-400">
             <X className="h-5 w-5" />
           </button>
@@ -292,11 +292,11 @@ function PayInvoiceModal({
             <div className="rounded-xl bg-zinc-900 p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-400">Plano</span>
-                <span className="text-white">{pix.planLabel}</span>
+                <span className="text-foreground">{pix.planLabel}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-400">Vencimento</span>
-                <span className="text-white">
+                <span className="text-foreground">
                   {format(new Date(pix.dueDate), "dd/MM/yyyy", { locale: ptBR })}
                 </span>
               </div>
@@ -312,7 +312,7 @@ function PayInvoiceModal({
               <p className="text-xs text-zinc-500 mb-2">Recebedor: {pix.merchantName}</p>
               <label className="text-sm text-zinc-400">Chave PIX</label>
               <div className="mt-1 flex gap-2">
-                <code className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white break-all">
+                <code className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-foreground break-all">
                   {pix.pixKey}
                 </code>
                 <Button
@@ -361,7 +361,7 @@ function PayInvoiceModal({
         {reported && (
           <div className="text-center py-4 space-y-3">
             <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto" />
-            <p className="text-white font-medium">Pagamento informado!</p>
+            <p className="text-foreground font-medium">Pagamento informado!</p>
             <p className="text-sm text-zinc-400">
               Vamos confirmar em breve. Sua conta continua ativa enquanto analisamos.
             </p>

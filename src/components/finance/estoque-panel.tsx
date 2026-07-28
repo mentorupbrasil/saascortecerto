@@ -156,7 +156,7 @@ export function EstoquePanel({ data }: { data: EstoqueData }) {
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <Package className="h-5 w-5 text-amber-400" />
           Produtos ({filtered.length})
         </h2>
@@ -227,7 +227,7 @@ export function EstoquePanel({ data }: { data: EstoqueData }) {
           <Card key={p.id} className={p.lowStock ? "border-amber-500/30" : undefined}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="font-medium text-white">{p.name}</p>
+                <p className="font-medium text-foreground">{p.name}</p>
                 <p className="text-sm text-zinc-400">
                   {formatCurrency(p.price)}
                   {p.categoryName && ` · ${p.categoryName}`}
@@ -238,7 +238,7 @@ export function EstoquePanel({ data }: { data: EstoqueData }) {
                 <span
                   className={cn(
                     "text-lg font-bold",
-                    p.lowStock ? "text-amber-400" : "text-white"
+                    p.lowStock ? "text-amber-400" : "text-foreground"
                   )}
                 >
                   {p.stockQty} un.
@@ -290,7 +290,7 @@ export function EstoquePanel({ data }: { data: EstoqueData }) {
             <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Categoria</label>
             <select
               name="categoryId"
-              className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+              className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground"
             >
               <option value="">Sem categoria</option>
               {data.categories.map((c) => (

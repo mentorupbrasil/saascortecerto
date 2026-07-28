@@ -171,7 +171,7 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
     return (
       <Card className="text-center max-w-md mx-auto">
         <CheckCircle2 className="h-14 w-14 text-green-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">Horário reservado!</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">Horário reservado!</h2>
         <p className="text-zinc-400 mb-1">{success.serviceName}</p>
         <p className="text-amber-400 font-medium capitalize mb-6">{when}</p>
         <p className="text-sm text-zinc-500 mb-4">A barbearia foi avisada do seu agendamento.</p>
@@ -247,7 +247,7 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-medium text-white">{s.name}</p>
+                      <p className="font-medium text-foreground">{s.name}</p>
                       <p className="text-sm text-amber-400 mt-0.5">{formatCurrency(s.price)}</p>
                       <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
@@ -329,7 +329,7 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
                     <p className="text-[10px] uppercase text-zinc-500">
                       {format(day, "EEE", { locale: ptBR })}
                     </p>
-                    <p className={cn("text-lg font-semibold", selected ? "text-amber-400" : "text-white")}>
+                    <p className={cn("text-lg font-semibold", selected ? "text-amber-400" : "text-foreground")}>
                       {format(day, "dd")}
                     </p>
                     <p className="text-[10px] text-zinc-500">{format(day, "MMM", { locale: ptBR })}</p>
@@ -411,7 +411,7 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
             <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-2.5">
               <div className="flex justify-between gap-2">
                 <span className="text-zinc-500">Serviço</span>
-                <span className="text-white text-right">{selectedService?.name}</span>
+                <span className="text-foreground text-right">{selectedService?.name}</span>
               </div>
               {selectedService && (
                 <div className="flex justify-between gap-2">
@@ -422,22 +422,22 @@ export function PublicBookingForm({ tenant }: { tenant: PublicBookingData }) {
               {tenant.barbers.length > 0 && (
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Profissional</span>
-                  <span className="text-white text-right">
+                  <span className="text-foreground text-right">
                     {selectedBarber?.name ?? "Qualquer disponível"}
                   </span>
                 </div>
               )}
               <div className="flex justify-between gap-2">
                 <span className="text-zinc-500">Quando</span>
-                <span className="text-white text-right capitalize">{whenLabel}</span>
+                <span className="text-foreground text-right capitalize">{whenLabel}</span>
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-zinc-500">Nome</span>
-                <span className="text-white text-right">{clientName}</span>
+                <span className="text-foreground text-right">{clientName}</span>
               </div>
               <div className="flex justify-between gap-2">
                 <span className="text-zinc-500">Telefone</span>
-                <span className="text-white">{clientPhone}</span>
+                <span className="text-foreground">{clientPhone}</span>
               </div>
             </div>
           </div>
@@ -515,7 +515,7 @@ export function PublicBookingHeader({ tenant }: { tenant: PublicBookingData }) {
   return (
     <div className="mb-8 text-center">
       <BrandMark className="mx-auto mb-4 h-16 w-16" />
-      <h1 className="text-2xl font-bold text-white">{tenant.name}</h1>
+      <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
       <p className="mt-1 flex items-center justify-center gap-2 text-sm text-zinc-400">
         <Calendar className="h-4 w-4" />
         Agende seu horário online

@@ -38,7 +38,7 @@ export default async function ListaEsperaPage() {
     <TenantAppShell>
       <div className="animate-fade-in space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Lista de espera</h1>
+          <h1 className="text-2xl font-bold text-foreground">Lista de espera</h1>
           <p className="text-sm text-zinc-400">
             Gerencie clientes aguardando horários — ofertas expiram automaticamente
           </p>

@@ -24,10 +24,10 @@ export type CalendarDay = {
 };
 
 export const statusColors: Record<string, string> = {
-  SCHEDULED: "bg-zinc-700/95 border-zinc-400 text-white",
-  CONFIRMED: "bg-blue-600/90 border-blue-300 text-white",
-  COMPLETED: "bg-green-700/90 border-green-300 text-white",
-  NO_SHOW: "bg-orange-700/90 border-orange-300 text-white",
+  SCHEDULED: "bg-zinc-700/95 border-zinc-400 text-foreground",
+  CONFIRMED: "bg-blue-600/90 border-blue-300 text-foreground",
+  COMPLETED: "bg-green-700/90 border-green-300 text-foreground",
+  NO_SHOW: "bg-orange-700/90 border-orange-300 text-foreground",
   CANCELLED: "bg-red-900/60 border-red-600 text-zinc-300",
 };
 

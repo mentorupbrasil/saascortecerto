@@ -19,7 +19,7 @@ export default async function CaixaPage() {
       <TenantAppShell>
         <div className="animate-fade-in space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Banknote className="h-7 w-7 text-amber-400" />
               Caixa
             </h1>

@@ -34,7 +34,7 @@ export default async function ClubePage() {
     <TenantAppShell>
       <div className="animate-fade-in space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Clube de Assinatura</h1>
+          <h1 className="text-2xl font-bold text-foreground">Clube de Assinatura</h1>
           <p className="text-sm text-zinc-400">
             Crie planos mensais, pacotes e fidelidade — você define as regras
           </p>

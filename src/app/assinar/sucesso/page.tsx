@@ -25,9 +25,9 @@ export default async function SucessoPage({
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <Card>
           <CheckCircle2 className="h-16 w-16 text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Barbearia criada!</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Barbearia criada!</h1>
           <p className="text-zinc-400 mb-2">
-            <strong className="text-white">{checkout.barbershopName}</strong> está pronta para usar.
+            <strong className="text-foreground">{checkout.barbershopName}</strong> está pronta para usar.
           </p>
           <p className="text-sm text-zinc-500 mb-6">
             Plano {checkout.planLabel} · Ambiente exclusivo e isolado

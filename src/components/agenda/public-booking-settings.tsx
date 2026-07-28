@@ -50,7 +50,7 @@ export function PublicBookingSettings({
     <Card>
       <div className="flex items-center gap-2 mb-4">
         <Bell className="h-5 w-5 text-amber-400" />
-        <h3 className="text-sm font-semibold text-white">Agendamento online</h3>
+        <h3 className="text-sm font-semibold text-foreground">Agendamento online</h3>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="flex items-center gap-3 cursor-pointer">
@@ -73,7 +73,7 @@ export function PublicBookingSettings({
         <div className="border-t border-zinc-800 pt-4 space-y-4">
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-amber-400" />
-            <p className="text-sm font-medium text-white">Pagamento PIX antes de agendar</p>
+            <p className="text-sm font-medium text-foreground">Pagamento PIX antes de agendar</p>
           </div>
 
           <label className="flex items-center gap-3 cursor-pointer">

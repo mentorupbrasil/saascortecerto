@@ -35,7 +35,7 @@ export function SiteHeader() {
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-all duration-500 safe-top",
         scrolled
-          ? "border-b border-white/[0.06] bg-[#060606]/80 backdrop-blur-xl shadow-[0_1px_0_0_rgba(201,169,98,0.08)]"
+          ? "border-b border-border bg-background/80 backdrop-blur-xl shadow-[0_1px_0_0_rgba(201,169,98,0.08)]"
           : "bg-transparent"
       )}
     >
@@ -43,7 +43,7 @@ export function SiteHeader() {
         <Link href="/" className="group flex min-w-0 items-center gap-2 sm:gap-3">
           <BrandMark className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
           <div className="min-w-0 leading-none">
-            <span className="font-display text-lg tracking-wide text-white sm:text-xl">
+            <span className="font-display text-lg tracking-wide text-foreground sm:text-xl">
               CorteCerto
             </span>
             <span className="mt-0.5 hidden text-[10px] uppercase tracking-[0.2em] text-zinc-500 sm:block">
@@ -67,7 +67,7 @@ export function SiteHeader() {
         <div className="hidden lg:flex items-center gap-4">
           <Link
             href="/login"
-            className="text-[13px] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-white px-2 py-2"
+            className="text-[13px] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-foreground px-2 py-2"
           >
             Entrar
           </Link>
@@ -96,7 +96,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="lg:hidden border-t border-white/[0.06] bg-[#060606]/98 backdrop-blur-xl px-4 py-5 space-y-1 safe-bottom max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
+        <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur-xl px-4 py-5 space-y-1 safe-bottom max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -107,7 +107,7 @@ export function SiteHeader() {
               {link.label}
             </a>
           ))}
-          <div className="pt-4 flex flex-col gap-3 border-t border-white/[0.06]">
+          <div className="pt-4 flex flex-col gap-3 border-t border-border">
             <Link
               href="/login"
               onClick={() => setOpen(false)}

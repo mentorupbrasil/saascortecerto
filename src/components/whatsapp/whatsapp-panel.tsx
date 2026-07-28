@@ -86,7 +86,7 @@ export function WhatsAppPlanBanner({ plan }: { plan: Plan }) {
       <div className="flex items-start gap-3">
         <MessageCircle className={`h-5 w-5 shrink-0 mt-0.5 ${isAuto ? "text-green-400" : "text-amber-400"}`} />
         <div>
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-foreground">
             Plano {PLAN_LABELS[plan]} — {formatPlanPrice(plan)}/mês
           </p>
           <p className="text-sm text-zinc-400 mt-1">{PLAN_WHATSAPP_DESCRIPTION[plan]}</p>
@@ -135,7 +135,7 @@ export function WhatsAppPanel({
               "shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors min-h-[44px]",
               tab === t.id
                 ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                : "bg-zinc-800 text-zinc-400 hover:text-white border border-transparent"
+                : "bg-zinc-800 text-zinc-400 hover:text-foreground border border-transparent"
             )}
           >
             {t.label}
@@ -217,7 +217,7 @@ function AutoReturnQueue({ clients }: { clients: DueClient[] }) {
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-white mb-1">
+      <h2 className="text-lg font-semibold text-foreground mb-1">
         Fila de retorno ({clients.length})
       </h2>
       <p className="text-sm text-zinc-400 mb-4">
@@ -230,7 +230,7 @@ function AutoReturnQueue({ clients }: { clients: DueClient[] }) {
             className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg bg-zinc-900 px-3 py-3"
           >
             <div>
-              <p className="text-sm font-medium text-white">{client.name}</p>
+              <p className="text-sm font-medium text-foreground">{client.name}</p>
               <p className="text-xs text-zinc-500">
                 {formatPhone(client.phone)} · {client.daysSince} dias
               </p>
@@ -262,7 +262,7 @@ function HistoricoTab({
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold text-white mb-4">Histórico de mensagens</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-4">Histórico de mensagens</h2>
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {messages.map((msg) => (
           <div key={msg.id} className="rounded-lg bg-zinc-900 px-3 py-3 text-sm">
@@ -338,7 +338,7 @@ export function WhatsAppSettingsForm({
     <Card>
       <div className="mb-4 flex items-center gap-2">
         <Settings className="h-5 w-5 text-amber-400" />
-        <h2 className="text-lg font-semibold text-white">Configurações</h2>
+        <h2 className="text-lg font-semibold text-foreground">Configurações</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -376,7 +376,7 @@ export function WhatsAppSettingsForm({
         {autoAllowed && (
           <>
             <hr className="border-zinc-800" />
-            <p className="text-sm font-medium text-white">API Meta (disparo automático)</p>
+            <p className="text-sm font-medium text-foreground">API Meta (disparo automático)</p>
             <Input
               name="whatsappPhoneNumberId"
               label="Phone Number ID (Meta Cloud API)"
@@ -446,7 +446,7 @@ export function BulkSendButton({ count }: { count: number }) {
       <Card className="border-green-500/20 bg-green-500/5">
         <div className="flex flex-col gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Send className="h-5 w-5 text-green-400" />
               Disparo automático em massa
             </h2>
@@ -506,7 +506,7 @@ export function ManualReturnList({
 
   return (
     <Card className="border-amber-500/20">
-      <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-2">
+      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-2">
         <MessageCircle className="h-5 w-5 text-amber-400" />
         Quem avisar hoje ({clients.length})
       </h2>
@@ -534,7 +534,7 @@ function ManualWhatsAppButton({
   return (
     <div className="flex flex-col gap-3 rounded-lg bg-zinc-900 px-3 py-3">
       <div>
-        <p className="text-sm font-medium text-white">{client.name}</p>
+        <p className="text-sm font-medium text-foreground">{client.name}</p>
         <p className="text-xs text-zinc-500">{client.daysSince} dias sem retorno</p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -542,7 +542,7 @@ function ManualWhatsAppButton({
           href={client.waUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-500"
+          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 text-sm font-medium text-foreground hover:bg-green-500"
         >
           <ExternalLink className="h-4 w-4" />
           Abrir WhatsApp

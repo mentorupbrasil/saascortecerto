@@ -114,7 +114,7 @@ export function AgendaCalendarGrid({
           <div className="flex flex-wrap gap-2">
             <select
               aria-label="Filtrar por profissional"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground"
               value={barberFilter}
               onChange={(e) => setBarberFilter(e.target.value)}
             >
@@ -127,7 +127,7 @@ export function AgendaCalendarGrid({
             </select>
             <select
               aria-label="Filtrar por status"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -196,7 +196,7 @@ export function AgendaCalendarGrid({
                     </p>
                     <p
                       className={`mt-0.5 text-xl font-bold leading-none ${
-                        day.isToday ? "text-amber-400" : "text-white"
+                        day.isToday ? "text-amber-400" : "text-foreground"
                       }`}
                     >
                       {format(new Date(day.date + "T12:00:00"), "d")}

@@ -74,7 +74,7 @@ function RuleFormFields({
         <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Tipo</label>
         <select
           name="type"
-          className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+          className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground"
           defaultValue={rule?.type ?? "PERCENTAGE"}
         >
           <option value="PERCENTAGE">Percentual (%)</option>
@@ -95,7 +95,7 @@ function RuleFormFields({
         <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Serviço</label>
         <select
           name="serviceId"
-          className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+          className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground"
           defaultValue={rule?.serviceId ?? ""}
         >
           <option value="">Todos os serviços</option>
@@ -110,7 +110,7 @@ function RuleFormFields({
         <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Profissional</label>
         <select
           name="barberId"
-          className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+          className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground"
           defaultValue={rule?.barberId ?? ""}
         >
           <option value="">Todos os barbeiros</option>
@@ -233,7 +233,7 @@ export function ComissoesPanel({ data }: { data: ComissoesData }) {
           <select
             value={data.periodKey}
             onChange={(e) => changePeriod(e.target.value)}
-            className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white sm:max-w-xs"
+            className="min-h-[44px] w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-foreground sm:max-w-xs"
           >
             {data.availablePeriods.map((p) => (
               <option key={p} value={p}>
@@ -257,14 +257,14 @@ export function ComissoesPanel({ data }: { data: ComissoesData }) {
 
       {summaryByProfessional.length > 0 && (
         <Card>
-          <h2 className="mb-3 text-lg font-semibold text-white">Resumo por profissional</h2>
+          <h2 className="mb-3 text-lg font-semibold text-foreground">Resumo por profissional</h2>
           <div className="space-y-2">
             {summaryByProfessional.map(({ name, total }) => (
               <div
                 key={name}
                 className="flex min-h-[44px] items-center justify-between rounded-lg bg-zinc-900 px-3 py-2 text-sm"
               >
-                <span className="text-white">{name}</span>
+                <span className="text-foreground">{name}</span>
                 <span className="font-medium text-amber-400">{formatCurrency(total)}</span>
               </div>
             ))}
@@ -273,7 +273,7 @@ export function ComissoesPanel({ data }: { data: ComissoesData }) {
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">Regras de comissão</h2>
+        <h2 className="text-lg font-semibold text-foreground">Regras de comissão</h2>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
@@ -297,7 +297,7 @@ export function ComissoesPanel({ data }: { data: ComissoesData }) {
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-medium text-white">{r.name}</p>
+                  <p className="font-medium text-foreground">{r.name}</p>
                   <p className="text-sm text-zinc-400">
                     {r.type === "PERCENTAGE" ? `${r.rate}%` : formatCurrency(r.rate)}
                     {r.serviceName && ` · ${r.serviceName}`}
@@ -329,7 +329,7 @@ export function ComissoesPanel({ data }: { data: ComissoesData }) {
       </div>
 
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-white">Lançamentos do período</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Lançamentos do período</h2>
         <div className="space-y-2">
           {entries.length === 0 && (
             <EmptyState title="Nenhum lançamento neste período" description="Comissões aparecem ao fechar vendas." />
@@ -337,7 +337,7 @@ export function ComissoesPanel({ data }: { data: ComissoesData }) {
           {entries.map((e) => (
             <div key={e.id} className="rounded-lg bg-zinc-900 px-3 py-3 text-sm">
               <div className="flex justify-between gap-2">
-                <span className="text-white">{e.barberName}</span>
+                <span className="text-foreground">{e.barberName}</span>
                 <span className="font-medium text-amber-400">{formatCurrency(e.amount)}</span>
               </div>
               <p className="mt-1 text-xs text-zinc-500">

@@ -36,7 +36,7 @@ export default async function RelatoriosPage({
     <TenantAppShell>
       <div className="animate-fade-in space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Relatórios</h1>
+          <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
           <p className="text-sm text-zinc-400">
             Receita via pagamentos de venda, ocupação e retenção de clientes
           </p>

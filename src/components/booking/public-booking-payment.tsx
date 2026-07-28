@@ -60,7 +60,7 @@ function PaymentSummary({ checkout }: { checkout: CheckoutData }) {
   return (
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-2">
       <p className="text-xs uppercase tracking-wide text-zinc-500">Resumo</p>
-      <p className="font-medium text-white">{checkout.serviceName}</p>
+      <p className="font-medium text-foreground">{checkout.serviceName}</p>
       <p className="text-sm text-zinc-400 capitalize">{when}</p>
       <div className="flex justify-between items-center pt-2 border-t border-zinc-800">
         <span className="text-sm text-zinc-500">Total</span>
@@ -155,7 +155,7 @@ export function PublicBookingPaymentClient({
     return (
       <Card className="text-center">
         <CheckCircle2 className="h-14 w-14 text-green-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">Agendamento confirmado!</h2>
+        <h2 className="text-xl font-bold text-foreground mb-2">Agendamento confirmado!</h2>
         <PaymentSummary checkout={checkout} />
         <p className="text-sm text-zinc-500 mt-4 mb-4">Pagamento recebido. A barbearia foi avisada.</p>
         {checkout.clientWaUrl && (
@@ -207,7 +207,7 @@ export function PublicBookingPaymentClient({
 
       <Card className="space-y-4">
         <div>
-          <h2 className="text-lg font-bold text-white">Pague com PIX para confirmar</h2>
+          <h2 className="text-lg font-bold text-foreground">Pague com PIX para confirmar</h2>
           <p className="text-sm text-zinc-400 mt-1">{whenShort}</p>
         </div>
 
@@ -271,7 +271,7 @@ export function PublicBookingPaymentClient({
             {checkout.pixKey && (
               <div>
                 <p className="text-xs text-zinc-500 mb-1">Chave PIX · {checkout.holderName}</p>
-                <code className="block text-sm bg-zinc-900 p-2 rounded-lg break-all text-white">
+                <code className="block text-sm bg-zinc-900 p-2 rounded-lg break-all text-foreground">
                   {checkout.pixKey}
                 </code>
               </div>

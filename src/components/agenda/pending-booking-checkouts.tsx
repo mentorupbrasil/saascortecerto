@@ -49,7 +49,7 @@ export function PendingBookingCheckouts() {
     <Card>
       <div className="flex items-center gap-2 mb-4">
         <CreditCard className="h-5 w-5 text-amber-400" />
-        <h3 className="text-sm font-semibold text-white">Aguardando PIX do agendamento online</h3>
+        <h3 className="text-sm font-semibold text-foreground">Aguardando PIX do agendamento online</h3>
       </div>
       <div className="space-y-3">
         {items.map((item) => (
@@ -58,7 +58,7 @@ export function PendingBookingCheckouts() {
             className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 flex flex-col sm:flex-row sm:items-center gap-3"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{item.clientName}</p>
+              <p className="text-sm font-medium text-foreground truncate">{item.clientName}</p>
               <p className="text-xs text-zinc-500">
                 {item.serviceName} ·{" "}
                 {format(new Date(item.scheduledAt), "dd/MM 'às' HH:mm", { locale: ptBR })} ·{" "}

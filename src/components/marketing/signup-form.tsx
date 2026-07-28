@@ -117,7 +117,7 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
       <SiteHeader />
       <div className="mx-auto w-full max-w-lg flex-1 flex flex-col px-4 py-8 lg:px-8 pb-28">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-white">Criar sua barbearia</h1>
+          <h1 className="text-2xl font-bold text-foreground">Criar sua barbearia</h1>
           <p className="text-sm text-zinc-400 mt-2">
             Passo {step} de {STEPS.length} · {STEPS[step - 1].label}
           </p>
@@ -157,7 +157,7 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-white">{PLAN_LABELS[p]}</p>
+                      <p className="font-semibold text-foreground">{PLAN_LABELS[p]}</p>
                       <p className="text-sm text-amber-400 mt-0.5">
                         {formatPlanPrice(p)}/mês
                       </p>
@@ -266,7 +266,7 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
               <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Plano</span>
-                  <span className="text-white font-medium">{PLAN_LABELS[plan]}</span>
+                  <span className="text-foreground font-medium">{PLAN_LABELS[plan]}</span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Valor</span>
@@ -274,20 +274,20 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Barbearia</span>
-                  <span className="text-white text-right">{barbershopName}</span>
+                  <span className="text-foreground text-right">{barbershopName}</span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Responsável</span>
-                  <span className="text-white text-right">{ownerName}</span>
+                  <span className="text-foreground text-right">{ownerName}</span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">E-mail</span>
-                  <span className="text-white text-right break-all">{ownerEmail}</span>
+                  <span className="text-foreground text-right break-all">{ownerEmail}</span>
                 </div>
                 {phone && (
                   <div className="flex justify-between gap-2">
                     <span className="text-zinc-500">Telefone</span>
-                    <span className="text-white">{phone}</span>
+                    <span className="text-foreground">{phone}</span>
                   </div>
                 )}
               </div>
@@ -312,7 +312,7 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
           {step === 5 && (
             <div className="space-y-4">
               <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
-                <p className="text-sm font-medium text-white mb-2">Resumo do pedido</p>
+                <p className="text-sm font-medium text-foreground mb-2">Resumo do pedido</p>
                 <p className="text-2xl font-bold text-amber-400">{formatPlanPrice(plan)}</p>
                 <p className="text-xs text-zinc-500 mt-1">
                   {PLAN_LABELS[plan]} · {barbershopName}

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   applicationName: "CorteCerto",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "CorteCerto",
   },
   icons: {
@@ -41,10 +41,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#121212" },
-    { media: "(prefers-color-scheme: light)", color: "#121212" },
+    { media: "(prefers-color-scheme: light)", color: "#fcfcfc" },
+    { media: "(prefers-color-scheme: dark)", color: "#fcfcfc" },
   ],
-  colorScheme: "dark",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -53,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`dark ${outfit.variable} ${display.variable}`}>
+    <html lang="pt-BR" className={`${outfit.variable} ${display.variable}`}>
       <body className="bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>

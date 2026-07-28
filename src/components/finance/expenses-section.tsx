@@ -83,7 +83,7 @@ export function ExpensesSection({ data }: { data: ExpensesData }) {
     <Card>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">Despesas do mês</h2>
+          <h2 className="text-lg font-semibold text-foreground">Despesas do mês</h2>
           <p className="text-sm text-amber-400">{formatCurrency(data.monthTotal)}</p>
         </div>
         <Button className="min-h-[44px]" onClick={() => setOpen(true)}>
@@ -112,14 +112,14 @@ export function ExpensesSection({ data }: { data: ExpensesData }) {
             className="flex items-center justify-between gap-3 rounded-lg bg-zinc-900 px-3 py-3 text-sm"
           >
             <div className="min-w-0">
-              <p className="truncate text-white">{e.categoryName}</p>
+              <p className="truncate text-foreground">{e.categoryName}</p>
               <p className="text-xs text-zinc-500">
                 {e.description ?? "—"} ·{" "}
                 {format(new Date(e.paidAt), "dd/MM", { locale: ptBR })}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white">{formatCurrency(e.amount)}</span>
+              <span className="font-medium text-foreground">{formatCurrency(e.amount)}</span>
               <button
                 type="button"
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-zinc-500 hover:bg-red-500/10 hover:text-red-400"
