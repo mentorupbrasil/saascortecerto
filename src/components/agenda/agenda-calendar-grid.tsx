@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatTime, toDateKey } from "@/lib/date-format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AppointmentActions } from "@/components/appointments/appointment-components";
 
-const SLOT_MINUTES = 30;
-const SLOT_HEIGHT = 44;
+/** Pixels per hour — keeps 07:00–22:00 readable without endless scroll */
+const HOUR_HEIGHT = 52;
+const GUTTER_WIDTH = 64;
 
 type CalendarAppointment = {
   id: string;
@@ -32,24 +33,30 @@ function parseHm(hm: string) {
   return (h ?? 7) * 60 + (m ?? 0);
 }
 
-function getSlots(openTime: string, closeTime: string) {
+function getHourLabels(openTime: string, closeTime: string) {
   const start = parseHm(openTime);
   const end = parseHm(closeTime);
-  const slots: string[] = [];
-  for (let m = start; m < end; m += SLOT_MINUTES) {
-    const hh = String(Math.floor(m / 60)).padStart(2, "0");
-    const mm = String(m % 60).padStart(2, "0");
-    slots.push(`${hh}:${mm}`);
+  const hours: number[] = [];
+  for (let m = start; m < end; m += 60) {
+    hours.push(Math.floor(m / 60));
   }
-  return slots;
+  return hours;
 }
 
 const statusColors: Record<string, string> = {
-  SCHEDULED: "bg-zinc-700 border-zinc-500 text-white",
-  CONFIRMED: "bg-blue-600/80 border-blue-400 text-white",
-  COMPLETED: "bg-green-700/80 border-green-400 text-white",
-  NO_SHOW: "bg-orange-700/80 border-orange-400 text-white",
-  CANCELLED: "bg-red-900/50 border-red-700 text-zinc-300",
+  SCHEDULED: "bg-zinc-700/95 border-zinc-400 text-white",
+  CONFIRMED: "bg-blue-600/90 border-blue-300 text-white",
+  COMPLETED: "bg-green-700/90 border-green-300 text-white",
+  NO_SHOW: "bg-orange-700/90 border-orange-300 text-white",
+  CANCELLED: "bg-red-900/60 border-red-600 text-zinc-300",
+};
+
+const statusLabels: Record<string, string> = {
+  SCHEDULED: "Agendado",
+  CONFIRMED: "Confirmado",
+  COMPLETED: "Concluído",
+  NO_SHOW: "Faltou",
+  CANCELLED: "Cancelado",
 };
 
 export function AgendaCalendarGrid({
@@ -67,12 +74,19 @@ export function AgendaCalendarGrid({
 }) {
   const [barberFilter, setBarberFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [now, setNow] = useState(() => new Date());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const didScroll = useRef(false);
 
   const startMinutes = parseHm(openTime);
   const endMinutes = parseHm(closeTime);
-  const gridMinutes = Math.max(endMinutes - startMinutes, 60);
-  const slots = useMemo(() => getSlots(openTime, closeTime), [openTime, closeTime]);
-  const gridHeight = slots.length * SLOT_HEIGHT;
+  const totalMinutes = Math.max(endMinutes - startMinutes, 60);
+  const gridHeight = (totalMinutes / 60) * HOUR_HEIGHT;
+  const pxPerMinute = HOUR_HEIGHT / 60;
+  const hourLabels = useMemo(
+    () => getHourLabels(openTime, closeTime),
+    [openTime, closeTime]
+  );
 
   const filtered = appointments.filter((a) => {
     if (barberFilter !== "all" && a.barberId !== barberFilter) return false;
@@ -80,152 +94,253 @@ export function AgendaCalendarGrid({
     return true;
   });
 
-  function getTopPercent(date: Date) {
-    const totalMinutes = date.getHours() * 60 + date.getMinutes() - startMinutes;
-    return Math.max(0, (totalMinutes / gridMinutes) * 100);
+  const todayKey = toDateKey(now);
+  const showsToday = days.some((d) => d.date === todayKey);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowInRange =
+    showsToday && nowMinutes >= startMinutes && nowMinutes < endMinutes;
+  const nowTop = (nowMinutes - startMinutes) * pxPerMinute;
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (didScroll.current || !scrollRef.current || !nowInRange) return;
+    didScroll.current = true;
+    const target = Math.max(0, nowTop - 80);
+    scrollRef.current.scrollTop = target;
+  }, [nowInRange, nowTop]);
+
+  function topPx(date: Date) {
+    const total = date.getHours() * 60 + date.getMinutes() - startMinutes;
+    return Math.max(0, total * pxPerMinute);
   }
 
-  function getHeightPercent(duration: number) {
-    return (duration / gridMinutes) * 100;
+  function heightPx(duration: number) {
+    return Math.max(duration * pxPerMinute, 28);
   }
 
   return (
     <div className="relative space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <select
-          aria-label="Filtrar por profissional"
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
-          value={barberFilter}
-          onChange={(e) => setBarberFilter(e.target.value)}
-        >
-          <option value="all">Todos os profissionais</option>
-          {barbers.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Filtrar por status"
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Todos os status</option>
-          <option value="SCHEDULED">Agendado</option>
-          <option value="CONFIRMED">Confirmado</option>
-          <option value="COMPLETED">Concluído</option>
-          <option value="NO_SHOW">Não compareceu</option>
-        </select>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <select
+            aria-label="Filtrar por profissional"
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+            value={barberFilter}
+            onChange={(e) => setBarberFilter(e.target.value)}
+          >
+            <option value="all">Todos os profissionais</option>
+            {barbers.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Filtrar por status"
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">Todos os status</option>
+            <option value="SCHEDULED">Agendado</option>
+            <option value="CONFIRMED">Confirmado</option>
+            <option value="COMPLETED">Concluído</option>
+            <option value="NO_SHOW">Não compareceu</option>
+          </select>
+        </div>
+        <p className="text-sm text-zinc-400">
+          Horário da barbearia:{" "}
+          <span className="font-medium text-zinc-200">
+            {openTime} – {closeTime}
+          </span>
+          <span className="mx-2 text-zinc-700">·</span>
+          {filtered.length === 0
+            ? "Nenhum horário nesta semana"
+            : `${filtered.length} agendamento${filtered.length === 1 ? "" : "s"}`}
+        </p>
       </div>
 
-      <p className="text-xs text-zinc-500 lg:hidden flex items-center gap-1.5">
-        <span className="inline-block animate-pulse">←</span>
+      <div className="flex flex-wrap gap-3 text-[11px] text-zinc-500">
+        {Object.entries(statusLabels).map(([key, label]) => (
+          <span key={key} className="inline-flex items-center gap-1.5">
+            <span
+              className={`h-2.5 w-2.5 rounded-sm border-l-2 ${statusColors[key]}`}
+            />
+            {label}
+          </span>
+        ))}
+      </div>
+
+      <p className="flex items-center gap-1.5 text-xs text-zinc-500 lg:hidden">
+        <span aria-hidden>←</span>
         Deslize para ver a semana completa
       </p>
-      <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900/30 touch-scroll">
-        <div className="min-w-[720px]">
-          <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-zinc-800 bg-zinc-950 sticky top-0 z-20">
-            <div className="p-2" />
-            {days.map((day) => (
-              <div
-                key={day.date}
-                className={`border-l border-zinc-800 p-2 text-center ${
-                  day.isToday ? "bg-amber-500/10" : ""
-                }`}
-              >
-                <p
-                  className={`text-xs uppercase ${
-                    day.isToday ? "text-amber-400" : "text-zinc-500"
-                  }`}
-                >
-                  {format(new Date(day.date + "T12:00:00"), "EEE", { locale: ptBR })}
-                </p>
-                <p
-                  className={`text-lg font-bold ${
-                    day.isToday ? "text-amber-400" : "text-white"
-                  }`}
-                >
-                  {format(new Date(day.date + "T12:00:00"), "d")}
-                </p>
-              </div>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-[56px_repeat(7,1fr)]">
-            <div className="relative" style={{ height: gridHeight }}>
-              {slots.map((slot, i) => (
+      <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80">
+        <div
+          ref={scrollRef}
+          className="max-h-[min(70vh,720px)] overflow-auto touch-scroll"
+        >
+          <div className="min-w-[780px]">
+            <div
+              className="sticky top-0 z-30 grid border-b border-zinc-800 bg-zinc-950/95 backdrop-blur"
+              style={{
+                gridTemplateColumns: `${GUTTER_WIDTH}px repeat(7, minmax(0, 1fr))`,
+              }}
+            >
+              <div className="flex items-end justify-end p-2 pb-3 pr-3">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                  Hora
+                </span>
+              </div>
+              {days.map((day) => (
                 <div
-                  key={slot}
-                  className="absolute right-2 text-[10px] text-zinc-600 tabular-nums -translate-y-2"
-                  style={{ top: i * SLOT_HEIGHT }}
+                  key={day.date}
+                  className={`border-l border-zinc-800 px-2 py-2.5 text-center ${
+                    day.isToday ? "bg-amber-500/10" : ""
+                  }`}
                 >
-                  {slot.endsWith(":00") ? slot : ""}
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-wide ${
+                      day.isToday ? "text-amber-400" : "text-zinc-500"
+                    }`}
+                  >
+                    {format(new Date(day.date + "T12:00:00"), "EEE", {
+                      locale: ptBR,
+                    })}
+                  </p>
+                  <p
+                    className={`mt-0.5 text-xl font-bold leading-none ${
+                      day.isToday ? "text-amber-400" : "text-white"
+                    }`}
+                  >
+                    {format(new Date(day.date + "T12:00:00"), "d")}
+                  </p>
                 </div>
               ))}
             </div>
 
-            {days.map((day) => {
-              const dayApts = filtered.filter(
-                (a) => toDateKey(a.scheduledAt) === day.date
-              );
-
-              return (
-                <div
-                  key={day.date}
-                  className={`relative border-l border-zinc-800 ${
-                    day.isToday ? "bg-amber-500/[0.03]" : ""
-                  }`}
-                  style={{ height: gridHeight }}
-                >
-                  {slots.map((_, i) => (
+            <div
+              className="relative grid"
+              style={{
+                gridTemplateColumns: `${GUTTER_WIDTH}px repeat(7, minmax(0, 1fr))`,
+                height: gridHeight,
+              }}
+            >
+              <div className="relative border-r border-zinc-800 bg-zinc-950/40">
+                {hourLabels.map((hour) => {
+                  const top = (hour * 60 - startMinutes) * pxPerMinute;
+                  const label = `${String(hour).padStart(2, "0")}:00`;
+                  return (
                     <div
-                      key={i}
-                      className="absolute left-0 right-0 border-t border-zinc-800/60"
-                      style={{ top: i * SLOT_HEIGHT }}
-                    />
-                  ))}
+                      key={hour}
+                      className="absolute right-0 left-0 pr-2.5 text-right"
+                      style={{ top: Math.max(top + 2, 2) }}
+                    >
+                      <span className="text-xs font-semibold tabular-nums text-zinc-300">
+                        {label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
 
-                  {dayApts.map((apt) => {
-                    const start = new Date(apt.scheduledAt);
-                    const top = getTopPercent(start);
-                    const height = getHeightPercent(apt.duration);
-                    const color =
-                      statusColors[apt.status] ?? statusColors.SCHEDULED;
+              {days.map((day) => {
+                const dayApts = filtered.filter(
+                  (a) => toDateKey(a.scheduledAt) === day.date
+                );
 
-                    return (
-                      <div
-                        key={apt.id}
-                        className={`absolute left-0.5 right-0.5 rounded-md border-l-4 px-1.5 py-1 overflow-hidden z-10 ${color}`}
-                        style={{
-                          top: `${top}%`,
-                          height: `${Math.max(height, 4)}%`,
-                          minHeight: 28,
-                        }}
-                      >
-                        <p className="text-[10px] font-bold truncate">
-                          {formatTime(start)} · {apt.clientName}
-                          {apt.bookedOnline && (
-                            <span className="ml-1 opacity-70" title="Agendou online">
-                              online
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-[9px] opacity-80 truncate">
-                          {apt.serviceName}
-                          {apt.barberName ? ` · ${apt.barberName}` : ""}
-                        </p>
-                        <div className="mt-0.5">
-                          <AppointmentActions id={apt.id} status={apt.status} />
+                return (
+                  <div
+                    key={day.date}
+                    className={`relative border-l border-zinc-800/80 ${
+                      day.isToday ? "bg-amber-500/[0.04]" : "bg-zinc-900/20"
+                    }`}
+                  >
+                    {hourLabels.map((hour) => {
+                      const top = (hour * 60 - startMinutes) * pxPerMinute;
+                      const halfTop = top + HOUR_HEIGHT / 2;
+                      return (
+                        <div key={hour}>
+                          <div
+                            className="absolute inset-x-0 border-t border-zinc-700/70"
+                            style={{ top }}
+                          />
+                          <div
+                            className="absolute inset-x-0 border-t border-dashed border-zinc-800/80"
+                            style={{ top: halfTop }}
+                          />
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+
+                    {dayApts.map((apt) => {
+                      const start = new Date(apt.scheduledAt);
+                      const top = topPx(start);
+                      const height = heightPx(apt.duration);
+                      const color =
+                        statusColors[apt.status] ?? statusColors.SCHEDULED;
+
+                      return (
+                        <div
+                          key={apt.id}
+                          title={`${formatTime(start)} · ${apt.clientName} · ${apt.serviceName}`}
+                          className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border border-l-[3px] px-1.5 py-1 shadow-sm ${color}`}
+                          style={{ top, height }}
+                        >
+                          <p className="truncate text-[11px] font-bold leading-tight">
+                            {formatTime(start)} · {apt.clientName}
+                          </p>
+                          <p className="truncate text-[10px] leading-tight opacity-85">
+                            {apt.serviceName}
+                            {apt.barberName ? ` · ${apt.barberName}` : ""}
+                            {apt.bookedOnline ? " · online" : ""}
+                          </p>
+                          {height >= 44 && (
+                            <div className="mt-0.5">
+                              <AppointmentActions
+                                id={apt.id}
+                                status={apt.status}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+
+              {nowInRange && (
+                <div
+                  className="pointer-events-none absolute z-20"
+                  style={{
+                    top: nowTop,
+                    left: GUTTER_WIDTH,
+                    right: 0,
+                  }}
+                >
+                  <div className="relative">
+                    <div className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-rose-500 shadow" />
+                    <div className="h-0.5 w-full bg-rose-500/90" />
+                  </div>
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
         </div>
+
+        {filtered.length === 0 && (
+          <div className="border-t border-zinc-800 px-4 py-3 text-center text-sm text-zinc-500">
+            Sem agendamentos nesta semana — use{" "}
+            <span className="text-zinc-300">Novo horário</span> para criar o
+            primeiro.
+          </div>
+        )}
       </div>
     </div>
   );

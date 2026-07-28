@@ -100,7 +100,7 @@ export default async function AgendaPage({
           <div>
             <h1 className="text-2xl font-bold text-white">Agenda</h1>
             <p className="text-sm text-zinc-400">
-              Grade semanal · {settings?.openTime ?? "07:00"} às{" "}
+              Semana · {settings?.openTime ?? "07:00"} às{" "}
               {settings?.closeTime ?? "22:00"}
             </p>
           </div>
