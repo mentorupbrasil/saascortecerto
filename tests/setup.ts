@@ -37,7 +37,6 @@ if (process.env.DIRECT_URL?.trim()) {
   process.env.DATABASE_URL = process.env.DATABASE_URL.replace(/-pooler(?=\.)/g, "");
 }
 
-
 process.env.CREDENTIALS_ENCRYPTION_KEY ??= TEST_CREDENTIALS_KEY;
 process.env.NEXTAUTH_SECRET ??= "test-nextauth-secret-min-16-chars";
 process.env.RATE_LIMIT_SECRET ??= "test-rate-limit-secret-min-16";
