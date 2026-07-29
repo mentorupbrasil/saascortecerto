@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Settings2,
   Share2,
-  Sparkles,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -17,11 +16,8 @@ import { CortzoDashboardMockup } from "@/components/marketing/cortzo-dashboard-m
 import { SectionShell } from "@/components/marketing/landing/section-shell";
 import { Reveal, RevealGroup, RevealItem } from "@/components/marketing/landing/reveal";
 import { PricingSection } from "@/components/marketing/pricing-section";
-import {
-  formatPlanPrice,
-  PLAN_LABELS,
-  PLAN_SEAT_LIMITS,
-} from "@/lib/plan-pricing";
+import { FaqSection } from "@/components/marketing/faq-section";
+import { formatPlanPrice } from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { brand } from "@/config/brand";
 import { CortzoLockup } from "@/components/brand/brand-mark";
@@ -66,33 +62,6 @@ const howItWorks = [
     icon: Share2,
     step: "Compartilhe o link",
     detail: "Clientes agendam sozinhos enquanto você foca no atendimento.",
-  },
-];
-
-const faqs = [
-  {
-    q: "Minha barbearia fica separada das outras?",
-    a: "Sim. Cada assinatura cria um ambiente exclusivo com login, clientes e agenda próprios. Seus dados nunca se misturam com outras barbearias.",
-  },
-  {
-    q: "Como o cliente agenda pelo link?",
-    a: "Você compartilha o link da sua barbearia. O cliente escolhe serviço, vê horários livres e confirma. Você recebe aviso do novo agendamento.",
-  },
-  {
-    q: `Qual a diferença entre ${PLAN_LABELS.PRO} e ${PLAN_LABELS.CLUBE}?`,
-    a: `${PLAN_LABELS.PRO} (${formatPlanPrice("PRO")}/mês): até ${PLAN_SEAT_LIMITS.PRO} acessos de equipe e o essencial para organizar a barbearia. ${PLAN_LABELS.CLUBE} (${formatPlanPrice("CLUBE")}/mês): até ${PLAN_SEAT_LIMITS.CLUBE} acessos, relatórios completos e recursos avançados. No plano anual você economiza 20%.`,
-  },
-  {
-    q: "Tem desconto no plano anual?",
-    a: "Sim. Ao escolher cobrança anual na seção de planos, você paga o equivalente a 12 meses com 20% de desconto.",
-  },
-  {
-    q: "Preciso instalar algo?",
-    a: "Não. Funciona no navegador do celular ou computador. Assine, pague e acesse imediatamente após a confirmação.",
-  },
-  {
-    q: "Posso cancelar?",
-    a: "Sim, sem multa. Entre em contato quando quiser interromper a assinatura.",
   },
 ];
 
@@ -190,28 +159,7 @@ export function LandingPage() {
         <PricingSection />
       </SectionShell>
 
-      {/* FAQ */}
-      <SectionShell
-        id="faq"
-        eyebrow="Dúvidas"
-        title="Perguntas frequentes"
-        className="border-b-0"
-      >
-        <div className="mx-auto max-w-3xl space-y-3">
-          {faqs.map((faq) => (
-            <details
-              key={faq.q}
-              className="group card-elevated overflow-hidden p-0 open:border-primary/30"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-medium text-foreground transition-colors hover:text-primary">
-                {faq.q}
-                <Sparkles className="h-4 w-4 shrink-0 text-primary opacity-0 transition-opacity group-open:opacity-100" aria-hidden />
-              </summary>
-              <p className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
-            </details>
-          ))}
-        </div>
-      </SectionShell>
+      <FaqSection />
 
       {/* Final CTA */}
       <section className="border-b border-border py-16 md:py-20 lg:py-24">
