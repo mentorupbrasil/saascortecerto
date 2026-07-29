@@ -15,6 +15,7 @@ import { Reveal } from "@/components/marketing/landing/reveal";
 import { FeaturesSection } from "@/components/marketing/features-section";
 import { PricingSection } from "@/components/marketing/pricing-section";
 import { FaqSection } from "@/components/marketing/faq-section";
+import { WhatsAppFloat } from "@/components/marketing/whatsapp-float";
 import { formatPlanPrice } from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { brand } from "@/config/brand";
@@ -175,6 +176,8 @@ export function LandingPage() {
           </Link>
         </div>
       </footer>
+
+      <WhatsAppFloat />
     </div>
   );
 }

@@ -21,6 +21,12 @@ export const brand = {
   parentNameGestor: "Gestor",
   parentNamePro: "Pro",
   byline: "by GestorPro",
+  /** Commercial / support WhatsApp (landing floating button). */
+  supportWhatsApp: {
+    display: "(11) 97834-5397",
+    /** Digits only with country code, no + */
+    e164: "5511978345397",
+  },
   logos: {
     /** Institutional symbol — headers, login, sidebar, “by GestorPro” */
     symbol: "/logos/gestorpro-symbol.png",
