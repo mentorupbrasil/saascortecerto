@@ -8,8 +8,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
       attribute="class"
+      forcedTheme="light"
       defaultTheme="light"
-      enableSystem
+      enableSystem={false}
       disableTransitionOnChange
     >
       <SessionProvider>

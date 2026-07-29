@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { CortzoLockup } from "@/components/brand/brand-mark";
-import { ThemeToggle } from "@/components/marketing/theme-toggle";
 
 const navLinks = [
   { href: "#recursos", label: "Funcionalidades" },
@@ -43,7 +42,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden lg:flex items-center gap-3">
-          <ThemeToggle compact />
           <Link
             href="/login"
             className="px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -92,10 +90,6 @@ export function SiteHeader() {
                 {link.label}
               </a>
             ))}
-          </div>
-          <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-4">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tema</span>
-            <ThemeToggle />
           </div>
           <div className="mt-4 flex flex-col gap-3 border-t border-border/60 pt-4">
             <Link

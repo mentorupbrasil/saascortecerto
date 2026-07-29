@@ -67,7 +67,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${outfit.variable} ${display.variable}`}
+      className={`${outfit.variable} ${display.variable} light`}
       suppressHydrationWarning
     >
       <body className="bg-background font-sans text-foreground antialiased">
