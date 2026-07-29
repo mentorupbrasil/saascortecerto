@@ -39,19 +39,19 @@ export const PLAN_WHATSAPP_DESCRIPTION: Record<Plan, string> = {
 
 export const PLAN_MARKETING_FEATURES: Record<"PRO" | "CLUBE", string[]> = {
   PRO: [
-    "Agenda e clientes",
-    "Cadastro de serviços",
-    "Gestão de profissionais",
-    "Link de agendamento",
-    "Controle da operação",
+    "Agenda e clientes ilimitados",
+    "Serviços com preço e duração",
+    "Equipe com até 2 acessos",
+    "Link de agendamento online",
+    "Comandas, caixa e estoque",
     "Suporte humano",
   ],
   CLUBE: [
     "Tudo do plano Básico",
-    "Mais acessos para a equipe",
-    "Relatórios completos",
-    "Recursos avançados",
-    "Automações disponíveis",
+    "Até 4 acessos de equipe",
+    "Relatórios e comissões",
+    "Clube de assinatura",
+    "WhatsApp automático",
     "Suporte prioritário",
   ],
 };

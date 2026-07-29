@@ -111,8 +111,8 @@ export function LandingPage() {
       <SectionShell
         id="planos"
         eyebrow="Planos"
-        title="Investimento claro. Retorno diário."
-        description="Preço transparente, sem taxa de adesão. Economize 20% no plano anual."
+        title="Planos simples. Sem surpresa."
+        description="Escolha mensal ou anual com 20% de desconto. Sem taxa de adesão."
       >
         <PricingSection />
       </SectionShell>
