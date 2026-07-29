@@ -162,18 +162,38 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="safe-bottom py-6 sm:py-8">
-        <div className="section flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:gap-6 sm:text-left">
-          <CortzoLockup size={28} productClassName="text-lg" />
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.15em]">
-            © {new Date().getFullYear()} {brand.legalName} — {brand.byline}
-          </p>
-          <Link
-            href="/login"
-            className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-primary sm:text-xs sm:tracking-[0.15em]"
-          >
-            Área do cliente
-          </Link>
+      <footer className="safe-bottom border-t border-white/10 bg-graphite text-white/80">
+        <div className="section flex flex-col gap-5 py-8 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+            <CortzoLockup
+              size={28}
+              productClassName="text-lg text-white"
+              bylineClassName="text-white/50 [&_span]:text-white/80"
+            />
+            <p className="text-xs text-white/55">
+              © {new Date().getFullYear()} {brand.legalName} — {brand.byline}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 sm:justify-end">
+            <Link
+              href="/termos"
+              className="text-xs font-semibold text-white/80 transition-colors hover:text-white"
+            >
+              Termos
+            </Link>
+            <Link
+              href="/privacidade"
+              className="text-xs font-semibold text-white/80 transition-colors hover:text-white"
+            >
+              Privacidade
+            </Link>
+            <Link
+              href="/login"
+              className="text-xs font-semibold text-white/80 transition-colors hover:text-white"
+            >
+              Entrar
+            </Link>
+          </div>
         </div>
       </footer>
 
