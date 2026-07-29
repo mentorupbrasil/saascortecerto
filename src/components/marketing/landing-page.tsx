@@ -1,44 +1,24 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  BarChart3,
-  Calendar,
   ShieldCheck,
   Settings2,
   Share2,
   UserPlus,
-  Users,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/marketing/site-header";
 import { GlowyWavesHero } from "@/components/marketing/glowy-waves-hero";
 import { CortzoDashboardMockup } from "@/components/marketing/cortzo-dashboard-mockup";
 import { SectionShell } from "@/components/marketing/landing/section-shell";
-import { Reveal, RevealGroup, RevealItem } from "@/components/marketing/landing/reveal";
+import { Reveal } from "@/components/marketing/landing/reveal";
+import { FeaturesSection } from "@/components/marketing/features-section";
 import { PricingSection } from "@/components/marketing/pricing-section";
 import { FaqSection } from "@/components/marketing/faq-section";
 import { formatPlanPrice } from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
 import { brand } from "@/config/brand";
 import { CortzoLockup } from "@/components/brand/brand-mark";
-
-const benefits = [
-  {
-    icon: Calendar,
-    title: "Agenda organizada",
-    description: "Visualize horários, profissionais e serviços sem confusão.",
-  },
-  {
-    icon: Users,
-    title: "Clientes mais próximos",
-    description: "Tenha histórico e informações importantes para melhorar o atendimento.",
-  },
-  {
-    icon: BarChart3,
-    title: "Gestão sob controle",
-    description: "Acompanhe a operação da barbearia em um painel simples e profissional.",
-  },
-];
 
 const trustItems = [
   "Ambiente exclusivo por barbearia",
@@ -99,29 +79,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Benefits */}
-      <SectionShell
-        id="recursos"
-        eyebrow="Recursos"
-        title="Tudo o que sua barbearia precisa, sem complicação"
-        description="Recursos pensados para o dia a dia de quem administra uma barbearia — do balcão à agenda online."
-      >
-        <RevealGroup className="grid gap-5 sm:grid-cols-1 lg:grid-cols-3">
-          {benefits.map((benefit) => (
-            <RevealItem key={benefit.title}>
-              <div className="card-elevated card-interactive h-full p-6 lg:p-8">
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-                  <benefit.icon className="h-5 w-5 text-primary" aria-hidden />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">{benefit.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {benefit.description}
-                </p>
-              </div>
-            </RevealItem>
-          ))}
-        </RevealGroup>
-      </SectionShell>
+      <FeaturesSection />
 
       {/* How it works */}
       <SectionShell

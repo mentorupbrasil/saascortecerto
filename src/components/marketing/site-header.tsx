@@ -7,7 +7,7 @@ import { CortzoLockup } from "@/components/brand/brand-mark";
 import { ThemeToggle } from "@/components/marketing/theme-toggle";
 
 const navLinks = [
-  { href: "#recursos", label: "Recursos" },
+  { href: "#recursos", label: "Funcionalidades" },
   { href: "#como-funciona", label: "Como funciona" },
   { href: "#planos", label: "Planos" },
   { href: "#faq", label: "Dúvidas" },
