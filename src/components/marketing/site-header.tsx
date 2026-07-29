@@ -23,7 +23,7 @@ export function SiteHeader() {
   }, [open]);
 
   return (
-    <header className="glass safe-top sticky top-0 z-50 h-16 border-b border-border/60">
+    <header className="safe-top sticky top-0 z-50 border-b border-border bg-background">
       <div className="section flex h-16 items-center justify-between">
         <Link href="/" className="group min-w-0">
           <CortzoLockup size={30} productClassName="text-lg tracking-tight" />
@@ -57,12 +57,12 @@ export function SiteHeader() {
         </div>
 
         <button
-          className="lg:hidden -mr-2 flex min-h-[44px] min-w-[44px] items-center justify-center p-2 text-muted-foreground"
+          className="lg:hidden -mr-2 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border border-border bg-card p-2 text-foreground"
           onClick={() => setOpen(!open)}
           aria-label={open ? "Fechar menu" : "Abrir menu"}
           aria-expanded={open}
         >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {open ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
             ) : (
@@ -75,8 +75,8 @@ export function SiteHeader() {
       {open && (
         <div
           className={cn(
-            "glass lg:hidden border-t border-border/60 px-6 py-5 safe-bottom",
-            "max-h-[calc(100dvh-4rem)] overflow-y-auto"
+            "lg:hidden border-t border-border bg-background px-6 py-5 safe-bottom",
+            "max-h-[calc(100dvh-4rem)] overflow-y-auto shadow-lg"
           )}
         >
           <div className="space-y-1">
@@ -85,17 +85,17 @@ export function SiteHeader() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="flex min-h-[44px] items-center py-3 text-sm font-medium text-foreground"
+                className="flex min-h-[48px] items-center rounded-md px-2 py-3 text-sm font-medium text-foreground hover:bg-muted"
               >
                 {link.label}
               </a>
             ))}
           </div>
-          <div className="mt-4 flex flex-col gap-3 border-t border-border/60 pt-4">
+          <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="text-center py-3 text-sm font-medium text-muted-foreground"
+              className="rounded-full border border-border bg-card py-3 text-center text-sm font-semibold text-foreground"
             >
               Entrar
             </Link>
