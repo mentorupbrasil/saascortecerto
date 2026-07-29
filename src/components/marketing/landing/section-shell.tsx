@@ -72,7 +72,7 @@ export function SectionShell({
                 </div>
               )
             ) : null}
-            <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-[2.65rem] lg:leading-[1.12]">
+            <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.1]">
               {title}
             </h2>
             {description ? (
