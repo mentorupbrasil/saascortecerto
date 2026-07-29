@@ -10,6 +10,11 @@ export const PLAN_PRICES = {
   CLUBE: 69.9,
 } as const;
 
+/** Same discount as GestorPro annual toggle (−20% on the monthly equivalent). */
+export const PLAN_ANNUAL_DISCOUNT = 0.2;
+
+export type PlanBilling = "monthly" | "yearly";
+
 export const PLAN_LABELS: Record<keyof typeof PLAN_PRICES, string> = {
   FREE: "Grátis",
   PRO: "Básico",
@@ -55,13 +60,52 @@ export function getPlanPrice(plan: keyof typeof PLAN_PRICES) {
   return PLAN_PRICES[plan] ?? 0;
 }
 
-export function formatPlanPrice(plan: keyof typeof PLAN_PRICES) {
-  const price = getPlanPrice(plan);
-  if (price === 0) return "Grátis";
+/** Monthly price shown on cards (annual mode = monthly × 0.8). */
+export function getPlanDisplayMonthly(
+  plan: keyof typeof PLAN_PRICES,
+  billing: PlanBilling = "monthly"
+) {
+  const monthly = getPlanPrice(plan);
+  if (billing === "yearly") {
+    return Math.round(monthly * (1 - PLAN_ANNUAL_DISCOUNT) * 100) / 100;
+  }
+  return monthly;
+}
+
+/** Amount charged at checkout (yearly = 12 × discounted monthly). */
+export function getPlanCheckoutAmount(
+  plan: keyof typeof PLAN_PRICES,
+  billing: PlanBilling = "monthly"
+) {
+  if (billing === "yearly") {
+    return Math.round(getPlanDisplayMonthly(plan, "yearly") * 12 * 100) / 100;
+  }
+  return getPlanPrice(plan);
+}
+
+export function formatMoneyBRL(amount: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(price);
+  }).format(amount);
+}
+
+export function formatPlanPrice(
+  plan: keyof typeof PLAN_PRICES,
+  billing: PlanBilling = "monthly"
+) {
+  const price = getPlanDisplayMonthly(plan, billing);
+  if (price === 0) return "Grátis";
+  return formatMoneyBRL(price);
+}
+
+/** Infer billing from charged amount (no DB column for billing cycle yet). */
+export function inferPlanBilling(
+  plan: keyof typeof PLAN_PRICES,
+  amount: number
+): PlanBilling {
+  const yearly = getPlanCheckoutAmount(plan, "yearly");
+  return Math.abs(amount - yearly) < 0.02 ? "yearly" : "monthly";
 }
 
 export function canUseManualWhatsApp(plan: Plan) {

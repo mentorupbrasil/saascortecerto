@@ -1,7 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getPlanPrice, PLAN_LABELS } from "@/lib/plan-pricing";
+import {
+  getPlanCheckoutAmount,
+  inferPlanBilling,
+  PLAN_LABELS,
+  type PlanBilling,
+} from "@/lib/plan-pricing";
 import { generatePixCopiaECola } from "@/lib/pix";
 import { getPlatformPixConfig, getPlatformSupportEmail } from "@/lib/platform-billing";
 import {
@@ -25,6 +30,7 @@ const signupSchema = z.object({
   ownerPassword: z.string().min(6),
   phone: z.string().optional(),
   plan: z.enum(["PRO", "CLUBE"]),
+  billing: z.enum(["monthly", "yearly"]).default("monthly"),
 });
 
 export async function createSignupCheckout(formData: FormData) {
@@ -43,6 +49,7 @@ export async function createSignupCheckout(formData: FormData) {
     ownerPassword: formData.get("ownerPassword"),
     phone: formData.get("phone") || undefined,
     plan: formData.get("plan"),
+    billing: formData.get("billing") || "monthly",
   });
 
   const email = parsed.ownerEmail.toLowerCase().trim();
@@ -62,9 +69,14 @@ export async function createSignupCheckout(formData: FormData) {
   }
 
   const plan = parsed.plan as Plan;
-  const amount = getPlanPrice(plan);
+  const billing = parsed.billing as PlanBilling;
+  const amount = getPlanCheckoutAmount(plan, billing);
   const passwordHash = await bcrypt.hash(parsed.ownerPassword, 12);
   const slug = slugify(parsed.barbershopName);
+  const planLabel =
+    billing === "yearly"
+      ? `${PLAN_LABELS[plan]} · anual (−20%)`
+      : PLAN_LABELS[plan];
 
   const checkout = await prisma.signupCheckout.create({
     data: {
@@ -89,7 +101,7 @@ export async function createSignupCheckout(formData: FormData) {
   if (isMercadoPagoConfigured()) {
     const preference = await createMercadoPagoPreference({
       checkoutId: checkout.id,
-      planLabel: PLAN_LABELS[plan],
+      planLabel,
       amount,
       ownerEmail: email,
     });
@@ -124,12 +136,20 @@ export async function getSignupCheckoutPublic(checkoutId: string) {
     });
   }
 
+  const amount = Number(checkout.amount);
+  const billing = inferPlanBilling(checkout.plan, amount);
+  const planLabel =
+    billing === "yearly"
+      ? `${PLAN_LABELS[checkout.plan]} · anual (−20%)`
+      : PLAN_LABELS[checkout.plan];
+
   return {
     id: checkout.id,
     status: checkout.status,
     plan: checkout.plan,
-    planLabel: PLAN_LABELS[checkout.plan],
-    amount: Number(checkout.amount),
+    planLabel,
+    billing,
+    amount,
     barbershopName: checkout.barbershopName,
     ownerEmail: checkout.ownerEmail,
     tenantId: checkout.tenantId,

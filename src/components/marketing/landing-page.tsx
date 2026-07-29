@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BarChart3,
   Calendar,
-  Check,
   ShieldCheck,
   Settings2,
   Share2,
@@ -17,10 +16,10 @@ import { GlowyWavesHero } from "@/components/marketing/glowy-waves-hero";
 import { CortzoDashboardMockup } from "@/components/marketing/cortzo-dashboard-mockup";
 import { SectionShell } from "@/components/marketing/landing/section-shell";
 import { Reveal, RevealGroup, RevealItem } from "@/components/marketing/landing/reveal";
+import { PricingSection } from "@/components/marketing/pricing-section";
 import {
   formatPlanPrice,
   PLAN_LABELS,
-  PLAN_MARKETING_FEATURES,
   PLAN_SEAT_LIMITS,
 } from "@/lib/plan-pricing";
 import { getPlatformSupportEmail } from "@/lib/platform-billing";
@@ -81,7 +80,11 @@ const faqs = [
   },
   {
     q: `Qual a diferença entre ${PLAN_LABELS.PRO} e ${PLAN_LABELS.CLUBE}?`,
-    a: `${PLAN_LABELS.PRO} (${formatPlanPrice("PRO")}/mês): até ${PLAN_SEAT_LIMITS.PRO} acessos de equipe e o essencial para organizar a barbearia. ${PLAN_LABELS.CLUBE} (${formatPlanPrice("CLUBE")}/mês): até ${PLAN_SEAT_LIMITS.CLUBE} acessos, relatórios completos e recursos avançados.`,
+    a: `${PLAN_LABELS.PRO} (${formatPlanPrice("PRO")}/mês): até ${PLAN_SEAT_LIMITS.PRO} acessos de equipe e o essencial para organizar a barbearia. ${PLAN_LABELS.CLUBE} (${formatPlanPrice("CLUBE")}/mês): até ${PLAN_SEAT_LIMITS.CLUBE} acessos, relatórios completos e recursos avançados. No plano anual você economiza 20%.`,
+  },
+  {
+    q: "Tem desconto no plano anual?",
+    a: "Sim. Ao escolher cobrança anual na seção de planos, você paga o equivalente a 12 meses com 20% de desconto.",
   },
   {
     q: "Preciso instalar algo?",
@@ -182,12 +185,9 @@ export function LandingPage() {
         id="planos"
         eyebrow="Planos"
         title="Investimento claro. Retorno diário."
-        description="Preço fixo mensal, sem taxa de adesão. Cancele quando quiser."
+        description="Preço transparente, sem taxa de adesão. Economize 20% no plano anual."
       >
-        <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
-          <PricingCard plan="PRO" badge="Para começar" />
-          <PricingCard plan="CLUBE" badge="Mais escolhido" featured />
-        </div>
+        <PricingSection />
       </SectionShell>
 
       {/* FAQ */}
@@ -269,69 +269,6 @@ export function LandingPage() {
           </Link>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function PricingCard({
-  plan,
-  badge,
-  featured,
-}: {
-  plan: "PRO" | "CLUBE";
-  badge: string;
-  featured?: boolean;
-}) {
-  const seats = PLAN_SEAT_LIMITS[plan];
-
-  return (
-    <div
-      className={`relative flex flex-col rounded-2xl p-6 lg:p-8 ${
-        featured
-          ? "border-2 border-primary bg-primary/[0.04] shadow-[0_0_60px_-20px_rgba(62,207,142,0.35)]"
-          : "card-elevated"
-      }`}
-    >
-      <span
-        className={`absolute -top-3 left-8 rounded-full px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
-          featured
-            ? "bg-primary text-primary-foreground"
-            : "border border-border bg-card text-muted-foreground"
-        }`}
-      >
-        {badge}
-      </span>
-
-      <p className="text-sm font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-        {PLAN_LABELS[plan]}
-      </p>
-      <p className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-        {formatPlanPrice(plan)}
-        <span className="text-base font-medium text-muted-foreground">/mês</span>
-      </p>
-      <p className="mt-2 border-b border-border pb-6 text-sm text-muted-foreground">
-        Até {seats} {seats === 1 ? "acesso de equipe" : "acessos de equipe"}
-      </p>
-
-      <ul className="mt-6 flex-1 space-y-3">
-        {PLAN_MARKETING_FEATURES[plan].map((feature) => (
-          <li key={feature} className="flex items-start gap-3 text-sm text-foreground/90">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
-            {feature}
-          </li>
-        ))}
-      </ul>
-
-      <Link
-        href={`/assinar?plan=${plan}`}
-        className={`mt-8 flex min-h-[48px] w-full items-center justify-center rounded-full text-sm font-semibold transition-colors ${
-          featured
-            ? "bg-primary text-primary-foreground hover:bg-primary-hover"
-            : "border border-border text-foreground hover:border-primary/40 hover:text-primary"
-        }`}
-      >
-        Escolher {PLAN_LABELS[plan]}
-      </Link>
     </div>
   );
 }

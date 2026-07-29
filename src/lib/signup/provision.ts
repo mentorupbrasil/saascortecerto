@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { inferPlanBilling } from "@/lib/plan-pricing";
 
 const DEFAULT_SERVICES = [
   { name: "Corte", price: 45, duration: 30, sortOrder: 1 },
@@ -38,8 +39,10 @@ export async function provisionTenantFromCheckout(checkoutId: string) {
   }
 
   const slug = await uniqueSlug(checkout.slug || checkout.barbershopName);
+  const isYearly = inferPlanBilling(checkout.plan, Number(checkout.amount)) === "yearly";
+
   const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 30);
+  dueDate.setDate(dueDate.getDate() + (isYearly ? 365 : 30));
 
   const tenant = await prisma.$transaction(async (tx) => {
     const created = await tx.tenant.create({
@@ -67,7 +70,9 @@ export async function provisionTenantFromCheckout(checkoutId: string) {
             status: "PAID",
             dueDate,
             paidAt: new Date(),
-            notes: "Primeira assinatura — cadastro via site",
+            notes: isYearly
+              ? "Primeira assinatura anual (−20%) — cadastro via site"
+              : "Primeira assinatura mensal — cadastro via site",
           },
         },
       },

@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { createSignupCheckout } from "@/lib/signup-actions";
-import { formatPlanPrice, PLAN_LABELS, PLAN_WHATSAPP_DESCRIPTION } from "@/lib/plan-pricing";
+import {
+  formatMoneyBRL,
+  formatPlanPrice,
+  getPlanCheckoutAmount,
+  PLAN_LABELS,
+  PLAN_WHATSAPP_DESCRIPTION,
+  type PlanBilling,
+} from "@/lib/plan-pricing";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { maskBrazilianPhone } from "@/lib/client-utils";
 import { brand } from "@/config/brand";
@@ -24,13 +31,20 @@ const STEPS = [
 
 type Plan = "PRO" | "CLUBE";
 
-export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
+export function SignupPageClient({
+  defaultPlan,
+  defaultBilling = "monthly",
+}: {
+  defaultPlan: Plan;
+  defaultBilling?: PlanBilling;
+}) {
   const [step, setStep] = useState(1);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const router = useRouter();
 
   const [plan, setPlan] = useState<Plan>(defaultPlan);
+  const [billing, setBilling] = useState<PlanBilling>(defaultBilling);
   const [barbershopName, setBarbershopName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -86,6 +100,7 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
 
     const formData = new FormData();
     formData.set("plan", plan);
+    formData.set("billing", billing);
     formData.set("barbershopName", barbershopName.trim());
     formData.set("ownerName", ownerName.trim());
     formData.set("ownerEmail", ownerEmail.trim());
@@ -139,8 +154,49 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
 
         <Card className="flex-1">
           {step === 1 && (
-            <div className="space-y-3">
-              <p className="text-sm text-zinc-400 mb-4">Escolha o plano ideal para sua barbearia.</p>
+            <div className="space-y-4">
+              <p className="text-sm text-zinc-400">Escolha o plano ideal para sua barbearia.</p>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    billing === "monthly" ? "text-foreground" : "text-zinc-500"
+                  )}
+                >
+                  Mensal
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={billing === "yearly"}
+                  aria-label="Alternar cobrança anual"
+                  onClick={() => {
+                    setBilling(billing === "yearly" ? "monthly" : "yearly");
+                    clearError();
+                  }}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
+                    billing === "yearly" ? "bg-amber-500" : "bg-zinc-700"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none block h-5 w-5 rounded-full bg-white shadow transition-transform",
+                      billing === "yearly" ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+                <span
+                  className={cn(
+                    "text-sm font-semibold",
+                    billing === "yearly" ? "text-foreground" : "text-zinc-500"
+                  )}
+                >
+                  Anual <span className="text-amber-400">(−20%)</span>
+                </span>
+              </div>
+
               {(["PRO", "CLUBE"] as const).map((p) => (
                 <button
                   key={p}
@@ -160,9 +216,13 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
                     <div>
                       <p className="font-semibold text-foreground">{PLAN_LABELS[p]}</p>
                       <p className="text-sm text-amber-400 mt-0.5">
-                        {formatPlanPrice(p)}/mês
+                        {formatPlanPrice(p, billing)}/mês
                       </p>
-                      <p className="text-xs text-zinc-500 mt-1">{PLAN_WHATSAPP_DESCRIPTION[p]}</p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        {billing === "yearly"
+                          ? `${formatMoneyBRL(getPlanCheckoutAmount(p, "yearly"))}/ano · ${PLAN_WHATSAPP_DESCRIPTION[p]}`
+                          : PLAN_WHATSAPP_DESCRIPTION[p]}
+                      </p>
                     </div>
                     {plan === p && <Check className="h-5 w-5 text-amber-400 shrink-0" />}
                   </div>
@@ -267,11 +327,18 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
               <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Plano</span>
-                  <span className="text-foreground font-medium">{PLAN_LABELS[plan]}</span>
+                  <span className="text-foreground font-medium">
+                    {PLAN_LABELS[plan]}
+                    {billing === "yearly" ? " · anual" : " · mensal"}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Valor</span>
-                  <span className="text-amber-400 font-medium">{formatPlanPrice(plan)}/mês</span>
+                  <span className="text-amber-400 font-medium">
+                    {billing === "yearly"
+                      ? `${formatMoneyBRL(getPlanCheckoutAmount(plan, "yearly"))}/ano`
+                      : `${formatPlanPrice(plan)}/mês`}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-zinc-500">Barbearia</span>
@@ -304,7 +371,8 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
                   className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-amber-500 focus:ring-amber-500"
                 />
                 <span className="text-sm text-zinc-400">
-                  Li e aceito os termos de uso e a cobrança recorrente do plano escolhido.
+                  Li e aceito os termos de uso e a cobrança{" "}
+                  {billing === "yearly" ? "anual" : "mensal"} do plano escolhido.
                 </span>
               </label>
             </div>
@@ -314,10 +382,20 @@ export function SignupPageClient({ defaultPlan }: { defaultPlan: Plan }) {
             <div className="space-y-4">
               <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4">
                 <p className="text-sm font-medium text-foreground mb-2">Resumo do pedido</p>
-                <p className="text-2xl font-bold text-amber-400">{formatPlanPrice(plan)}</p>
-                <p className="text-xs text-zinc-500 mt-1">
-                  {PLAN_LABELS[plan]} · {barbershopName}
+                <p className="text-2xl font-bold text-amber-400">
+                  {billing === "yearly"
+                    ? formatMoneyBRL(getPlanCheckoutAmount(plan, "yearly"))
+                    : formatPlanPrice(plan)}
                 </p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  {PLAN_LABELS[plan]}
+                  {billing === "yearly" ? " · anual (−20%)" : " · mensal"} · {barbershopName}
+                </p>
+                {billing === "yearly" && (
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Equivale a {formatPlanPrice(plan, "yearly")}/mês
+                  </p>
+                )}
               </div>
               <p className="text-sm text-zinc-400">
                 Na próxima tela você conclui o pagamento via PIX ou cartão. Sua conta é liberada
