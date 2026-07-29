@@ -25,7 +25,7 @@ function BillingToggle({
   const isYearly = billing === "yearly";
 
   return (
-    <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
+    <div className="mb-6 flex flex-wrap items-center justify-center gap-3 sm:mb-8 md:mb-10">
       <span
         className={cn(
           "text-sm font-medium transition-colors",
@@ -81,7 +81,7 @@ function PricingCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-2xl p-6 text-center lg:p-8",
+        "relative flex flex-col rounded-2xl p-5 text-center sm:p-6 lg:p-8",
         featured
           ? "z-10 border-2 border-primary bg-card shadow-lg shadow-primary/10 md:-translate-y-1 md:scale-[1.02]"
           : "border border-border bg-card shadow-sm"
@@ -147,7 +147,7 @@ export function PricingSection() {
     <div>
       <BillingToggle billing={billing} onChange={setBilling} />
 
-      <div className="mx-auto grid max-w-4xl grid-cols-1 items-start gap-5 md:grid-cols-2">
+      <div className="mx-auto grid max-w-4xl grid-cols-1 items-start gap-4 md:grid-cols-2 md:gap-5">
         {(
           [
             { plan: "PRO" as const, badge: "Para começar", featured: false },
@@ -161,7 +161,7 @@ export function PricingSection() {
               reduceMotion
                 ? undefined
                 : {
-                    y: item.featured ? -8 : 0,
+                    y: 0,
                     opacity: 1,
                   }
             }

@@ -65,14 +65,14 @@ export function LandingPage() {
       </GlowyWavesHero>
 
       {/* Trust bar */}
-      <section className="border-b border-border bg-background py-8">
-        <div className="section flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+      <section className="border-b border-border bg-background py-5 sm:py-6 md:py-8">
+        <div className="section flex flex-wrap items-center justify-center gap-x-5 gap-y-2.5 sm:gap-x-8 sm:gap-y-3">
           {trustItems.map((item) => (
             <span
               key={item}
-              className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground"
+              className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground sm:text-xs sm:tracking-[0.1em]"
             >
-              <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
               {item}
             </span>
           ))}
@@ -89,14 +89,14 @@ export function LandingPage() {
         description="Sem consultoria cara, sem implementação demorada. Você assina, paga online e recebe acesso imediato ao painel da sua barbearia."
         tone="muted"
       >
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-3 md:gap-6">
           {howItWorks.map((item, index) => (
-            <div key={item.step} className="card-elevated relative p-6 lg:p-8">
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+            <div key={item.step} className="card-elevated relative p-5 sm:p-6 lg:p-8">
+              <div className="mb-4 flex items-center justify-between sm:mb-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 sm:h-11 sm:w-11">
                   <item.icon className="h-5 w-5 text-primary" aria-hidden />
                 </div>
-                <span className="text-3xl font-bold text-foreground/[0.08]">
+                <span className="text-2xl font-bold text-foreground/[0.08] sm:text-3xl">
                   {String(index + 1).padStart(2, "0")}
                 </span>
               </div>
@@ -120,26 +120,26 @@ export function LandingPage() {
       <FaqSection />
 
       {/* Final CTA */}
-      <section className="border-b border-border py-16 md:py-20 lg:py-24">
+      <section className="border-b border-border py-12 md:py-16 lg:py-20">
         <div className="section">
           <Reveal>
-            <div className="relative overflow-hidden rounded-[28px] border border-border/60 bg-graphite px-6 py-10 text-center text-white shadow-[0_28px_72px_-24px_rgba(0,0,0,0.4)] sm:px-10 sm:py-12 lg:px-14 lg:py-14">
+            <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-graphite px-5 py-8 text-center text-white shadow-[0_28px_72px_-24px_rgba(0,0,0,0.4)] sm:rounded-[28px] sm:px-10 sm:py-12 lg:px-14 lg:py-14">
               <div className="pointer-events-none absolute inset-0 bg-noise opacity-[0.12]" aria-hidden />
               <div
                 className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"
                 aria-hidden
               />
               <div className="relative mx-auto max-w-2xl">
-                <h2 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+                <h2 className="text-balance text-[1.65rem] font-semibold tracking-tight sm:text-3xl lg:text-4xl">
                   Pronto para elevar o nível da sua barbearia?
                 </h2>
-                <p className="text-pretty mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
+                <p className="text-pretty mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/75 sm:mt-4 sm:text-lg">
                   Dúvidas? Escreva para{" "}
                   <a href={`mailto:${supportEmail}`} className="font-medium text-primary hover:underline">
                     {supportEmail}
                   </a>
                 </p>
-                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <div className="mt-6 flex w-full flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center">
                   <Link
                     href="/assinar?plan=PRO"
                     className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
@@ -161,15 +161,15 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="safe-bottom py-8">
-        <div className="section flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:gap-6 sm:text-left">
+      <footer className="safe-bottom py-6 sm:py-8">
+        <div className="section flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:gap-6 sm:text-left">
           <CortzoLockup size={28} productClassName="text-lg" />
-          <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:text-xs sm:tracking-[0.15em]">
             © {new Date().getFullYear()} {brand.legalName} — {brand.byline}
           </p>
           <Link
             href="/login"
-            className="text-xs uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-primary"
+            className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-primary sm:text-xs sm:tracking-[0.15em]"
           >
             Área do cliente
           </Link>

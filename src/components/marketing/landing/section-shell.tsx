@@ -33,7 +33,7 @@ export function SectionShell({
     <section
       id={id}
       className={cn(
-        "relative overflow-hidden border-b border-border py-16 md:py-20 lg:py-24",
+        "relative overflow-hidden border-b border-border py-12 md:py-16 lg:py-20",
         tone === "muted" && "bg-muted/25",
         tone === "elevated" && "bg-card/40",
         tone === "default" && "bg-background",
@@ -87,7 +87,7 @@ export function SectionShell({
             ) : null}
           </div>
         </Reveal>
-        <Reveal delay={0.12} className="mt-8 md:mt-10 lg:mt-12">
+        <Reveal delay={0.12} className="mt-6 md:mt-8 lg:mt-10">
           {children}
         </Reveal>
       </div>

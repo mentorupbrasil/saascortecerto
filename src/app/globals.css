@@ -265,8 +265,15 @@ textarea {
   margin-left: auto;
   margin-right: auto;
   max-width: 72rem;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .section {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 .glass {
@@ -309,6 +316,12 @@ textarea {
   transform: translateY(-4px);
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
   box-shadow: 0 30px 70px -28px rgba(0, 0, 0, 0.22);
+}
+
+@media (hover: none) {
+  .card-interactive:hover {
+    transform: none;
+  }
 }
 
 .section-glow {

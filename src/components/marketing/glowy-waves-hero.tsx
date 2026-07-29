@@ -67,7 +67,7 @@ export function GlowyWavesHero({
 
   return (
     <section
-      className="relative isolate min-h-[calc(100vh-4rem)] w-full overflow-hidden border-b border-border/40 bg-background"
+      className="relative isolate w-full overflow-hidden border-b border-border/40 bg-background md:min-h-[calc(100vh-4rem)]"
       aria-label="Cortzo"
     >
       <div
@@ -86,7 +86,7 @@ export function GlowyWavesHero({
 
       <div className="absolute inset-0 z-0 bg-noise opacity-[0.22]" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-10 text-center md:px-8 lg:px-12 lg:pt-14 lg:pb-10">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-8 text-center sm:px-6 sm:py-10 md:px-8 lg:px-12 lg:pb-10 lg:pt-14">
         <motion.div
           variants={containerVariants}
           initial={reduceMotion ? "visible" : "hidden"}
@@ -95,15 +95,15 @@ export function GlowyWavesHero({
         >
           <motion.div
             variants={itemVariants}
-            className="mx-auto mb-6 flex max-w-fit items-center justify-center gap-2 rounded-full border border-border/40 bg-card/60 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-sm"
+            className="mx-auto mb-4 flex max-w-fit items-center justify-center gap-2 rounded-full border border-border/40 bg-card/80 px-3 py-1.5 text-xs font-medium text-foreground backdrop-blur-sm sm:mb-6 sm:px-4 sm:py-2 sm:text-sm"
           >
             <span>{badge}</span>
-            <ArrowRight className="h-4 w-4 text-primary" aria-hidden="true" />
+            <ArrowRight className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" aria-hidden="true" />
           </motion.div>
 
           <motion.h1
             variants={itemVariants}
-            className="mx-auto mb-6 max-w-4xl text-4xl font-bold leading-tight tracking-tight text-foreground md:text-6xl lg:text-7xl"
+            className="mx-auto mb-4 max-w-4xl text-[1.85rem] font-bold leading-[1.15] tracking-tight text-foreground sm:mb-6 sm:text-4xl md:text-6xl lg:text-7xl"
           >
             {title}{" "}
             <span className="bg-gradient-to-r from-primary via-primary/80 to-foreground/70 bg-clip-text text-transparent">
@@ -113,31 +113,31 @@ export function GlowyWavesHero({
 
           <motion.p
             variants={itemVariants}
-            className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl"
+            className="mx-auto mb-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:mb-8 sm:text-lg md:text-xl"
           >
             {description}
           </motion.p>
 
           <motion.div
             variants={itemVariants}
-            className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-4"
+            className="mb-6 flex w-full flex-col items-stretch justify-center gap-3 sm:mb-8 sm:flex-row sm:items-center sm:gap-4"
           >
-            <Link href={primaryCta.href} className={primaryButtonClasses}>
+            <Link href={primaryCta.href} className={cn(primaryButtonClasses, "w-full sm:w-auto")}>
               {primaryCta.label}
             </Link>
-            <Link href={secondaryCta.href} className={secondaryButtonClasses}>
+            <Link href={secondaryCta.href} className={cn(secondaryButtonClasses, "w-full sm:w-auto")}>
               {secondaryCta.label}
             </Link>
           </motion.div>
 
           <motion.ul
             variants={itemVariants}
-            className="mb-8 flex flex-wrap items-center justify-center gap-3 text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground"
+            className="mb-6 flex flex-wrap items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground sm:mb-8 sm:gap-3 sm:text-xs sm:tracking-[0.15em]"
           >
             {pills.map((pill) => (
               <li
                 key={pill}
-                className="rounded-full border border-border/50 bg-card/60 px-4 py-2 backdrop-blur-sm transition-all duration-300 hover:border-primary/30 hover:bg-card hover:shadow-sm"
+                className="rounded-full border border-border/50 bg-card/60 px-3 py-1.5 backdrop-blur-sm transition-all duration-300 hover:border-primary/30 hover:bg-card hover:shadow-sm sm:px-4 sm:py-2"
               >
                 {pill}
               </li>
@@ -164,7 +164,7 @@ export function GlowyWavesHero({
           ) : null}
 
           {children ? (
-            <motion.div variants={itemVariants} className="relative mx-auto mt-8 w-full max-w-6xl sm:mt-10">
+            <motion.div variants={itemVariants} className="relative mx-auto mt-2 w-full max-w-6xl sm:mt-6">
               <div
                 className="pointer-events-none absolute inset-x-6 top-1/4 h-40 rounded-3xl bg-primary/25 opacity-50 blur-[5rem] sm:inset-x-12 sm:h-56 sm:blur-[6rem]"
                 aria-hidden="true"

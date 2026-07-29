@@ -59,32 +59,32 @@ export function FeaturesSection() {
   return (
     <section
       id="recursos"
-      className="relative overflow-hidden border-b border-border bg-background py-16 md:py-20 lg:py-24"
+      className="relative overflow-hidden border-b border-border bg-background py-12 md:py-16 lg:py-20"
     >
       <div className="section relative">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14 xl:gap-16">
+        <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-12 xl:gap-14">
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary sm:mb-3">
               Funcionalidades
             </p>
-            <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-[2.5rem] lg:leading-[1.15]">
+            <h2 className="text-balance text-[1.65rem] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl lg:text-[2.5rem] lg:leading-[1.15]">
               Tudo o que você controla com o {brand.name}
             </h2>
-            <p className="text-pretty mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-8">
+            <p className="text-pretty mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:mt-4 sm:text-base sm:leading-7 md:text-lg md:leading-8">
               12 módulos para organizar clientes, agenda, financeiro, equipe e operação — sem
               juntar caderno, planilha e WhatsApp.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-5 hidden gap-3 sm:mt-7 sm:flex sm:flex-row sm:flex-wrap">
               <Link
                 href="#modulos"
-                className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-7 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover sm:h-12 sm:px-7"
               >
                 Ver todos os módulos
               </Link>
               <Link
                 href="/assinar?plan=PRO"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-border bg-card px-7 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 sm:h-12 sm:px-7"
               >
                 Começar por {formatPlanPrice("PRO")}
               </Link>
@@ -95,41 +95,54 @@ export function FeaturesSection() {
             id="modulos"
             initial={reduceMotion ? false : { y: 24, opacity: 0 }}
             whileInView={reduceMotion ? undefined : { y: 0, opacity: 1 }}
-            viewport={{ once: true, margin: "-60px" }}
+            viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.5, type: "spring", stiffness: 120, damping: 22 }}
-            className="scroll-mt-28 rounded-[28px] border border-border bg-card p-5 shadow-sm sm:p-6 lg:p-7"
+            className="scroll-mt-24 rounded-2xl border border-border bg-card p-3 shadow-sm sm:scroll-mt-28 sm:rounded-[28px] sm:p-5 lg:p-7"
           >
-            <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:mb-4">
               Principais módulos
             </p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {MODULES.map((mod, index) => (
                 <motion.div
                   key={mod.label}
                   initial={reduceMotion ? false : { y: 12, opacity: 0 }}
                   whileInView={reduceMotion ? undefined : { y: 0, opacity: 1 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.03, duration: 0.35 }}
+                  transition={{ delay: index * 0.02, duration: 0.3 }}
                   className={cn(
-                    "flex min-h-[96px] flex-col items-center justify-center gap-2.5 rounded-2xl border border-border/80 bg-background px-2 py-4 text-center transition-colors hover:border-primary/35 hover:bg-primary/[0.04]"
+                    "flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-background px-1.5 py-2.5 text-center sm:min-h-[96px] sm:gap-2.5 sm:rounded-2xl sm:px-2 sm:py-4"
                   )}
                 >
-                  <mod.icon className="h-7 w-7 text-primary" strokeWidth={1.6} aria-hidden />
-                  <span className="text-sm font-medium text-foreground">{mod.label}</span>
+                  <mod.icon
+                    className="h-5 w-5 text-primary sm:h-7 sm:w-7"
+                    strokeWidth={1.6}
+                    aria-hidden
+                  />
+                  <span className="text-[11px] font-medium leading-tight text-foreground sm:text-sm">
+                    {mod.label}
+                  </span>
                 </motion.div>
               ))}
             </div>
           </motion.div>
+
+          <Link
+            href="/assinar?plan=PRO"
+            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover sm:hidden"
+          >
+            Começar por {formatPlanPrice("PRO")}
+          </Link>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-3 md:gap-5 lg:mt-14">
+        <div className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 md:mt-12 md:grid-cols-3 md:gap-5">
           {FEATURE_HIGHLIGHTS.map((item) => (
             <div
               key={item.title}
-              className="rounded-2xl border border-border bg-card/60 p-5 sm:p-6"
+              className="rounded-xl border border-border bg-card/60 p-4 sm:rounded-2xl sm:p-5 md:p-6"
             >
-              <h3 className="text-base font-semibold text-foreground">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <h3 className="text-sm font-semibold text-foreground sm:text-base">{item.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground sm:mt-2">
                 {item.description}
               </p>
             </div>

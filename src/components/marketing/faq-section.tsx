@@ -141,19 +141,19 @@ export function FaqSection() {
   const items = FAQS.filter((faq) => faq.category === category);
 
   return (
-    <section id="faq" className="relative overflow-hidden border-b border-border bg-muted/25 py-16 md:py-20 lg:py-24">
+    <section id="faq" className="relative overflow-hidden border-b border-border bg-muted/25 py-12 md:py-16 lg:py-20">
       <div className="section-glow pointer-events-none absolute inset-0" aria-hidden />
 
       <div className="section relative">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="mb-3 text-sm font-medium text-primary">Perguntas comuns</p>
-          <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-[2.65rem] lg:leading-[1.12]">
+          <p className="mb-2 text-sm font-medium text-primary sm:mb-3">Perguntas comuns</p>
+          <h2 className="text-balance text-[1.65rem] font-semibold tracking-tight text-foreground sm:text-3xl lg:text-[2.65rem] lg:leading-[1.12]">
             Dúvidas frequentes
           </h2>
         </div>
 
         <div
-          className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-2 md:mt-10"
+          className="mx-auto mt-5 flex max-w-3xl gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-8 sm:flex-wrap sm:items-center sm:justify-center md:mt-10 [&::-webkit-scrollbar]:hidden"
           role="tablist"
           aria-label="Categorias de dúvidas"
         >
@@ -167,7 +167,7 @@ export function FaqSection() {
                 aria-selected={active}
                 onClick={() => setCategory(tab.id)}
                 className={cn(
-                  "rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors min-h-[44px]",
+                  "shrink-0 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors min-h-[40px] sm:min-h-[44px] sm:px-4 sm:py-2.5",
                   active
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "border border-border bg-card text-foreground hover:border-primary/40"
@@ -179,7 +179,7 @@ export function FaqSection() {
           })}
         </div>
 
-        <div className="mx-auto mt-6 max-w-3xl space-y-3 md:mt-8" role="tabpanel">
+        <div className="mx-auto mt-4 max-w-3xl space-y-2.5 sm:mt-6 sm:space-y-3 md:mt-8" role="tabpanel">
           {items.map((faq) => (
             <FaqItem key={faq.q} q={faq.q} a={faq.a} />
           ))}
